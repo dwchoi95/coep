@@ -40,6 +40,27 @@ def prompt_prefix_tokens(pid: str) -> int:
     return tokens.count(prefix)
 
 
+def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    if n == 0:
+        return (0.0, 0.0)
+    p = k / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
+    return (max(0.0, centre - half), min(1.0, centre + half))
+
+
+def mcnemar_exact(b: int, c: int) -> float:
+    """Two-sided exact McNemar p-value on discordant pairs (b, c)."""
+    from math import comb
+    n = b + c
+    if n == 0:
+        return 1.0
+    k = min(b, c)
+    tail = sum(comb(n, i) for i in range(0, k + 1)) / 2 ** n
+    return min(1.0, 2 * tail)
+
+
 def main():
     splits = json.loads((ROOT / "benchmark" / "splits.json").read_text())
     pids = sorted(splits)
@@ -153,8 +174,84 @@ def main():
         },
         "per_problem": per_problem,
     }
+    # statistics: Wilson CIs and paired McNemar tests
+    coep_ok_keys = {f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all if r["repaired"]}
+    bq_keys = {r["key"] for r in b_quality}
+    bf_keys = {r["key"] for r in b_fixed}
+    all_keys = [f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all]
+    b_bq = sum(1 for k in all_keys if k in bq_keys and k not in coep_ok_keys)
+    c_bq = sum(1 for k in all_keys if k not in bq_keys and k in coep_ok_keys)
+    b_bf = sum(1 for k in all_keys if k in bf_keys and k not in coep_ok_keys)
+    c_bf = sum(1 for k in all_keys if k not in bf_keys and k in coep_ok_keys)
+    # ablation (generic-only), if present
+    abl_path = ROOT / "runs" / "ablation_generic" / "results.json"
+    abl = None
+    if abl_path.exists():
+        arows = json.loads(abl_path.read_text())
+        aok = {f"{r['pid']}__{r['bug'][:-3]}" for r in arows if r["repaired"]}
+        b_a = sum(1 for k in all_keys if k in aok and k not in coep_ok_keys)
+        c_a = sum(1 for k in all_keys if k not in aok and k in coep_ok_keys)
+        abl = {
+            "repair_rate": len(aok) / len(arows),
+            "n_fixed": len(aok),
+            "ci": wilson_ci(len(aok), len(arows)),
+            "mean_seconds": round(float(np.mean([r["seconds"] for r in arows])), 2),
+            "mcnemar_vs_coep_p": mcnemar_exact(b_a, c_a),
+            "discordant_vs_coep": [b_a, c_a],
+            "per_problem": {pid: sum(1 for r in arows if r["pid"] == pid and r["repaired"])
+                            for pid in pids},
+        }
+    summary["stats"] = {
+        "baseline_ci": wilson_ci(len(b_fixed), n_eval),
+        "baseline_quality_ci": wilson_ci(len(b_quality), n_eval),
+        "coep_local_ci": wilson_ci(len(c_fixed), len(coep_all)),
+        "hybrid_ci": wilson_ci(len(hybrid_fixed), len(coep_all)),
+        "mcnemar_baseline_vs_coep": {"discordant": [b_bf, c_bf], "p": mcnemar_exact(b_bf, c_bf)},
+        "mcnemar_basequality_vs_coep": {"discordant": [b_bq, c_bq], "p": mcnemar_exact(b_bq, c_bq)},
+    }
+    summary["ablation_generic"] = abl
     (ROOT / "runs" / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps({k: v for k, v in summary.items() if k != "per_problem"}, indent=2))
+
+    # LaTeX macros for the paper
+    per_inst_base = base_usage.dollars() / n_eval
+    prefix_frac = 1 - cached.input_tokens / base_usage.input_tokens
+    n_star = (build_usd / len(pids)) / (per_inst_base * (1 - fb_rate))
+    n_star_cached = (build_usd / len(pids)) / (per_inst_cached_usd * (1 - fb_rate))
+    asym_reduction = 1 / fb_rate
+    macros = {
+        "NumProblems": len(pids),
+        "NumEval": n_eval,
+        "NumBuggy": n_eval + 5 * len(pids),
+        "BaseRate": f"{len(b_fixed)/n_eval*100:.1f}",
+        "BaseQualityRate": f"{len(b_quality)/n_eval*100:.1f}",
+        "BaseMeanRPS": f"{np.mean([r['rps'] for r in b_fixed]):.3f}",
+        "CoepRate": f"{len(c_fixed)/len(coep_all)*100:.1f}",
+        "CoepMeanRPS": f"{np.mean([r['rps'] for r in c_fixed]):.3f}",
+        "HybridRate": f"{len(hybrid_fixed)/len(coep_all)*100:.1f}",
+        "FallbackRate": f"{fb_rate*100:.1f}",
+        "BaseUsdPerInst": f"{per_inst_base*1000:.2f}",     # in millidollars
+        "CachedUsdPerInst": f"{per_inst_cached_usd*1000:.2f}",
+        "HybridAsymUsdPerInst": f"{fb_rate*per_inst_base*1000:.2f}",
+        "BuildUsdPerProblem": f"{build_usd/len(pids):.3f}",
+        "BuildUsdTotal": f"{build_usd:.2f}",
+        "PrefixFrac": f"{prefix_frac*100:.0f}",
+        "CacheSavingFrac": f"{(1-per_inst_cached_usd/per_inst_base)*100:.0f}",
+        "BreakEvenN": f"{n_star:.0f}",
+        "BreakEvenNCached": f"{n_star_cached:.0f}",
+        "AsymReduction": f"{asym_reduction:.1f}",
+        "CoepMeanSec": f"{np.mean([r.get('seconds') or 0 for r in coep_all]):.1f}",
+        "BaseInTok": f"{base_usage.input_tokens/n_eval:.0f}",
+        "BaseOutTok": f"{base_usage.output_tokens/n_eval:.0f}",
+        "BuildInTok": f"{build_usage.input_tokens}",
+        "BuildOutTok": f"{build_usage.output_tokens}",
+    }
+    if abl:
+        macros["AblRate"] = f"{abl['repair_rate']*100:.1f}"
+        macros["AblP"] = f"{abl['mcnemar_vs_coep_p']:.2g}"
+    lines = [f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in macros.items()]
+    (ROOT / "paper" / "numbers.tex").write_text("\n".join(lines) + "\n")
+    print("wrote paper/numbers.tex")
 
     # ---------------- figures ----------------
     plt.rcParams.update({"font.size": 9, "figure.dpi": 150})
