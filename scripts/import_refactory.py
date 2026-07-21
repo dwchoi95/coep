@@ -64,13 +64,17 @@ def parse_tests(ansdir: pathlib.Path, entry: str) -> tuple[list[dict], int]:
         raw_in = inp.read_text().strip()
         raw_out = out.read_text().strip()
         try:
-            call = raw_in
-            m = re.match(rf"{entry}\s*\((.*)\)\s*$", raw_in, re.S)
+            m = re.match(r"(\w+)\s*\((.*)\)\s*$", raw_in, re.S)
             if m:
-                call = m.group(1)
+                callee, call = m.group(1), m.group(2)
+            else:
+                callee, call = entry, raw_in
             args = ast.literal_eval(f"({call},)") if call else ()
             expected = ast.literal_eval(raw_out)
-            tests.append({"args": list(args), "expected": expected})
+            rec = {"args": list(args), "expected": expected}
+            if callee != entry:
+                rec["entry"] = callee
+            tests.append(rec)
         except (ValueError, SyntaxError):
             skipped += 1
     return tests, skipped
@@ -107,10 +111,9 @@ def main():
         pdir = ROOT / "benchmark" / "problems" / pid
         (pdir / "refs").mkdir(parents=True, exist_ok=True)
         (pdir / "buggy").mkdir(exist_ok=True)
-        desc = (f"(Imported from the Refactory dataset, {qdir.name}.) Implement "
-                f"the function `{entry}` so that it passes the instructor test "
-                f"suite below. See Hu et al., ASE 2019 for the original "
-                f"assignment handouts.")
+        desc_file = qdir / "description.txt"
+        desc = (desc_file.read_text().strip() if desc_file.exists() else
+                f"Implement the function `{entry}` passing the instructor tests.")
         (pdir / "problem.json").write_text(json.dumps(
             {"id": pid, "entry": entry, "description": desc, "tests": tests}, indent=2))
         (pdir / "refs" / "ref1.py").write_text(ref_src)
@@ -133,8 +136,12 @@ def main():
                 (pdir / "buggy" / name).write_text(src)
                 buggy_names.append(name)
         rng.shuffle(buggy_names)
+        eval_cap = 40
+        for a in sys.argv:
+            if a.startswith("--eval-cap="):
+                eval_cap = int(a.split("=")[1])
         splits[pid] = {"build": sorted(buggy_names[:5]),
-                       "eval": sorted(buggy_names[5:])}
+                       "eval": sorted(buggy_names[5:5 + eval_cap])}
         print(f"  -> {n_ref} refs, {len(buggy_names)} real buggy submissions "
               f"(build 5 / eval {len(buggy_names)-5})")
 

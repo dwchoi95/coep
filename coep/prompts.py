@@ -12,7 +12,8 @@ def render_tests(entry: str, tests: list[dict]) -> str:
     lines = []
     for t in tests:
         args = ", ".join(json.dumps(a) for a in t["args"])
-        lines.append(f"assert {entry}({args}) == {json.dumps(t['expected'])}")
+        fn = t.get("entry", entry)
+        lines.append(f"assert {fn}({args}) == {json.dumps(t['expected'])}")
     return "\n".join(lines)
 
 

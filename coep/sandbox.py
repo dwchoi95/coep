@@ -55,11 +55,12 @@ def main():
     except BaseException as e:
         print(json.dumps({"error": "compile/exec: %s" % e, "results": []}))
         return
-    fn = ns.get(entry)
-    if not callable(fn):
-        print(json.dumps({"error": "missing entry function %r" % entry, "results": []}))
-        return
     for t in tests:
+        fn = ns.get(t.get("entry", entry))
+        if not callable(fn):
+            results.append({"ok": False, "got": None,
+                            "error": "missing function %r" % t.get("entry", entry)})
+            continue
         args = copy.deepcopy(t["args"])
         try:
             with contextlib.redirect_stdout(io.StringIO()):
@@ -133,13 +134,14 @@ def run_tests_inproc(source: str, entry: str, tests: list[dict],
             exec(compile(source, "<student>", "exec"), ns)
         except BaseException as e:
             return RunResult(compiled=False, passed=0, total=len(tests), error=str(e))
-        fn = ns.get(entry)
-        if not callable(fn):
-            return RunResult(compiled=False, passed=0, total=len(tests),
-                             error=f"missing entry function {entry!r}")
         passed = 0
         failures = []
         for i, t in enumerate(tests):
+            fn = ns.get(t.get("entry", entry))
+            if not callable(fn):
+                failures.append({"index": i, "args": t["args"], "expected": t["expected"],
+                                 "got": None, "error": f"missing function {t.get('entry', entry)!r}"})
+                continue
             try:
                 with contextlib.redirect_stdout(io.StringIO()):
                     out = fn(*copy.deepcopy(t["args"]))
