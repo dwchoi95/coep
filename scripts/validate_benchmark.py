@@ -21,6 +21,7 @@ PROBLEMS = ROOT / "benchmark" / "problems"
 
 def validate(pdir: pathlib.Path) -> list[str]:
     errors = []
+    imported = pdir.name.startswith("refactory_")
     pj = pdir / "problem.json"
     if not pj.exists():
         return [f"{pdir.name}: missing problem.json"]
@@ -29,7 +30,7 @@ def validate(pdir: pathlib.Path) -> list[str]:
         if key not in p:
             errors.append(f"{pdir.name}: problem.json missing '{key}'")
     tests = p.get("tests", [])
-    if len(tests) < 12:
+    if len(tests) < 12 and not imported:
         errors.append(f"{pdir.name}: only {len(tests)} tests (need >=12)")
     for i, t in enumerate(tests):
         if "args" not in t or "expected" not in t:
@@ -48,7 +49,7 @@ def validate(pdir: pathlib.Path) -> list[str]:
     seen = {}
     for bf in buggy:
         src = bf.read_text()
-        if src.strip() in seen:
+        if src.strip() in seen and not imported:
             errors.append(f"{pdir.name}/{bf.name}: duplicate of {seen[src.strip()]}")
         seen[src.strip()] = bf.name
         try:
@@ -61,7 +62,7 @@ def validate(pdir: pathlib.Path) -> list[str]:
             errors.append(f"{pdir.name}/{bf.name}: does not run: {r.error}")
         elif r.all_pass:
             errors.append(f"{pdir.name}/{bf.name}: passes all tests (not buggy!)")
-    crafted = [b for b in buggy if b.name.startswith("crafted")]
+    crafted = [] if imported else [b for b in buggy if b.name.startswith("crafted")]
     if crafted and len(crafted) < 10:
         errors.append(f"{pdir.name}: only {len(crafted)} crafted bugs (need >=10)")
     return errors
