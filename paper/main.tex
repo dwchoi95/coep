@@ -117,34 +117,31 @@ Three consequences follow.
 \centering
 \begin{tikzpicture}[
   font=\scriptsize,
-  box/.style={draw, rounded corners=1pt, align=center, inner sep=3pt, minimum height=5.5mm},
+  box/.style={draw, rounded corners=1pt, align=center, inner sep=2.8pt, minimum height=5.2mm},
   llm/.style={box, fill=blue!12},
   loc/.style={box, fill=red!10},
   dat/.style={box, fill=black!6},
   arr/.style={-{Stealth[length=1.6mm]}, thick},
   lbl/.style={font=\scriptsize\itshape}
 ]
-% build phase
-\node[dat] (spec) {spec $d$, tests $T$,\\refs $R$, $k$ past bugs};
-\node[llm, right=5.5mm of spec] (builder) {Builder\\LLM};
-\node[loc, right=5.5mm of builder] (rho) {repairer\\$\rho_A$ (.py)};
-\node[dat, below=4.5mm of builder] (val) {harness: validate on\\$B_{\mathrm{build}}$ (tests + RPS)};
+\node[lbl, anchor=west] at (-0.9, 0.85) {\textbf{Build} (once per assignment)};
+\node[dat] (spec) at (0, 0) {spec $d$, tests $T$,\\refs $R$, 5 past bugs};
+\node[llm] (builder) at (3.0, 0) {Builder\\LLM};
+\node[loc] (rho) at (5.6, 0) {repairer\\$\rho_A$ (.py)};
+\node[dat] (val) at (3.0, -1.35) {validate on $B_{\mathrm{build}}$\\(tests + RPS cap)};
 \draw[arr] (spec) -- (builder);
 \draw[arr] (builder) -- (rho);
-\draw[arr] (rho.south west) to[bend left=12] (val.east);
-\draw[arr] (val.north) -- node[lbl, right=1pt]{$\le 3$ rounds} (builder.south);
-% deploy phase
-\node[dat, below=13mm of spec] (sub) {student\\submission $b$};
-\node[loc, right=5.5mm of sub] (rho2) {$\rho_A(b)$\\local, $\approx$0\,\$};
-\node[dat, right=5.5mm of rho2] (patch) {validated\\minimal patch};
-\node[llm, below=3.5mm of patch] (fb) {fallback LLM\\(per-submission)};
+\draw[arr] (rho.south) |- (val.east);
+\draw[arr] (val.north) -- node[lbl, right=1pt]{feedback, $\le 3$ rounds} (builder.south);
+\node[lbl, anchor=west] at (-0.9, -2.25) {\textbf{Deploy} (every submission)};
+\node[dat] (sub) at (0, -3.1) {student\\submission $b$};
+\node[loc] (rho2) at (3.0, -3.1) {$\rho_A(b)$: local\\$\approx$0 cost, ${\sim}2$s};
+\node[dat] (patch) at (5.6, -3.1) {validated\\minimal patch};
+\node[llm] (fb) at (3.0, -4.35) {fallback LLM (per-submission)};
 \draw[arr] (sub) -- (rho2);
-\draw[arr] (rho2) -- node[lbl, above=0pt]{pass} (patch);
-\draw[arr] (rho2.south east) to[bend right=12] node[lbl, below left=-1pt]{$\bot$} (fb.west);
-\draw[arr] (fb) -- (patch);
-% phase labels
-\node[lbl, anchor=west] at ([xshift=-2mm, yshift=4.5mm]spec.north west) {Build phase (once per assignment)};
-\node[lbl, anchor=west] at ([xshift=-2mm, yshift=3.5mm]sub.north west) {Deploy phase (every submission)};
+\draw[arr] (rho2) -- node[lbl, above=-1pt]{pass} (patch);
+\draw[arr] (rho2.south) -- node[lbl, right=1pt]{$\bot$ (25\%)} (fb.north);
+\draw[arr] (fb.east) -| (patch.south);
 \end{tikzpicture}
 \caption{\textsc{CoEP}. LLM effort (blue) is spent once per assignment to synthesize a local repairer (red); at deployment, most submissions never touch a model.}
 \label{fig:arch}
@@ -255,14 +252,15 @@ Experiments ran on a single Linux container (no GPU); synthesized repairers used
 \setlength{\tabcolsep}{2.6pt}
 \begin{tabular}{lcccc}
 \toprule
- & Repair rate & RPS$\le$0.35 & RPS & \$/sub \\
+ & Repair & RPS & mean & \$/sub \\
+ & rate & $\le$0.35 & RPS & ($\times10^{-3}$) \\
 \midrule
-LLM per-subm. & \textbf{100.0} {\tiny[97.9, 100]} & 92.7 & 0.127 & 2.99\ex \\
-\;+ caching & \textbf{100.0} {\tiny[97.9, 100]} & 92.7 & 0.127 & 1.53\ex \\
+LLM per-subm. & \textbf{100.0} {\tiny[97.9, 100]} & 92.7 & 0.127 & 2.99 \\
+\;+ caching & \textbf{100.0} {\tiny[97.9, 100]} & 92.7 & 0.127 & 1.53 \\
 \midrule
 Generic-only & 62.0 {\tiny[54.7, 68.8]} & 62.0 & 0.043 & 0 \\
 \textsc{CoEP}-local & 74.9 {\tiny[68.0, 80.6]} & 74.9 & 0.058 & \textbf{0} \\
-\textsc{CoEP}-hybrid & \textbf{100.0} {\tiny[97.9, 100]} & 92.7 & 0.127 & 0.75\ex \\
+\textsc{CoEP}-hybrid & \textbf{100.0} {\tiny[97.9, 100]} & 92.7 & 0.127 & \textbf{0.75} \\
 \bottomrule
 \end{tabular}
 \caption{Main results on \NumEval{} held-out buggy submissions (95\% Wilson CIs). ``RPS$\le$0.35'' counts only repairs within the patch-size cap; local methods enforce it by construction. Marginal cost excludes the one-off \$\BuildUsdPerProblem/assignment build cost, analyzed in RQ2. (\ex{} $= \times 10^{-3}$\$.)}
@@ -307,16 +305,16 @@ The dispersion tracks how far an assignment's misconceptions lie from small-edit
 \setlength{\tabcolsep}{3.6pt}
 \begin{tabular}{lrr}
 \toprule
- & Tokens (in / out) & USD \\
+ & Tok.\ in / out & USD ($\times10^{-3}$) \\
 \midrule
-Baseline, per submission & 740 / 51 & 2.99\ex \\
-\;\;with prompt caching & 740 / 51 & 1.53\ex \\
-\textsc{CoEP} build, per assignment & 4749 / 7441 & 126\ex \\
+Baseline, per submission & 740 / 51 & 2.99 \\
+\;\;with prompt caching & 740 / 51 & 1.53 \\
+\textsc{CoEP} build, per assignment & 4749 / 7441 & 126 \\
 \textsc{CoEP} marginal, per submission & 0 / 0 & 0 \\
-\textsc{CoEP} fallback, per escalation & 739 / 54 & 3.02\ex \\
+\textsc{CoEP} fallback, per escalation & 739 / 54 & 3.02 \\
 \bottomrule
 \end{tabular}
-\caption{Token and dollar accounting (\ex{} $= \times10^{-3}$\$). Build cost covers all builder and refinement calls (15 LLM calls across \NumProblems{} assignments, $R_{\max}{=}3$).}
+\caption{Token and dollar accounting. Build cost covers all builder and refinement calls (15 LLM calls across \NumProblems{} assignments, $R_{\max}{=}3$).}
 \label{tab:cost}
 \end{table}
 

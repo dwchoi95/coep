@@ -325,7 +325,8 @@ def main():
     ax.set_xticks(x, pids, rotation=30, ha="right", fontsize=7.5)
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("Repair rate")
-    ax.legend(frameon=False, fontsize=8)
+    ax.legend(frameon=False, fontsize=8, ncol=3, loc="lower center",
+              bbox_to_anchor=(0.5, 1.0))
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     fig.savefig(FIGDIR / "per_problem.pdf")
