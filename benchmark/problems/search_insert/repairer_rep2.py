@@ -1,29 +1,65 @@
 """Local, LLM-free automatic repair for the `search_insert` assignment.
 
-Strategy:
-  1. Try the submission itself (it may already pass).
-  2. Try problem-specific AST rewrites targeting common misconceptions for
-     this assignment (wrong bisect branch bodies, early `== x` returns that
-     break leftmost-index semantics, `return -1` / wrong sentinel instead of
-     `len(lst)`, `/` vs `//`, `// 1` typos, `lst[mid+1]` index shifts,
-     `lo = mid` non-progress assignments, returning the wrong variable).
-  3. Generic single-edit search over the original.
-  4. Generic single-edit search stacked on top of each specific rewrite
-     (covers many two-fault submissions cheaply).
-  5. Generic two-edit search as a last resort.
+Root-cause analysis of the round-1 failures
+-------------------------------------------
+Every listed submission failed with `no_patch`, including mutant_05
+(`lst[mid + 1]` -> `lst[mid]`) and mutant_10 (`// 1` -> `// 2`) whose fixes
+were *already generated* by the stage-0 specific rewrites and demonstrably
+pass all visible tests.  When stage 0 cannot even land those, the failure is
+not in the rewrite rules but in the shared plumbing: the module hard-imported
+several helper symbols (`chain`, `failing_tests` from coep.repairlib and
+`rps` from coep.evaluate) that it never actually needed, and called the
+helpers with optimistic keyword signatures.  Any one of those going wrong
+(missing symbol -> module fails to load, or an unexpected kwarg ->
+TypeError swallowed by the blanket `except Exception` in `repair`) turns
+*every* submission into `no_patch` uniformly - exactly the observed outcome.
 
-Every candidate is validated through `first_passing`, which enforces the
-full visible test suite and the rps <= 0.35 patch-size cap against the
+Fixes in this revision:
+  * All helper-library imports are individually guarded; unused imports are
+    dropped; `itertools.chain` replaces the repairlib `chain`.
+  * `first_passing` / `candidates_generic` are invoked through defensive
+    wrappers that retry with progressively smaller keyword sets on
+    TypeError, so a signature mismatch degrades instead of aborting.
+  * Each search stage is isolated in its own try/except so one broken
+    helper cannot kill the remaining stages.
+  * New rules for the genuinely uncovered bugs:
+      - comparison strictness toggles (`<=` <-> `<`, `>=` <-> `>`) fixing
+        crafted_02 (`lst[mid] <= x`) and crafted_10 (`v <= x`), which break
+        leftmost-index semantics on duplicates;  loosening a `while` loop
+        bound is deliberately excluded to avoid non-terminating candidates;
+      - comparison direction mirror for if-tests (`<` <-> `>`);
+      - `+ 1` <-> `- 1` toggles on binary ops (wrong step direction);
+      - a depth-2 pass that stacks two specific rewrites, fixing two-fault
+        submissions such as mutant_12 (`// 1` and `lo = mid - 1` together).
+
+Every candidate is still validated through `first_passing`, which enforces
+the full visible test suite and the rps <= 0.35 patch-size cap against the
 ORIGINAL student source.
 """
 
 import ast
 import copy
+import itertools
 
-from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
-from coep.evaluate import rps
+# Guarded helper-library imports: a missing or renamed symbol must degrade
+# gracefully instead of preventing this module from loading.
+try:
+    from coep.repairlib import first_passing as _first_passing
+except Exception:  # pragma: no cover
+    _first_passing = None
+
+try:
+    from coep.repairlib import candidates_generic as _candidates_generic
+except Exception:  # pragma: no cover
+    _candidates_generic = None
+
+try:
+    from coep.evaluate import rps as _rps
+except Exception:  # pragma: no cover
+    _rps = None
 
 ENTRY = "search_insert"
+MAX_RPS = 0.35
 
 TESTS = [
     {"args": [[1, 3, 5, 7], 5], "expected": 2},
@@ -42,6 +78,64 @@ TESTS = [
     {"args": [[1, 3, 5, 7], 7], "expected": 3},
 ]
 
+
+# ---------------------------------------------------------------------------
+# Defensive wrappers around the helper library
+# ---------------------------------------------------------------------------
+
+def _validate(cands, source, max_checks=None):
+    """Run first_passing, retrying with smaller kwarg sets on TypeError.
+
+    Returns the first passing candidate source, or None.  Never raises.
+    """
+    if _first_passing is None:
+        return None
+    kwarg_sets = []
+    if max_checks is not None:
+        kwarg_sets.append({"max_rps": MAX_RPS, "max_checks": max_checks})
+    kwarg_sets.append({"max_rps": MAX_RPS})
+    kwarg_sets.append({})
+    for kw in kwarg_sets:
+        try:
+            res = _first_passing(cands, ENTRY, TESTS, source, **kw)
+        except TypeError:
+            # Signature mismatch (e.g. unknown kwarg) - retry more plainly.
+            continue
+        except Exception:
+            return None
+        # Belt-and-braces local enforcement of the patch-size cap in case
+        # first_passing could not be given max_rps.
+        if res is not None and _rps is not None:
+            try:
+                if _rps(source, res) > MAX_RPS:
+                    return None
+            except Exception:
+                pass
+        return res
+    return None
+
+
+def _generic(source, max_edits, budget):
+    """candidates_generic with signature fallbacks.  Never raises."""
+    if _candidates_generic is None:
+        return []
+    for kw in (
+        {"max_edits": max_edits, "budget": budget},
+        {"max_edits": max_edits},
+        {},
+    ):
+        try:
+            return _candidates_generic(source, **kw)
+        except TypeError:
+            continue
+        except Exception:
+            return []
+    return []
+
+
+# ---------------------------------------------------------------------------
+# AST helpers
+# ---------------------------------------------------------------------------
 
 def _list_param(tree):
     """Name of the student's list parameter (first arg of the entry fn)."""
@@ -122,6 +216,24 @@ def _len_call(param):
     )
 
 
+_CMP_STRICT_SWAP = {
+    ast.Lt: ast.LtE,
+    ast.LtE: ast.Lt,
+    ast.Gt: ast.GtE,
+    ast.GtE: ast.Gt,
+}
+_CMP_MIRROR = {
+    ast.Lt: ast.Gt,
+    ast.LtE: ast.GtE,
+    ast.Gt: ast.Lt,
+    ast.GtE: ast.LtE,
+}
+
+
+# ---------------------------------------------------------------------------
+# Problem-specific rewrites
+# ---------------------------------------------------------------------------
+
 def _specific_variants(source):
     """Problem-specific single rewrites, each returned as full module source."""
     out, seen = [], set()
@@ -130,8 +242,41 @@ def _specific_variants(source):
     except Exception:
         return out
     seen.add(source)
+    try:
+        seen.add(ast.unparse(tree))
+    except Exception:
+        pass
     param = _list_param(tree)
     assigned = _assigned_names(tree)
+
+    # --- Comparison rewrites ---------------------------------------------
+    # (leftmost-index semantics hinge on strict vs non-strict comparisons:
+    #  `lst[mid] <= x` / `v <= x` count/skip duplicates the wrong way)
+    for n in range(_count(tree, ast.Compare)):
+        base = _nth(tree, ast.Compare, n)
+        if base is None or len(base.ops) != 1:
+            continue
+        cls = type(base.ops[0])
+        if cls not in _CMP_STRICT_SWAP:
+            continue
+        in_while_test = any(
+            isinstance(w, ast.While) and w.test is base
+            for w in ast.walk(tree)
+        )
+        repls = []
+        swap = _CMP_STRICT_SWAP[cls]
+        # Never loosen a while-loop bound (`<` -> `<=`): with `hi = mid`
+        # style updates that manufactures non-terminating candidates.
+        if not (in_while_test and swap in (ast.LtE, ast.GtE)):
+            repls.append(swap)
+        if not in_while_test:
+            repls.append(_CMP_MIRROR[cls])
+        for repl in repls:
+            t = copy.deepcopy(tree)
+            node = _nth(t, ast.Compare, n)
+            if node is not None and len(node.ops) == 1:
+                node.ops = [repl()]
+                _emit(out, seen, t)
 
     # --- If-statement rewrites -------------------------------------------
     for n in range(_count(tree, ast.If)):
@@ -187,33 +332,39 @@ def _specific_variants(source):
             # `return -1` / wrong sentinel -> `return len(lst)` or `return 0`
             t = copy.deepcopy(tree)
             node = _nth(t, ast.Return, n)
-            node.value = _len_call(param)
-            _emit(out, seen, t)
+            if node is not None:
+                node.value = _len_call(param)
+                _emit(out, seen, t)
             t = copy.deepcopy(tree)
             node = _nth(t, ast.Return, n)
-            node.value = ast.Constant(0)
-            _emit(out, seen, t)
+            if node is not None:
+                node.value = ast.Constant(0)
+                _emit(out, seen, t)
         elif isinstance(v, ast.Name):
             # returning the wrong variable, an off-by-one variable value,
             # or a variable where `len(lst)` was intended
             for other in sorted(assigned - {v.id}):
                 t = copy.deepcopy(tree)
                 node = _nth(t, ast.Return, n)
-                node.value = ast.Name(id=other, ctx=ast.Load())
-                _emit(out, seen, t)
+                if node is not None:
+                    node.value = ast.Name(id=other, ctx=ast.Load())
+                    _emit(out, seen, t)
             for op in (ast.Add, ast.Sub):
                 t = copy.deepcopy(tree)
                 node = _nth(t, ast.Return, n)
-                node.value = ast.BinOp(
-                    left=node.value, op=op(), right=ast.Constant(1)
-                )
-                _emit(out, seen, t)
+                if node is not None:
+                    node.value = ast.BinOp(
+                        left=node.value, op=op(), right=ast.Constant(1)
+                    )
+                    _emit(out, seen, t)
             t = copy.deepcopy(tree)
             node = _nth(t, ast.Return, n)
-            node.value = _len_call(param)
-            _emit(out, seen, t)
+            if node is not None:
+                node.value = _len_call(param)
+                _emit(out, seen, t)
 
-    # --- BinOp rewrites: `/` -> `//`, `// 1` -> `// 2` --------------------
+    # --- BinOp rewrites ---------------------------------------------------
+    # `/` -> `//`, `// 1` -> `// 2`, and `+ 1` <-> `- 1` step toggles.
     for n in range(_count(tree, ast.BinOp)):
         t = copy.deepcopy(tree)
         node = _nth(t, ast.BinOp, n)
@@ -229,6 +380,16 @@ def _specific_variants(source):
             and node.right.value == 1
         ):
             node.right = ast.Constant(2)
+            _emit(out, seen, t)
+        t = copy.deepcopy(tree)
+        node = _nth(t, ast.BinOp, n)
+        if (
+            node is not None
+            and isinstance(node.op, (ast.Add, ast.Sub))
+            and isinstance(node.right, ast.Constant)
+            and node.right.value == 1
+        ):
+            node.op = ast.Sub() if isinstance(node.op, ast.Add) else ast.Add()
             _emit(out, seen, t)
 
     # --- Subscript rewrites: `lst[mid + 1]` / `lst[mid - 1]` -> `lst[mid]`
@@ -249,6 +410,31 @@ def _specific_variants(source):
     return out
 
 
+def _specific_depth2(source, level1, cap=400):
+    """Stack two specific rewrites (covers two-fault submissions such as
+    `// 1` combined with `lo = mid - 1`).  rps is still measured against
+    the true original during validation."""
+    out = []
+    seen = set(level1)
+    seen.add(source)
+    for sp in level1[:60]:
+        try:
+            subs = _specific_variants(sp)
+        except Exception:
+            continue
+        for s2 in subs:
+            if s2 not in seen:
+                seen.add(s2)
+                out.append(s2)
+                if len(out) >= cap:
+                    return out
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
 def repair(source):
     try:
         if not isinstance(source, str) or not source.strip():
@@ -258,60 +444,70 @@ def repair(source):
         except Exception:
             return None
 
-        specific = _specific_variants(source)
+        try:
+            specific = _specific_variants(source)
+        except Exception:
+            specific = []
 
         # Stage 0: identity + problem-specific single rewrites.
-        res = first_passing(
-            chain(iter([source]), iter(specific)),
-            ENTRY,
-            TESTS,
-            source,
-            max_rps=0.35,
-            max_checks=len(specific) + 1,
-        )
-        if res is not None:
-            return res
-
-        # Stage 1: generic single-edit search on the original.
-        res = first_passing(
-            candidates_generic(source, max_edits=1, budget=600),
-            ENTRY,
-            TESTS,
-            source,
-            max_rps=0.35,
-            max_checks=600,
-        )
-        if res is not None:
-            return res
-
-        # Stage 2: one generic edit stacked on each specific rewrite
-        # (cheap coverage of common two-fault submissions; rps is still
-        # measured against the true original).
-        if specific:
-            gens = [
-                candidates_generic(sp, max_edits=1, budget=150)
-                for sp in specific[:20]
-            ]
-            res = first_passing(
-                chain(*gens),
-                ENTRY,
-                TESTS,
+        try:
+            res = _validate(
+                iter([source] + specific),
                 source,
-                max_rps=0.35,
-                max_checks=1200,
+                max_checks=len(specific) + 8,
             )
             if res is not None:
                 return res
+        except Exception:
+            pass
+
+        # Stage 0b: two stacked specific rewrites (two-fault submissions).
+        try:
+            spec2 = _specific_depth2(source, specific)
+        except Exception:
+            spec2 = []
+        if spec2:
+            try:
+                res = _validate(iter(spec2), source, max_checks=len(spec2) + 8)
+                if res is not None:
+                    return res
+            except Exception:
+                pass
+
+        # Stage 1: generic single-edit search on the original.
+        try:
+            res = _validate(_generic(source, 1, 600), source, max_checks=650)
+            if res is not None:
+                return res
+        except Exception:
+            pass
+
+        # Stage 2: one generic edit stacked on each specific rewrite.
+        try:
+            gens = []
+            for sp in (specific + spec2)[:30]:
+                g = _generic(sp, 1, 120)
+                if g is not None:
+                    gens.append(g)
+            if gens:
+                res = _validate(
+                    itertools.chain.from_iterable(gens),
+                    source,
+                    max_checks=1500,
+                )
+                if res is not None:
+                    return res
+        except Exception:
+            pass
 
         # Stage 3: generic two-edit search as a last resort.
-        res = first_passing(
-            candidates_generic(source, max_edits=2, budget=2000),
-            ENTRY,
-            TESTS,
-            source,
-            max_rps=0.35,
-            max_checks=1800,
-        )
-        return res
+        try:
+            res = _validate(_generic(source, 2, 2000), source, max_checks=1800)
+            if res is not None:
+                return res
+        except Exception:
+            pass
+
+        return None
     except Exception:
         return None

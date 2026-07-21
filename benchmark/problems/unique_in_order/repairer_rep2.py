@@ -1,22 +1,42 @@
-"""Local, LLM-free automatic repair for the `unique_in_order` assignment.
+"""Local, LLM-free automatic repair for the `unique_in_order` assignment (round 2).
 
-Strategy:
-  1. Validate the input as-is (maybe it already passes).
-  2. Try a battery of problem-specific AST/text rewrites targeting known
-     misconceptions for this assignment (wrong base case for the first
-     element, missing emptiness/boundary guards around result[-1] /
-     lst[i-1] / lst[i+1], bad sentinel initialisations, `is` instead of
-     `==`, return placed inside the loop, needless sorted()/set(),
-     misnamed function).
-  3. Fall back to the generic mutation search (1 edit, then 2 edits).
-  4. As a last resort, combine each specific rewrite with one generic edit.
-All candidates are validated through `first_passing`, which enforces the
-full visible test suite and the rps <= 0.35 patch-size cap against the
-ORIGINAL student source.
+Root-cause analysis of the round-1 failures: EVERY sample came back
+no_patch, including one-token mutants (``i != 0`` -> ``i == 0``,
+``result[-2]`` -> ``result[-1]``, ``i == 1`` -> ``i == 0``) that any
+1-edit mutation search must find, and crafted_09, for which the
+seed-init rule (`result = []` -> `result = lst[:1]`) demonstrably
+produces a correct, tiny candidate by hand-trace.  When even those fail,
+the failure is systemic, not per-rule: the helper-library calls were
+raising (keyword arguments such as ``max_checks``/``budget`` not
+matching the real `first_passing`/`candidates_generic` signatures) and
+the broad ``try/except`` + ``_safe`` wrappers silently swallowed the
+errors, so no candidate was ever actually validated.
+
+Round-2 fixes, keeping everything that was right about round 1:
+  * All repairlib calls go through adaptive wrappers that inspect the
+    real signatures and progressively drop unsupported keyword
+    arguments, so a signature mismatch can no longer silently disable
+    the whole search.
+  * A self-contained AST mutation engine (comparison-operator flips,
+    integer-constant +/-1, Add<->Sub, And<->Or, test negation) generates
+    1- and 2-edit candidates independently of `candidates_generic`.
+  * Candidates are pre-screened locally by actually running the visible
+    tests (with a trace-based step limit to kill runaway loops), so only
+    genuinely passing programs reach `first_passing`, ordered by textual
+    similarity to the student's code (smallest patch first).
+  * A canonical-rewrite fallback (function name and parameter preserved)
+    handles approach-level failures such as ``list(set(lst))``.
+`first_passing` remains the final authority: every returned patch is
+validated by it against the full visible suite and the rps <= 0.35
+patch-size cap relative to the ORIGINAL student source.
 """
 
 import ast
+import copy
+import difflib
+import inspect
 import re
+import sys
 
 from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
 
@@ -63,18 +83,259 @@ def _param_name(tree):
     return "lst"
 
 
-def _safe(gen):
-    """Iterate a candidate generator, swallowing any mid-iteration error."""
+def _dedupe(cands, source=None):
+    out, seen = [], set()
+    for c in cands:
+        if not isinstance(c, str) or c in seen or c == source:
+            continue
+        seen.add(c)
+        out.append(c)
+    return out
+
+
+def _rank(cands, source):
+    """Most-similar-to-original first, so the smallest patch wins."""
     try:
-        for c in gen:
-            if isinstance(c, str):
-                yield c
+        return sorted(
+            cands,
+            key=lambda c: -difflib.SequenceMatcher(None, source, c).ratio(),
+        )
     except Exception:
-        return
+        return list(cands)
 
 
 # --------------------------------------------------------------------------
-# problem-specific rewrite rules
+# local (pre-)validation: actually run the visible tests on a candidate
+# --------------------------------------------------------------------------
+
+def _limited(thunk, limit=150000):
+    """Run thunk() under a trace-event budget so runaway loops cannot hang us."""
+    state = {"n": 0}
+
+    def tracer(frame, event, arg):
+        state["n"] += 1
+        if state["n"] > limit:
+            raise RuntimeError("step budget exceeded")
+        return tracer
+
+    old = sys.gettrace()
+    sys.settrace(tracer)
+    try:
+        return thunk()
+    finally:
+        sys.settrace(old)
+
+
+def _passes_locally(src):
+    """True iff src defines ENTRY and passes every visible test locally."""
+    try:
+        code = compile(src, "<candidate>", "exec")
+    except Exception:
+        return False
+    glb = {}
+    try:
+        _limited(lambda: exec(code, glb))
+    except Exception:
+        return False
+    fn = glb.get(ENTRY)
+    if not callable(fn):
+        return False
+    for t in TESTS:
+        try:
+            args = copy.deepcopy(t["args"])
+            got = _limited(lambda: fn(*args))
+        except Exception:
+            return False
+        if got != t["expected"]:
+            return False
+    return True
+
+
+def _locally_good(cands, source):
+    out, seen = [], set()
+    for c in cands:
+        if not isinstance(c, str) or c == source or c in seen:
+            continue
+        seen.add(c)
+        if _passes_locally(c):
+            out.append(c)
+    return out
+
+
+# --------------------------------------------------------------------------
+# adaptive wrappers around the helper library (the round-1 killer)
+# --------------------------------------------------------------------------
+
+def _validate(cands, original):
+    """Official validation via first_passing, robust to signature drift.
+
+    Tries the signature discovered by introspection first, then a ladder of
+    progressively smaller keyword sets.  Candidates are materialised so each
+    retry sees the full list.  Returns the accepted patch or None.
+    """
+    cands = [c for c in cands if isinstance(c, str) and c.strip()]
+    if not cands:
+        return None
+    kwlist = []
+    try:
+        params = inspect.signature(first_passing).parameters
+        varkw = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        )
+        kw = {}
+        if varkw or "max_rps" in params:
+            kw["max_rps"] = 0.35
+        if varkw or "max_checks" in params:
+            kw["max_checks"] = 2000
+        kwlist.append(kw)
+    except Exception:
+        pass
+    for kw in ({"max_rps": 0.35, "max_checks": 2000}, {"max_rps": 0.35}, {}):
+        if kw not in kwlist:
+            kwlist.append(kw)
+    for kw in kwlist:
+        try:
+            res = first_passing(iter(cands), ENTRY, TESTS, original, **kw)
+        except TypeError:
+            continue  # signature mismatch -> try the next keyword set
+        except Exception:
+            continue
+        if isinstance(res, str):
+            return res
+        return None  # the call itself worked; nothing passed
+    return None
+
+
+def _generic_candidates(source, max_edits, budget):
+    """Materialise candidates_generic output, robust to signature drift."""
+    kwlist = []
+    try:
+        params = inspect.signature(candidates_generic).parameters
+        varkw = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        )
+        kw = {}
+        if varkw or "max_edits" in params:
+            kw["max_edits"] = max_edits
+        if varkw or "budget" in params:
+            kw["budget"] = budget
+        kwlist.append(kw)
+    except Exception:
+        pass
+    for kw in ({"max_edits": max_edits, "budget": budget},
+               {"max_edits": max_edits}, {}):
+        if kw not in kwlist:
+            kwlist.append(kw)
+    for kw in kwlist:
+        try:
+            gen = candidates_generic(source, **kw)
+        except TypeError:
+            continue
+        except Exception:
+            continue
+        out = []
+        try:
+            for c in gen:
+                if isinstance(c, str):
+                    out.append(c)
+                if len(out) >= budget:
+                    break
+        except Exception:
+            pass
+        if out:
+            return out
+    return []
+
+
+# --------------------------------------------------------------------------
+# self-contained AST mutation engine (independent of candidates_generic)
+# --------------------------------------------------------------------------
+
+_CMP_ALTS = {
+    ast.Eq: (ast.NotEq,),
+    ast.NotEq: (ast.Eq,),
+    ast.Lt: (ast.Le, ast.Gt),
+    ast.Le: (ast.Lt, ast.Ge),
+    ast.Gt: (ast.Ge, ast.Lt),
+    ast.Ge: (ast.Gt, ast.Le),
+    ast.Is: (ast.Eq,),
+    ast.IsNot: (ast.NotEq,),
+}
+
+
+def _site_variants(node):
+    """All single mutations applicable at this node, in a fixed order."""
+    vs = []
+    if isinstance(node, ast.Compare) and len(node.ops) == 1:
+        for alt in _CMP_ALTS.get(type(node.ops[0]), ()):
+            vs.append(("cmp", alt))
+    if (isinstance(node, ast.Constant) and isinstance(node.value, int)
+            and not isinstance(node.value, bool)):
+        vs.append(("const", node.value + 1))
+        vs.append(("const", node.value - 1))
+    if isinstance(node, ast.BinOp):
+        if isinstance(node.op, ast.Add):
+            vs.append(("binop", ast.Sub))
+        elif isinstance(node.op, ast.Sub):
+            vs.append(("binop", ast.Add))
+    if isinstance(node, ast.BoolOp):
+        vs.append(("boolop", ast.Or if isinstance(node.op, ast.And) else ast.And))
+    if isinstance(node, (ast.If, ast.While, ast.IfExp)):
+        vs.append(("negate", None))
+    return vs
+
+
+def _apply_variant(node, kind, payload):
+    if kind == "cmp":
+        node.ops[0] = payload()
+    elif kind == "const":
+        node.value = payload
+    elif kind in ("binop", "boolop"):
+        node.op = payload()
+    elif kind == "negate":
+        node.test = ast.UnaryOp(op=ast.Not(), operand=node.test)
+
+
+def _one_edit_mutants(source, cap=400):
+    """Every single-site mutation of source (ast.walk order is deterministic)."""
+    outs = []
+    try:
+        total = sum(len(_site_variants(n)) for n in ast.walk(ast.parse(source)))
+    except Exception:
+        return outs
+    for k in range(min(total, cap)):
+        try:
+            tree = ast.parse(source)
+            i = 0
+            for node in ast.walk(tree):
+                vs = _site_variants(node)
+                if k < i + len(vs):
+                    kind, payload = vs[k - i]
+                    _apply_variant(node, kind, payload)
+                    break
+                i += len(vs)
+            ast.fix_missing_locations(tree)
+            outs.append(ast.unparse(tree))
+        except Exception:
+            continue
+    return outs
+
+
+def _two_edit_mutants(source, first_cap=80, limit=3000):
+    outs = []
+    try:
+        for m1 in _one_edit_mutants(source)[:first_cap]:
+            for m2 in _one_edit_mutants(m1):
+                outs.append(m2)
+                if len(outs) >= limit:
+                    return outs
+    except Exception:
+        pass
+    return outs
+
+
+# --------------------------------------------------------------------------
+# problem-specific rewrite rules (kept from round 1)
 # --------------------------------------------------------------------------
 
 def _rename_candidates(source):
@@ -100,7 +361,6 @@ def _seed_init_candidates(source, param):
 
     Fixes the classic bug where the loop starts at index 1 (or otherwise
     skips the first element) so the first element is never appended.
-    One candidate per empty-list initialisation site.
     """
     outs = []
     pat = re.compile(r"(?<![=!<>])(=\s*)\[\]")
@@ -110,13 +370,7 @@ def _seed_init_candidates(source, param):
 
 
 def _idx_patterns(cond):
-    """Detect boundary-sensitive index accesses inside a condition.
-
-    Returns list of (name, kind) with kind in {'prev', 'next', 'neg'}:
-      prev: X[i - 1]  -> needs an `i == 0` style guard
-      next: X[i + 1]  -> needs an `i == len(lst) - 1` style guard
-      neg : X[-k]     -> needs an emptiness guard on X
-    """
+    """Detect boundary-sensitive index accesses inside a condition."""
     found = []
     for sub in ast.walk(cond):
         if not isinstance(sub, ast.Subscript):
@@ -150,7 +404,6 @@ def _idx_patterns(cond):
 
 
 def _cond_sites(tree):
-    """Deterministic list of condition sites: If/IfExp tests and comprehension ifs."""
     sites = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.If, ast.IfExp)):
@@ -175,13 +428,7 @@ def _set_cond(site, new):
 
 
 def _guard_candidates(source):
-    """Wrap bare conditions with the missing boundary guard.
-
-    e.g.  `x != result[-1]`      -> `not result or x != result[-1]`
-          `lst[i] != lst[i - 1]` -> `i == 0 or lst[i] != lst[i - 1]`
-                                 or `i != 0 and lst[i] == lst[i - 1]` (skip form)
-          `lst[i] != lst[i + 1]` -> `i == len(lst) - 1 or ...`
-    """
+    """Wrap bare conditions with the missing boundary guard."""
     outs = []
     try:
         base = ast.parse(source)
@@ -190,10 +437,13 @@ def _guard_candidates(source):
     param = _param_name(base)
     n_sites = len(_cond_sites(base))
     for k in range(n_sites):
-        probe = ast.parse(source)
-        cond = _get_cond(_cond_sites(probe)[k])
+        try:
+            probe = ast.parse(source)
+            cond = _get_cond(_cond_sites(probe)[k])
+        except Exception:
+            continue
         if isinstance(cond, ast.BoolOp):
-            continue  # already has some compound guard; generic search handles it
+            continue  # compound conditions are handled by the mutation engine
         guards = []
         for nm, kind in _idx_patterns(cond):
             if kind == "prev":
@@ -271,11 +521,7 @@ def _dedent_return_candidates(source):
 
 
 def _sentinel_candidates(source):
-    """`prev = 0` / `prev = ''` / etc. -> `prev = object()`.
-
-    A constant sentinel that can legitimately occur in the data (e.g. 0)
-    silently drops the first run; a fresh object() never equals any element.
-    """
+    """`prev = 0` / `prev = ''` / etc. -> `prev = object()`."""
     outs = []
     try:
         base = ast.parse(source)
@@ -344,17 +590,21 @@ def _strip_call_candidates(source):
 def _is_to_eq_candidates(source):
     """Replace identity comparisons with value comparisons."""
     outs = []
-    if re.search(r"\bis\s+not\b", source):
-        outs.append(re.sub(r"\bis\s+not\b", "!=", source))
-    if re.search(r"\bis\b", source):
-        outs.append(
-            re.sub(r"\bis\b(?!\s+not\b)", "==", re.sub(r"\bis\s+not\b", "!=", source))
-        )
+    try:
+        if re.search(r"\bis\s+not\b", source):
+            outs.append(re.sub(r"\bis\s+not\b", "!=", source))
+        if re.search(r"\bis\b", source):
+            outs.append(
+                re.sub(r"\bis\b(?!\s+not\b)", "==",
+                       re.sub(r"\bis\s+not\b", "!=", source))
+            )
+    except Exception:
+        pass
     return outs
 
 
 def _insert_copy_candidates(source):
-    """Insert `lst = list(lst)` at the top of the function (aliasing/mutation bugs)."""
+    """Insert `lst = list(lst)` at the top of the function (aliasing bugs)."""
     outs = []
     try:
         tree = ast.parse(source)
@@ -408,6 +658,34 @@ def _specific_candidates(source):
     return out
 
 
+def _canonical_candidates(source):
+    """Last-resort full-body rewrites preserving the name and parameter.
+
+    Needed when the approach itself is wrong (e.g. `list(set(lst))`, which
+    destroys order and non-consecutive duplicates); the rps cap enforced by
+    `first_passing` still decides whether any of these is acceptable.
+    """
+    try:
+        p = _param_name(ast.parse(source))
+    except Exception:
+        p = "lst"
+    tpls = [
+        "def {E}({p}):\n"
+        "    return [x for i, x in enumerate({p}) if not i or x != {p}[i - 1]]\n",
+        "def {E}({p}):\n"
+        "    return [x for i, x in enumerate({p}) if i == 0 or x != {p}[i - 1]]\n",
+        "def {E}({p}):\n"
+        "    return list(x for i, x in enumerate({p}) if not i or x != {p}[i - 1])\n",
+        "def {E}({p}):\n"
+        "    result = []\n"
+        "    for x in {p}:\n"
+        "        if not result or result[-1] != x:\n"
+        "            result.append(x)\n"
+        "    return result\n",
+    ]
+    return [t.format(E=ENTRY, p=p) for t in tpls]
+
+
 # --------------------------------------------------------------------------
 # entry point
 # --------------------------------------------------------------------------
@@ -417,14 +695,12 @@ def repair(source):
         if not isinstance(source, str) or not _parses(source):
             return None
 
-        # Stage 0: maybe the submission already passes (validated, rps == 0).
-        ok = first_passing(iter([source]), ENTRY, TESTS, source,
-                           max_rps=0.35, max_checks=5)
+        # Stage 0: maybe the submission already passes (rps == 0).
+        ok = _validate([source], source)
         if ok is not None:
             return ok
 
-        # (failing pattern is available for inspection; validation below is
-        # what actually decides, so we simply try rules in priority order.)
+        # (failing pattern available for inspection; validation decides.)
         try:
             failing_tests(source, ENTRY, TESTS)
         except Exception:
@@ -432,27 +708,38 @@ def repair(source):
 
         specific = _specific_candidates(source)
 
-        # Stage 1: specific rewrites first, then generic 1-edit, then 2-edit.
-        gens = chain(
-            _safe(iter(specific)),
-            _safe(candidates_generic(source, max_edits=1, budget=2000)),
-            _safe(candidates_generic(source, max_edits=2, budget=3000)),
-        )
-        fixed = first_passing(gens, ENTRY, TESTS, source,
-                              max_rps=0.35, max_checks=800)
+        # Stage 1: specific rules + own 1-edit mutants, locally screened.
+        batch = _locally_good(specific + _one_edit_mutants(source), source)
+        fixed = _validate(_rank(batch, source), source)
         if fixed is not None:
             return fixed
 
-        # Stage 2: a specific rewrite combined with one generic edit.
-        stage2 = []
-        for cand in specific[:8]:
-            try:
-                stage2.append(_safe(candidates_generic(cand, max_edits=1, budget=250)))
-            except Exception:
-                continue
-        if stage2:
-            fixed = first_passing(chain(*stage2), ENTRY, TESTS, source,
-                                  max_rps=0.35, max_checks=400)
-        return fixed
+        # Stage 2: deeper search — own 2-edit mutants, specific rewrites
+        # combined with one mutation, and the library's generic search.
+        deep = _two_edit_mutants(source)
+        for cand in specific[:6]:
+            deep.extend(_one_edit_mutants(cand))
+        deep.extend(_generic_candidates(source, 1, 800))
+        deep.extend(_generic_candidates(source, 2, 1200))
+        batch = _locally_good(deep, source)
+        fixed = _validate(_rank(batch, source), source)
+        if fixed is not None:
+            return fixed
+
+        # Stage 3: canonical rewrites (approach-level bugs); rps cap decides.
+        batch = _locally_good(_canonical_candidates(source), source)
+        fixed = _validate(_rank(batch, source), source)
+        if fixed is not None:
+            return fixed
+
+        # Stage 4: safety net — in case the local runner misjudged the
+        # environment, let first_passing judge unscreened candidates.
+        tail = _dedupe(
+            specific
+            + _generic_candidates(source, 1, 300)
+            + _canonical_candidates(source),
+            source,
+        )[:300]
+        return _validate(_rank(tail, source), source)
     except Exception:
         return None

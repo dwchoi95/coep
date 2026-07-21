@@ -1,4 +1,5 @@
 import ast
+import re
 
 from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
 
@@ -55,6 +56,16 @@ def _list_vars(tree):
 #   * popping without an emptiness guard (crashes/ignores stray closers)
 #   * using pop(0) (queue) instead of pop() (stack)
 #   * swapped opener/closer tables or strings
+#
+# The fixpoint repair comes in two flavours.  The AST-based one (below) is
+# robust but rebuilds the file with ast.unparse and inserts a 4-line
+# `while True: ... break` scaffold; on very short submissions that patch
+# exceeds the 0.35 relative-patch-size cap and first_passing rejects an
+# otherwise correct fix (this is exactly what killed crafted_07).  So we
+# first try *textual* fixpoint variants that edit only the reduction line(s)
+# in the original file, keeping every other byte identical:
+#   * a one-line walrus rewrite (same line count as the original), and
+#   * a `while '<pair>' in x or ...:` loop that adds a single header line.
 # ---------------------------------------------------------------------------
 
 def rw_return_true_tail(source):
@@ -229,6 +240,102 @@ def _is_empty_replace_chain(value, target):
     return seen and isinstance(node, ast.Name) and node.id == target
 
 
+def _chain_pairs(value):
+    """The first arguments of the replace chain, innermost call first."""
+    pairs = []
+    node = value
+    while (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+           and node.func.attr == "replace"):
+        a = node.args[0]
+        if isinstance(a, ast.Constant) and isinstance(a.value, str) and a.value:
+            if a.value not in pairs:
+                pairs.append(a.value)
+        node = node.func.value
+    pairs.reverse()
+    return pairs
+
+
+def _reduction_lines(source):
+    """Map lineno -> (var, pairs) for single-line `x = x.replace(p, '')...`
+    reduction statements that are not already inside a while loop."""
+    try:
+        tree = ast.parse(source)
+    except Exception:
+        return {}
+    while_spans = [(w.lineno, getattr(w, "end_lineno", w.lineno) or w.lineno)
+                   for w in ast.walk(tree) if isinstance(w, ast.While)]
+    out = {}
+    for stmt in ast.walk(tree):
+        if not (isinstance(stmt, ast.Assign) and len(stmt.targets) == 1
+                and isinstance(stmt.targets[0], ast.Name)
+                and _is_empty_replace_chain(stmt.value, stmt.targets[0].id)):
+            continue
+        if getattr(stmt, "end_lineno", stmt.lineno) != stmt.lineno:
+            continue  # multi-line statement: leave to the AST rewriter
+        if any(a < stmt.lineno <= b for a, b in while_spans):
+            continue  # already looped
+        out[stmt.lineno] = (stmt.targets[0].id, _chain_pairs(stmt.value))
+    return out
+
+
+def rw_fixpoint_replace_text(source):
+    """Minimal-diff textual fixpoint repair for single-pass reductions.
+
+    Edits only the reduction line(s), leaving the rest of the file untouched,
+    so the patch stays under the relative-size cap even for tiny submissions
+    (the AST-based rewrite's 4-line scaffold does not).  Emits, per run of
+    consecutive reduction lines on the same variable:
+      * (single line only) `while x != (x := <rhs>): pass`   -- same line count
+      * `while '<p1>' in x or ...:` + the original line(s) re-indented under it
+    """
+    info = _reduction_lines(source)
+    if not info:
+        return []
+    lines = source.splitlines()
+    # group consecutive line numbers operating on the same variable
+    groups = []
+    for ln in sorted(info):
+        if groups and ln == groups[-1][-1] + 1 and info[ln][0] == info[groups[-1][0]][0]:
+            groups[-1].append(ln)
+        else:
+            groups.append([ln])
+    out = []
+    for g in groups:
+        var = info[g[0]][0]
+        pairs = []
+        for ln in g:
+            for p in info[ln][1]:
+                if p not in pairs:
+                    pairs.append(p)
+        if not pairs:
+            continue
+        first = lines[g[0] - 1]
+        ind = first[:len(first) - len(first.lstrip())]
+        # Variant 1 (smallest diff, single-line runs): walrus fixpoint in place.
+        if len(g) == 1:
+            m = re.match(r"^%s\s*=\s*(.+?)\s*$" % re.escape(var), first.strip())
+            if m:
+                new = list(lines)
+                new[g[0] - 1] = (ind + "while %s != (%s := %s): pass"
+                                 % (var, var, m.group(1)))
+                out.append("\n".join(new) + "\n")
+        # Variant 2: loop while any removable pair is still present.
+        cond = " or ".join("%r in %s" % (p, var) for p in pairs)
+        new = list(lines)
+        block = [ind + "while " + cond + ":"]
+        block += [ind + "    " + lines[ln - 1].strip() for ln in g]
+        new[g[0] - 1:g[-1]] = block
+        out.append("\n".join(new) + "\n")
+    variants = []
+    for v in out:
+        try:
+            ast.parse(v)
+        except Exception:
+            continue
+        variants.append(v)
+    return variants
+
+
 def rw_fixpoint_replace(source):
     """Wrap a single reduction pass `t = t.replace('()','')...` in a fixpoint loop
     (single-pass reduction only removes innermost pairs once)."""
@@ -280,6 +387,7 @@ def rw_fixpoint_replace(source):
 
 _REWRITES = [
     rw_return_true_tail,
+    rw_fixpoint_replace_text,
     rw_fixpoint_replace,
     rw_return_truthiness,
     rw_guard_pop,

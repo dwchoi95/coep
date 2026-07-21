@@ -15,6 +15,31 @@ Strategy:
     full visible test suite AND the relative-patch-size cap (rps <= 0.35),
     so the student's own approach is preserved and no fixed reference
     solution is ever returned.
+
+Round-2 fix
+-----------
+The previous version turned a bare `L.extend(item)` into a multi-line
+`if/else` block.  On a *very short* submission such as::
+
+    def flatten(nested):
+        total = []
+        for item in nested:
+            total.extend(item)
+        return total
+
+that rewrite grew the function from 5 to 8 lines, so the relative patch
+size blew past the 0.35 cap and `first_passing` rejected the (otherwise
+correct) candidate -> ``no_patch``.  The behaviour was right; the patch was
+just too large for such a tiny original.
+
+The `.extend` guard is now emitted as a single-line conditional expression::
+
+    total.extend(flatten(item) if isinstance(item, list) else [item])
+
+which is semantically identical to the old `if/else` (``L.append(x)`` ==
+``L.extend([x])``) but changes only the one offending line, keeping the
+relative patch size small enough to survive the cap on short and long
+submissions alike.
 """
 
 import ast
@@ -44,6 +69,34 @@ TESTS = [
 ]
 
 _TYPE_NAMES = {"list", "tuple", "int", "float", "str", "dict", "set", "bool"}
+
+
+# --------------------------------------------------------------------------
+# Small AST helpers.
+# --------------------------------------------------------------------------
+
+def _is_flatten_call(node):
+    return (isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "flatten")
+
+
+def _guarded_arg(arg):
+    """Build ``flatten(arg) if isinstance(arg, list) else [arg]``.
+
+    A single-line conditional expression that recurses on lists and wraps
+    scalars, so ``L.extend(<this>)`` behaves correctly for both cases while
+    touching only one line of the original source.
+    """
+    return ast.IfExp(
+        test=ast.Call(
+            func=ast.Name(id="isinstance", ctx=ast.Load()),
+            args=[copy.deepcopy(arg), ast.Name(id="list", ctx=ast.Load())],
+            keywords=[]),
+        body=ast.Call(
+            func=ast.Name(id="flatten", ctx=ast.Load()),
+            args=[copy.deepcopy(arg)], keywords=[]),
+        orelse=ast.List(elts=[copy.deepcopy(arg)], ctx=ast.Load()))
 
 
 # --------------------------------------------------------------------------
@@ -139,12 +192,19 @@ class _ListBranchAppendFix(ast.NodeTransformer):
 
 
 class _ExtendFix(ast.NodeTransformer):
-    """`L.extend(x)` -> guarded recursion (missing type check / recursion)."""
+    """`L.extend(x)` -> `L.extend(flatten(x) if isinstance(x, list) else [x])`.
+
+    A one-line guard: recurse on nested lists, wrap scalars.  Emitting a
+    conditional expression (rather than a multi-statement `if/else` block)
+    keeps the patch to a single line so it stays under the rps cap even on
+    very short submissions.
+    """
 
     def __init__(self):
         self.changed = False
 
     def visit_Expr(self, node):
+        self.generic_visit(node)
         v = node.value
         if (isinstance(v, ast.Call)
                 and isinstance(v.func, ast.Attribute)
@@ -152,30 +212,11 @@ class _ExtendFix(ast.NodeTransformer):
                 and len(v.args) == 1
                 and not v.keywords):
             arg = v.args[0]
-            # Skip if already recursing via flatten(...).
-            if (isinstance(arg, ast.Call)
-                    and isinstance(arg.func, ast.Name)
-                    and arg.func.id == "flatten"):
+            # Skip if already recursing via flatten(...) or already guarded.
+            if _is_flatten_call(arg) or isinstance(arg, ast.IfExp):
                 return node
-            target = v.func.value
-            new_if = ast.If(
-                test=ast.Call(
-                    func=ast.Name(id="isinstance", ctx=ast.Load()),
-                    args=[copy.deepcopy(arg), ast.Name(id="list", ctx=ast.Load())],
-                    keywords=[]),
-                body=[ast.Expr(value=ast.Call(
-                    func=ast.Attribute(value=copy.deepcopy(target),
-                                       attr="extend", ctx=ast.Load()),
-                    args=[ast.Call(
-                        func=ast.Name(id="flatten", ctx=ast.Load()),
-                        args=[copy.deepcopy(arg)], keywords=[])],
-                    keywords=[]))],
-                orelse=[ast.Expr(value=ast.Call(
-                    func=ast.Attribute(value=copy.deepcopy(target),
-                                       attr="append", ctx=ast.Load()),
-                    args=[copy.deepcopy(arg)], keywords=[]))])
+            v.args = [_guarded_arg(arg)]
             self.changed = True
-            return ast.copy_location(new_if, node)
         return node
 
 
