@@ -210,6 +210,23 @@ def main():
         "mcnemar_basequality_vs_coep": {"discordant": [b_bq, c_bq], "p": mcnemar_exact(b_bq, c_bq)},
     }
     summary["ablation_generic"] = abl
+
+    # crafted vs mutant breakdown across methods
+    def kind(bug):
+        return "crafted" if bug.startswith("crafted") else "mutant"
+    breakdown = {}
+    for k in ("crafted", "mutant"):
+        keys_k = [f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all if kind(r["bug"]) == k]
+        nk = len(keys_k)
+        breakdown[k] = {
+            "n": nk,
+            "baseline": sum(1 for x in keys_k if x in bf_keys),
+            "baseline_quality": sum(1 for x in keys_k if x in bq_keys),
+            "coep_local": sum(1 for x in keys_k if x in coep_ok_keys),
+        }
+        if abl_path.exists():
+            breakdown[k]["generic_only"] = sum(1 for x in keys_k if x in aok)
+    summary["by_kind"] = breakdown
     (ROOT / "runs" / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps({k: v for k, v in summary.items() if k != "per_problem"}, indent=2))
 
@@ -293,11 +310,18 @@ def main():
     # Fig 3: per-problem repair rates
     fig, ax = plt.subplots(figsize=(6.2, 2.6))
     x = np.arange(len(pids))
-    w = 0.38
     bvals = [per_problem[p]["baseline_fixed"] / per_problem[p]["n_eval"] for p in pids]
     cvals = [per_problem[p]["coep_local_fixed"] / per_problem[p]["n_eval"] for p in pids]
-    ax.bar(x - w / 2, bvals, w, color=C_BASE, label="LLM baseline")
-    ax.bar(x + w / 2, cvals, w, color=C_COEP, label="COEP-local")
+    if abl:
+        w = 0.27
+        avals = [abl["per_problem"][p] / per_problem[p]["n_eval"] for p in pids]
+        ax.bar(x - w, bvals, w, color=C_BASE, label="LLM baseline")
+        ax.bar(x, avals, w, color=C_GREY, label="Generic-only (ablation)")
+        ax.bar(x + w, cvals, w, color=C_COEP, label="CoEP-local")
+    else:
+        w = 0.38
+        ax.bar(x - w / 2, bvals, w, color=C_BASE, label="LLM baseline")
+        ax.bar(x + w / 2, cvals, w, color=C_COEP, label="CoEP-local")
     ax.set_xticks(x, pids, rotation=30, ha="right", fontsize=7.5)
     ax.set_ylim(0, 1.05)
     ax.set_ylabel("Repair rate")
