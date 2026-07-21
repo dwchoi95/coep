@@ -78,6 +78,38 @@ python3 scripts/analyze.py                       # summary + figures + numbers.t
 All raw prompts and model responses used in the paper are committed under
 `runs/`, so every number is recomputable without any LLM access.
 
+## Running with GPT models (setup provided)
+
+The harness is provider-agnostic at the file level (prompt files in →
+response files out). To run any arm with an OpenAI model:
+
+```bash
+pip install openai && export OPENAI_API_KEY=sk-...
+# per-submission baseline arm with GPT
+python3 scripts/run_llm_openai.py --prompts runs/baseline/prompts     --out runs/baseline_gpt4o/responses --model gpt-4o
+python3 scripts/collect_arm.py --arm baseline_gpt4o --model gpt-4o
+# GPT as the CoEP builder
+mkdir -p runs/coep_gpt/prompts && cp runs/coep/prompts/*_round1.md runs/coep_gpt/prompts/
+python3 scripts/run_llm_openai.py --prompts runs/coep_gpt/prompts     --out runs/coep_gpt/responses --model gpt-4o
+COEP_RUNS=coep_gpt COEP_REPAIRER=repairer_gpt.py python3 scripts/coep_build.py install <pid>
+COEP_RUNS=coep_gpt COEP_REPAIRER=repairer_gpt.py python3 scripts/coep_build.py evalfinal <pid>
+```
+
+Model pricing lives in `coep/costmodel.py` (`MODEL_PRICES`) — verify against
+current provider pricing before a paid run.
+
+## Real student data (Refactory dataset adapter)
+
+`scripts/import_refactory.py` converts the Refactory replication package
+(real student submissions from Hu et al., ASE 2019) into this benchmark's
+format — real buggy submissions become `buggy/real_XXX.py`, instructor
+reference + verified correct submissions become refs, `ans/` becomes the test
+suite, and splits are generated. Clone `githubhuyang/refactory` next to this
+repo, run the importer with `--dry-run` first, then the standard pipeline
+applies unchanged. (The dataset could not be fetched in the authoring
+environment's network sandbox; the importer targets the documented layout and
+re-validates everything with the harness.)
+
 ## Protocol notes
 
 - Both paradigms use the same frontier model; every LLM interaction is a

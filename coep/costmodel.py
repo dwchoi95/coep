@@ -15,6 +15,18 @@ PRICE_OUT_PER_MTOK = 15.00
 CACHE_READ_MULT = 0.10
 CACHE_WRITE_MULT = 1.25
 
+# Per-model pricing table (USD per Mtok in/out) for multi-provider arms.
+# VERIFY against current provider price pages before running a paid arm;
+# the GPT entries are placeholders from mid-2025 public pricing.
+MODEL_PRICES = {
+    "claude-sonnet": (3.00, 15.00),
+    "claude-haiku": (1.00, 5.00),
+    "gpt-4o": (2.50, 10.00),
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-4.1": (2.00, 8.00),
+    "gpt-4.1-mini": (0.40, 1.60),
+}
+
 
 @dataclass
 class Usage:
