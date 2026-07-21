@@ -27,7 +27,9 @@ from coep.prompts import builder_prompt, builder_refine_prompt  # noqa: E402
 from coep.sandbox import run_tests  # noqa: E402
 
 PROBLEMS = ROOT / "benchmark" / "problems"
-RUNS = ROOT / "runs" / "coep"
+import os
+RUNS = ROOT / "runs" / os.environ.get("COEP_RUNS", "coep")
+REPAIRER = os.environ.get("COEP_REPAIRER", "repairer.py")
 MAX_RPS = 0.35
 REPAIRER_TIMEOUT = 60
 
@@ -88,7 +90,7 @@ def cmd_prompt(pid):
         refs = [f.read_text() for f in sorted((PROBLEMS / pid / "refs").glob("*.py"))]
         text = builder_prompt(p, build, refs)
     else:
-        prev = (PROBLEMS / pid / "repairer.py").read_text()
+        prev = (PROBLEMS / pid / REPAIRER).read_text()
         results = json.loads((RUNS / "build_eval" / f"{pid}_round{k-1}.json").read_text())
         fb = [{"id": r["bug"], "status": "REPAIRED" if r["repaired"] else "NOT REPAIRED",
                "detail": r.get("detail", r["status"] if not r["repaired"] else ""),
@@ -106,7 +108,7 @@ def cmd_install(pid):
     module = extract_python_block(resp)
     if module is None:
         print("ERROR: no python block in response"); sys.exit(1)
-    (PROBLEMS / pid / "repairer.py").write_text(module)
+    (PROBLEMS / pid / REPAIRER).write_text(module)
     results = [apply_repairer(pid, b) for b in splits()[pid]["build"]]
     (RUNS / "build_eval").mkdir(parents=True, exist_ok=True)
     (RUNS / "build_eval" / f"{pid}_round{k}.json").write_text(json.dumps(results, indent=2))

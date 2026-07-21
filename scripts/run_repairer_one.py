@@ -18,7 +18,8 @@ pid, bug = sys.argv[1], sys.argv[2]
 pdir = ROOT / "benchmark" / "problems" / pid
 source = (pdir / "buggy" / bug).read_text()
 
-spec = importlib.util.spec_from_file_location(f"repairer_{pid}", pdir / "repairer.py")
+import os
+spec = importlib.util.spec_from_file_location(f"repairer_{pid}", pdir / os.environ.get("COEP_REPAIRER", "repairer.py"))
 mod = importlib.util.module_from_spec(spec)
 t0 = time.monotonic()
 try:
