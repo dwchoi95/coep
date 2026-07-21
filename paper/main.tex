@@ -35,12 +35,12 @@
 \maketitle
 
 \begin{abstract}
-Large language models (LLMs) now repair most buggy submissions to introductory programming assignments, but they are deployed \emph{one query per submission}: every request re-transmits the assignment description and test suite before the model ever sees the student's code---in our measurements, 79\% of prompt tokens are identical across submissions to the same assignment, and provider-side caching recovers only half of the resulting cost.
+Large language models (LLMs) now repair most buggy submissions to introductory programming assignments, but they are deployed \emph{one query per submission}: every request re-transmits the assignment description and test suite before the model ever sees the student's code---in our measurements, 93\% of prompt tokens are identical across submissions to the same assignment, and provider-side caching recovers only half of the resulting cost.
 We observe that assignment repair is a \emph{many-instances, one-specification} regime, and propose to change the unit of LLM investment from the submission to the assignment.
 In \textsc{CoEP}, an LLM agent synthesizes---once per assignment---an executable symbolic repairer: problem-specific AST rewrite rules over a generic edit-search library, with every candidate patch validated against the test suite and capped in patch size.
 The repairer is refined for at most three feedback rounds on a handful of sample bugs, then deployed locally at zero marginal LLM cost, with conventional per-submission repair as fallback.
-On a contamination-free benchmark of 10 assignments and 229 buggy programs, with the same frontier model powering both paradigms, synthesized repairers fix 74.9\% of 179 held-out submissions locally in ${\sim}2$s on a CPU; the hybrid matches the per-submission baseline's 100\% repair rate and patch quality while cutting marginal cost $4.0\times$.
-The one-off build cost (\$0.126 per assignment) breaks even after ${\approx}56$ submissions---well within a single course offering.
+On a memorization-safe benchmark of 10 assignments and 229 buggy programs, with the same frontier model powering both paradigms, synthesized repairers fix 74.9\% of 179 held-out submissions locally (median latency 50\,ms on a CPU; zero test-failing or oversized patches), and the hybrid matches the per-submission baseline's 100\% repair rate and patch quality at $4.0\times$ lower marginal cost.
+Against the zero-build-cost alternatives we run---provider caching, a cheap-model cascade, and the generic search without synthesis---\textsc{CoEP}'s one-off \$0.126-per-assignment build breaks even between ${\approx}$56 and ${\approx}$342 submissions, and composing \textsc{CoEP} with the cascade as its fallback reaches 100\% repair at $10.2\times$ lower marginal cost than the frontier baseline.
 Ablations locate the power: generic edit search alone fixes 95\% of mutation-style bugs but only 21\% of misconception bugs, which the synthesized assignment-specific rules lift to 50\% ($p{<}10^{-6}$).
 Amortizing LLM reasoning into verifiable symbolic artifacts is, we argue, a general recipe for AI systems that must serve many instances of one specification.
 \end{abstract}
@@ -54,7 +54,7 @@ Automated program repair (APR) has therefore long been proposed as a feedback en
 Large language models (LLMs) have made this vision practical.
 LLM-based repair now fixes the large majority of real student programs---up to 96.5\% of buggy Python submissions in PyDex \citep{pydex2024}---and general-purpose LLM repair systems report strong results at modest per-bug prices \citep{chatrepair2024,alpharepair2022,fastfixer2024,cref2024}.
 But these systems all share a deployment paradigm that we argue is mismatched with the economics of the classroom: \emph{every buggy submission triggers a fresh LLM query} that re-transmits the assignment description, the test suite, and formatting instructions before the model ever sees the student's code.
-In the benchmark we study, \PrefixFrac\% of the input tokens of a per-submission repair prompt are byte-identical across all submissions to the same assignment; the submission itself is a small minority of what the course pays to process, query after query, semester after semester.
+In the benchmark we study, 93\% of the input tokens of a per-submission repair prompt are byte-identical across all submissions to the same assignment (\PrefixFrac\% in a contiguous cacheable prefix); the submission itself is 8\% of what the course pays to process, query after query, semester after semester.
 Provider-side prompt caching \citep{anthropiccaching,openaicaching} discounts the redundant prefix but does not change the paradigm: in our measurements it removes \CacheSavingFrac\% of the per-submission cost, and every submission still requires a round trip to a frontier model, with the attendant marginal cost, latency, rate limits, and dependence on an external service.
 
 Our key observation is that assignment repair is a \emph{many-instances, one-specification} regime.
@@ -68,13 +68,14 @@ The synthesized repairer is refined for at most three feedback rounds against th
 Submissions the local repairer cannot fix escalate to the conventional per-submission LLM path, so the hybrid system never does worse than the paradigm it replaces.
 
 On a benchmark of \NumProblems{} introductory Python assignments with \NumBuggy{} buggy programs (misconception-crafted and mutation-generated), holding the underlying LLM fixed across all conditions, \textsc{CoEP}'s synthesized repairers alone fix \CoepRate\% of \NumEval{} held-out submissions; with LLM fallback the hybrid fixes \HybridRate\%---exactly matching the per-submission frontier-LLM baseline in both repair rate and patch quality, with minimality now guaranteed by a validator rather than requested in a prompt.
-The one-off synthesis cost of \$\BuildUsdPerProblem{} per assignment is recouped after $\approx$\BreakEvenN{} repaired submissions, and thereafter each repair costs \AsymReduction$\times$ less than per-submission prompting---a gap that no amount of prompt caching closes, because \FallbackRate\% is the only fraction of traffic that touches the LLM at all.
+The one-off synthesis cost of \$\BuildUsdPerProblem{} per assignment is recouped after $\approx$\BreakEvenN{} repaired submissions against the frontier baseline, and thereafter each repair costs \AsymReduction$\times$ less---a gap caching cannot close, because \FallbackRate\% is the only fraction of traffic that touches a model at all.
+We also run the stronger zero-build competitors this observation invites---a FrugalGPT-style cheap-model cascade and our generic edit search deployed without any synthesis---and find that synthesis dominates each beyond a few hundred submissions per assignment; composed with the cascade as its fallback path, \textsc{CoEP} repairs 100\% of submissions at one tenth the frontier baseline's marginal cost.
 
 This paper makes the following contributions:
 \begin{itemize}
 \item \textbf{A new deployment paradigm for assignment repair.} We identify the many-instances, one-specification structure of programming-assignment APR and formulate \emph{per-assignment repairer synthesis}: amortizing LLM reasoning into a reusable, locally executable repair artifact, with a cost model and break-even analysis for when it pays off.
 \item \textbf{The \textsc{CoEP} system.} A builder agent that synthesizes per-assignment repairers through a generate--validate--refine loop \citep{selfrefine2023,reflexion2023} over a repair-operator library; repairers are independently re-validated (test-suite pass + relative-patch-size cap) so a repairer can never self-report success, and are backed by hybrid LLM escalation.
-\item \textbf{A controlled, contamination-free evaluation.} A new benchmark of \NumProblems{} assignments / \NumBuggy{} buggy programs built from a misconception taxonomy plus seeded mutation \citep{mutants2014}, with both repair paradigms driven by the \emph{same} frontier model, exact token-level cost accounting, and statistical tests; plus ablations isolating the contribution of synthesized problem-specific rules and of refinement rounds.
+\item \textbf{A controlled, contamination-free evaluation.} A new benchmark of \NumProblems{} assignments / \NumBuggy{} buggy programs built from a misconception taxonomy plus seeded mutation \citep{mutants2014}, with both repair paradigms driven by the \emph{same} frontier model, exact token-level cost accounting, statistical tests, and four cost baselines (per-submission, cached, cheap-model cascade, generic-search-only); plus ablations isolating the contribution of synthesized rules, refinement rounds, and builder-model capability.
 \item \textbf{Artifacts.} We release the benchmark, harness, prompts, synthesized repairers, and all raw model outputs.\footnote{Anonymized repository submitted as supplementary material.}
 \end{itemize}
 
@@ -82,7 +83,7 @@ This paper makes the following contributions:
 \label{sec:anatomy}
 
 To make the redundancy argument concrete, Table~\ref{tab:anatomy} decomposes the per-submission repair prompt used by our baseline (and, mutatis mutandis, by PyDex- and ChatRepair-style systems \citep{pydex2024,chatrepair2024}): a task preamble, the assignment description, the visible test suite, minimal-patch instructions, and finally the buggy submission.
-Averaged over our benchmark, a single repair query consumes \BaseInTok{} input and \BaseOutTok{} output tokens, of which only $\approx$21\% of the input varies between submissions to the same assignment.
+Averaged over our benchmark, a single repair query consumes \BaseInTok{} input and \BaseOutTok{} output tokens, of which only 8\%---the student's code itself---varies between submissions to the same assignment; provider caching cannot even reach all of the remainder, since only the contiguous 79\% prefix ahead of the code is cacheable.
 
 \begin{table}[t]
 \centering
@@ -91,17 +92,15 @@ Averaged over our benchmark, a single repair query consumes \BaseInTok{} input a
 \toprule
 Prompt component & Tokens (mean) & Share \\
 \midrule
-Task preamble + instructions & \multirow{3}{*}{583} & \multirow{3}{*}{79\%} \\
-Assignment description & & \\
-Visible test suite & & \\
-\addlinespace
-Buggy submission (varies) & 157 & 21\% \\
+Preamble + description + tests & 583 & 79\% \\
+Buggy submission (\emph{varies}) & 58 & 8\% \\
+Task instructions & 99 & 13\% \\
 \midrule
 Total input / query & \BaseInTok{} & \\
 Output / query & \BaseOutTok{} & \\
 \bottomrule
 \end{tabular}
-\caption{Cost anatomy of a per-submission repair query, averaged over \NumEval{} queries. The first three components are byte-identical for every submission to the same assignment; the paradigm re-buys them on every query.}
+\caption{Cost anatomy of a per-submission repair query, averaged over \NumEval{} queries. 92--93\% of input tokens are byte-identical for every submission to the same assignment (the student's code is 8\%); the paradigm re-buys them on every query, and only the 79\% contiguous prefix is even cacheable.}
 \label{tab:anatomy}
 \end{table}
 
@@ -213,11 +212,12 @@ We ask three research questions:
 
 \subsection{Benchmark}
 Public assignment-repair datasets (ITSP, the Refactory dataset, TutorCode) have circulated on GitHub for years and are plausibly in the training data of every current frontier model; memorization would inflate \emph{both} paradigms' repair rates and specifically contaminate the builder, which must not have seen the evaluation bugs \citep{cref2024}.
-Following the data-leakage guidance for LLM evaluations in APR \citep{chatrepair2024}, we therefore constructed a fresh benchmark whose held-out buggy programs cannot have been memorized, while borrowing its \emph{design} from established suites.
+Following the data-leakage guidance for LLM evaluations in APR \citep{chatrepair2024}, we therefore constructed a fresh, \emph{memorization-safe} benchmark---no evaluation item existed before this study---while borrowing its design from established suites.
+This choice trades one threat for another (the bug distribution is study-authored rather than student-authored); we disclose the construction fully here and analyze the residual threats in Discussion.
 
 The benchmark comprises \NumProblems{} classic introductory Python assignments (digit sum, palindrome check, Fibonacci, consecutive deduplication, top-$k$ selection, sorted insertion index, bracket matching, GCD, list flattening, grade statistics), each with an assignment handout, 14 visible tests including edge cases, and three reference solutions implementing genuinely different strategies.
 Each assignment has two pools of buggy programs:
-\textbf{(a) Misconception-crafted} (10 per assignment): realistic novice attempts written to instantiate documented misconception categories---wrong base cases, off-by-one boundaries, wrong initialization, order-destroying deduplication, count-only bracket matching, single-level flattening, integer-division means---in the spirit of the qualitative bug analyses of CLARA and Refactory \citep{clara2018,refactory2019}, with structural diversity across implementations.
+\textbf{(a) Misconception-crafted} (10 per assignment): novice attempts authored for this study by LLM agents instructed with documented misconception categories---wrong base cases, off-by-one boundaries, wrong initialization, order-destroying deduplication, count-only bracket matching, single-level flattening, integer-division means---in the spirit of the qualitative bug analyses of CLARA and Refactory \citep{clara2018,refactory2019}, with required structural diversity across implementations and mechanical validation (compiles, fails $\ge$1 test, pairwise distinct).
 \textbf{(b) Mutation-generated} (up to 15 per assignment): seeded first- and second-order mutants of the reference solutions under classical mutation operators, the standard proxy for real faults \citep{mutants2014} used by IntroClass, Codeflaws, and QuixBugs \citep{manybugs2015,codeflaws2017,quixbugs2017}.
 Every buggy program is machine-checked to compile and fail at least one test; every reference passes all tests.
 In total: \NumBuggy{} buggy programs; per assignment, 5 (2 crafted + 3 mutants) form the builder's $B_{\mathrm{build}}$ and up to 20 are held out for evaluation ($n{=}\NumEval$).
@@ -226,7 +226,9 @@ The crafted/mutant distinction doubles as an evaluation instrument: mutants lie 
 \subsection{Baselines}
 \textbf{Per-submission LLM repair} is the deployment paradigm of PyDex/MMAPR, ChatRepair, and FastFixer \citep{pydex2024,mmapr2022,chatrepair2024,fastfixer2024}: one query per submission containing the handout, the visible tests, the buggy program, and minimal-patch instructions (the strongest known configuration for student programs; PyDex reports up to 96.5\% with few-shot prompting).
 We instantiate it with the \emph{same} frontier model that powers \textsc{CoEP}'s builder, so every observed difference is attributable to the paradigm, not the model.
-\textbf{Cached per-submission repair} re-prices the same queries under provider prompt caching (shared prefix written once at $1.25\times$, read at $0.1\times$) \citep{anthropiccaching}---the strongest cost optimization available \emph{within} the per-submission paradigm.
+\textbf{Cached per-submission repair} re-prices the same queries under provider prompt caching (shared prefix written once at $1.25\times$, read at $0.1\times$) \citep{anthropiccaching}.
+\textbf{Cheap-model repair and cascade}: the same per-submission queries executed by a Haiku-tier model (\$1/\$5 per Mtok), alone and in a FrugalGPT-style cascade \citep{frugalgpt2024} that escalates its failures to the frontier model---the strongest \emph{zero-build-cost} competitors to amortization.
+\textbf{Generic-hybrid}: our generic edit search run with no LLM synthesis at all, backed by the same frontier fallback---the strongest free local competitor, and an ablation of the synthesized rules.
 We do not additionally re-run pre-LLM per-problem tools (Refactory, CLARA) as repair-rate baselines: they require dozens-to-hundreds of prior correct solutions per assignment and are consistently dominated by LLM repair on student programs \citep{pydex2024}; our contribution is orthogonal to the choice of local technique.
 
 \subsection{Metrics}
@@ -238,7 +240,8 @@ Repair rates carry 95\% Wilson intervals; paired comparisons use exact McNemar t
 \subsection{Protocol}
 All LLM interactions---\NumEval{} baseline repairs and every builder/refinement call---are single-shot prompt$\to$response exchanges executed by the same frontier model (Claude, July 2026 snapshot) under identical instructions, with no code execution or test access at generation time; all validation is performed by our harness.
 Local search is deterministic; LLM calls are single-sample ($n{=}1$), matching the deployment setting of one repair attempt per submission.
-Costs are computed from the exact message strings with a fixed tokenizer approximation applied identically to both arms (chars/3.6; provider tokenizers are unavailable offline), so all cost \emph{ratios} are tokenizer-independent.
+Costs are computed from the exact message strings with a fixed tokenizer approximation applied identically to all arms (chars/3.6; provider tokenizers are unavailable offline); because the arms differ in input/output mix, we release every raw string for exact re-tokenization and note that a $\pm$20\% differential calibration error shifts break-even points by at most the same factor.
+To probe sensitivity to builder capability, we additionally re-ran the entire synthesis pipeline with the Haiku-tier model as the builder (same prompts, same $R_{\max}$).
 Experiments ran on a single Linux container (no GPU); synthesized repairers used a 60s timeout and $\tau{=}0.35$ throughout.
 
 \section{Results}
@@ -269,12 +272,13 @@ Generic-only & 62.0 {\tiny[54.7, 68.8]} & 62.0 & 0.043 & 0 \\
 
 Table~\ref{tab:main} presents the headline comparison.
 The per-submission frontier-LLM baseline repairs \BaseRate\% of submissions---consistent with the near-saturated rates modern LLMs achieve on introductory assignments \citep{pydex2024}---which makes it a demanding reference point: the question this paper poses is not whether LLMs can repair student code, but what each repair needs to cost.
-\textsc{CoEP}'s synthesized repairers alone fix \CoepRate\% (CI [68.0, 80.6]) at zero marginal LLM cost, in \CoepMeanSec s per submission on a CPU; with fallback the hybrid reaches \HybridRate\%, exactly matching the baseline, as guaranteed by construction.
+\textsc{CoEP}'s synthesized repairers alone fix \CoepRate\% (CI [68.0, 80.6]) at zero marginal LLM cost---with median latency 0.05\,s per submission on one CPU core (mean 2.5\,s, dominated by \texttt{gcd}'s search; one 60\,s timeout)---and with fallback the hybrid reaches \HybridRate\%, matching the baseline by construction.
+The local path is also \emph{safe}: across all \NumEval{} attempts it produced zero test-failing and zero over-cap patches; its only failure mode is abstention ($\bot$), never a wrong repair.
 
 Patch quality is preserved, and its \emph{guarantee} changes character.
 The baseline model may rewrite freely, and does: 7.3\% of its test-passing ``repairs'' (13/179) exceed the RPS cap, discarding the student's approach---the failure mode \citet{itsp2017} identified as pedagogically useless.
 \textsc{CoEP} cannot produce such a patch: cap compliance is checked mechanically on every candidate.
-A paired view shows there is no hidden quality tax: on the 134 submissions \textsc{CoEP} repairs locally, its patches are exactly as minimal as the baseline's on the same instances (mean RPS \CoepMeanRPS{} for both); the baseline's heavier aggregate tail (mean \BaseMeanRPS, driven by the 13 rewrites) falls entirely on submissions \textsc{CoEP} escalates anyway, so the hybrid's quality profile (\BaseQualityRate\% cap-compliant) equals the baseline's.
+A paired view shows there is no hidden quality tax: on the 134 submissions \textsc{CoEP} repairs locally, its patches are as minimal as the baseline's on the same instances (mean RPS 0.058 for both, paired); the baseline's heavier aggregate tail (mean \BaseMeanRPS) is driven by its 13 rewrites, \emph{all} of which strike misconception-crafted bugs---exactly the pedagogically sensitive cases---and all of which fall on submissions \textsc{CoEP} escalates anyway, so the hybrid's quality profile (\BaseQualityRate\% cap-compliant) equals the baseline's.
 What changes is enforcement: minimality and determinism hold for local repairs \emph{by construction}---a prompt can request these properties, but only a validator can guarantee them.
 
 Per-assignment rates (Figure~\ref{fig:perproblem}) range from 50\% (\texttt{balanced\_brackets}, whose stack-discipline bugs often need multi-edit structural fixes) to 95\% (\texttt{grade\_stats}).
@@ -302,46 +306,50 @@ The dispersion tracks how far an assignment's misconceptions lie from small-edit
 \begin{table}[t]
 \centering
 \small
-\setlength{\tabcolsep}{3.6pt}
-\begin{tabular}{lrr}
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{lccrr}
 \toprule
- & Tok.\ in / out & USD ($\times10^{-3}$) \\
+ & Repair & RPS$\le$0.35 & Build \$ & \$/sub ($\times10^{-3}$) \\
 \midrule
-Baseline, per submission & 740 / 51 & 2.99 \\
-\;\;with prompt caching & 740 / 51 & 1.53 \\
-\textsc{CoEP} build, per assignment & 4749 / 7441 & 126 \\
-\textsc{CoEP} marginal, per submission & 0 / 0 & 0 \\
-\textsc{CoEP} fallback, per escalation & 739 / 54 & 3.02 \\
+Frontier per-subm. & 100.0 & 92.7 & 0 & 2.99 \\
+\;+ prompt caching & 100.0 & 92.7 & 0 & 1.53 \\
+Cheap-model per-subm. & 97.2 & 86.6 & 0 & 0.99 \\
+Cascade (cheap$\to$front.) & 100.0 & 88.3 & 0 & 1.09 \\
+Generic-hybrid & 100.0 & 92.7 & 0 & 1.13 \\
+\midrule
+\textsc{CoEP} + frontier fb. & 100.0 & 92.7 & 0.126 & 0.76 \\
+\textsc{CoEP} + cascade fb. & 100.0 & 91.6 & 0.126 & \textbf{0.29} \\
 \bottomrule
 \end{tabular}
-\caption{Token and dollar accounting. Build cost covers all builder and refinement calls (15 LLM calls across \NumProblems{} assignments, $R_{\max}{=}3$).}
-\label{tab:cost}
+\caption{The amortization ladder: every configuration that repairs 100\% of submissions, with its one-off build cost per assignment and marginal cost per submission. \textsc{CoEP} composes with, rather than competes against, model-side optimizations.}
+\label{tab:ladder}
 \end{table}
 
-Table~\ref{tab:cost} gives the exact accounting.
-Synthesizing an assignment's repairer costs \$\BuildUsdPerProblem{} on average (\BuildInTok{} prompt + \BuildOutTok{} response tokens across all ten assignments)---the price of roughly 42 baseline repairs, paid once.
-Let $C$ be the build cost, $c$ the per-submission LLM cost, and $f$ the fallback fraction.
-\textsc{CoEP} is cheaper than per-submission repair once
-\[
-N > N^{*} = \frac{C}{c\,(1-f)},
-\]
-which with measured values ($C{=}\$\BuildUsdPerProblem$, $c{=}\$\BaseUsdPerInst\times10^{-3}$, $f{=}0.251$) gives $N^{*} \approx \BreakEvenN{}$ submissions per assignment---about one week of a mid-sized course section, and an order of magnitude below the $\approx$340 buggy submissions per assignment in the Refactory corpus \citep{refactory2019}.
-Against the prompt-cached baseline, $N^{*} \approx \BreakEvenNCached{}$.
-Asymptotically each submission costs $f \cdot c$: a \AsymReduction$\times$ reduction over per-submission prompting, and---because caching applies equally to the fallback traffic---the same factor over the cached baseline.
-Prompt caching, the strongest optimization \emph{within} the pay-per-query paradigm, saves \CacheSavingFrac\%; changing the paradigm saves 75\%, and the two compose.
+Table~\ref{tab:ladder} prices every route to 100\% repair rate that our study supports, and Table~\ref{tab:cost} gives the underlying token accounting.
+Within the pay-per-query paradigm, caching saves \CacheSavingFrac\% and a Haiku-tier cascade---repair 97.2\% alone, 100\% after escalating its 2.8\% failures---reaches \$1.09$\times10^{-3}$ per submission, at a patch-quality price (cap-compliance drops to 88.3\%, cheap-model patches are larger, mean RPS 0.145).
+Replacing queries beats discounting them: \textsc{CoEP} with a frontier fallback costs \$0.76$\times10^{-3}$ per submission, and because amortization is orthogonal to model choice, routing its fallback traffic through the same cascade yields the dominant configuration---100\% repair at \$0.29$\times10^{-3}$, $10.2\times$ below the frontier baseline and $3.7\times$ below the best zero-build alternative.
 
-Figure~\ref{fig:cost} plots cumulative cost per assignment.
-Beyond cost, the deployment profile changes qualitatively: 74.9\% of submissions are repaired in \CoepMeanSec{}s on a CPU with no network dependency, no rate limits, and deterministic, auditable behavior---operational properties that per-query paradigms cannot offer at any price.
+Synthesizing an assignment's repairer costs \$\BuildUsdPerProblem{} on average (\BuildInTok{} prompt + \BuildOutTok{} response tokens across ten assignments; the price of $\approx$42 baseline repairs, paid once).
+Let $C$ be the build cost, $\Delta$ the marginal saving per submission over a competitor; synthesis wins once $N > N^{*} = C/\Delta$.
+Three break-evens map the regimes:
+against the frontier baseline, $N^{*}\!\approx\!\BreakEvenN{}$ (with caching, \BreakEvenNCached);
+against the strongest free competitor (generic-hybrid), $N^{*}\!\approx\!342$;
+in the cascade-fallback configuration against the cascade itself, $N^{*}\!\approx\!159$.
+Under a misconception-only bug mix (the local rate falls to 50\%; \S RQ3), the frontier-fallback break-even moves to $N^{*}\!\approx\!84$.
+All of these sit at or below the scale of real deployments: the Refactory corpus averages $\approx$340 buggy submissions per assignment \emph{per offering} \citep{refactory2019}, CS1 assignments recur across offerings, and MOOC deployments add an order of magnitude.
+Figure~\ref{fig:cost} plots the full ladder.
+
+Beyond cost, the deployment profile changes qualitatively: three quarters of submissions are repaired in milliseconds on a CPU with no network dependency, no rate limits, and deterministic, auditable behavior---operational properties that per-query paradigms cannot offer at any price, and that matter precisely at the deadline-night traffic spikes where API throughput is scarcest.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.92\columnwidth]{figures/cumulative_cost.pdf}
-\caption{Cumulative LLM cost per assignment as submissions accumulate. \textsc{CoEP}'s one-off build cost (dotted) is overtaken at $N^{*}{\approx}\BreakEvenN{}$ submissions (vs.\ the uncached baseline); its slope thereafter is $f{\cdot}c$, a \AsymReduction$\times$ reduction.}
+\includegraphics[width=0.95\columnwidth]{figures/cumulative_cost.pdf}
+\caption{Cumulative LLM cost per assignment. Pay-per-query optimizations (caching, cascade) change the slope; only amortization moves cost into a one-off intercept, and the composed \textsc{CoEP}+cascade configuration dominates everything beyond ${\approx}$159 submissions.}
 \label{fig:cost}
 \end{figure}
 
 \smallskip
-\noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ2.} A \$\BuildUsdPerProblem{} one-off build per assignment breaks even after $\approx$\BreakEvenN{} submissions and cuts marginal repair cost \AsymReduction$\times$; provider-side caching saves \CacheSavingFrac\% within the old paradigm, while \textsc{CoEP} composes with it and removes 75\% of queries outright.}}
+\noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ2.} Every zero-build competitor floors at ${\ge}\$0.99\times10^{-3}$ per submission; \textsc{CoEP} reaches \$0.29$\times10^{-3}$ (with cascade fallback), a $10.2\times$ reduction over the frontier baseline, breaking even against the \emph{strongest} free alternative within ${\approx}$159--342 submissions per assignment---below one real course offering.}}
 
 \subsection{RQ3: Where Does the Power Come From?}
 
@@ -364,18 +372,22 @@ Overall build-sample success rose from $38/50$ (round 1) to $48/50$ (final)---ev
 \label{sec:limitations}
 
 \textbf{Construct validity.}
-Repair rate is measured against visible tests, as in prior assignment-repair work \citep{refactory2019,pydex2024}; a patch could overfit the suite.
-Two design choices bound this risk: suites include adversarial edge cases (14 tests per assignment), and the RPS cap prevents the degenerate overfit of wholesale replacement---a failure mode we in fact observe in the \emph{baseline}, 7.3\% of whose ``repairs'' exceed the cap.
+Repair rate is measured against visible tests, as in prior assignment-repair work \citep{refactory2019,pydex2024}; a patch could overfit the suite, and \textsc{CoEP}'s search optimizes that oracle directly.
+Two design choices bound this risk: suites include adversarial edge cases (14 tests per assignment), and the RPS cap prevents the degenerate overfit of wholesale replacement---a failure mode we in fact observe in the \emph{baseline}, 7.3\% of whose ``repairs'' exceed the cap, while the local path produced zero.
+The frontier baseline's 100\% repair rate is a ceiling: on CS1-scale programs, modern LLMs saturate functional repair \citep{pydex2024}, which is precisely why our comparisons are designed around cost and quality at parity rather than repair-rate deltas; benchmarks that separate frontier models on repair rate (larger, multi-function assignments) are where the paradigm question should be re-asked next.
 Our cost model prices one provider tier; because we report raw token counts, any pricing can be substituted, and the break-even expression in RQ2 is closed-form in the price.
 
 \textbf{Internal validity.}
 Both paradigms use the same model, the same single-attempt budget, and the same independent validation harness, and the builder never sees evaluation bugs.
+Two circularities deserve explicit statement.
+First, the mutation half of the benchmark is generated by the same operator implementation the generic search inverts; we therefore treat mutants as calibration (both local variants solve $\approx$95\%) and rest every claim about assignment understanding on the crafted pool, reporting crafted-only economics alongside pooled ones.
+Second, the crafted bugs were authored by LLM agents of the same model family that powers both repair arms; authorship bias, if any, favors the \emph{per-submission baseline} (an in-distribution generator--solver pair), not the symbolic repairers whose rules must survive an independent validator---but only evaluation on real student corpora, which we could not use without contamination, removes this threat entirely.
 The LLM calls were executed through an agent harness constrained to behave as a stateless single-shot endpoint (no tool use, no test execution); reported costs are computed from the exact message payloads.
 Token counts use a fixed approximate tokenizer applied to both arms; ratios and break-even points are therefore unaffected by calibration error, and we release all raw strings for exact re-tokenization.
 
 \textbf{External validity.}
 Our benchmark is synthetic-but-principled: crafted misconceptions plus seeded mutants, not real student submissions---the price of a contamination-free comparison. Real distributions are heavier-tailed: more duplicates and near-duplicates (which \emph{favor} amortization---a rule pays off more often) but also messier failure modes (I/O handling, timeouts, partial attempts) that will lower local repair rates and raise the fallback fraction $f$; the hybrid design degrades gracefully in exactly that case, and the break-even analysis makes the dependence on $f$ explicit.
-We evaluate one language (Python), one model family, and assignments of introductory scale; per-assignment synthesis for multi-function projects is open.
+We evaluate one language (Python), one model family (two capability tiers), and assignments of introductory scale; per-assignment synthesis for multi-function projects is open.
 Finally, our headline economics assume assignments recur across offerings---true of the CS1 canon by design, and the regime (hundreds of submissions per assignment) matches public corpora such as the Refactory dataset ($\approx$340 buggy submissions per assignment) \citep{refactory2019}.
 
 \section{Related Work}

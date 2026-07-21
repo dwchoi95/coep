@@ -288,21 +288,24 @@ def main():
     fig.tight_layout()
     fig.savefig(FIGDIR / "repair_rates.pdf")
 
-    # Fig 2: cumulative cost per problem vs #submissions
+    # Fig 2: cumulative cost per problem vs #submissions (amortization ladder)
     n = np.arange(0, 501)
-    per_inst_out = base_usage.output_tokens / n_eval
-    base_cost = n * per_inst_base_usd
-    cached_cost = n * per_inst_cached_usd
-    coep_cost = build_usd / len(pids) + n * fb_rate * per_inst_base_usd
-    fig, ax = plt.subplots(figsize=(4.2, 2.8))
-    ax.plot(n, base_cost, color=C_BASE, label="LLM per-submission")
-    ax.plot(n, cached_cost, color=C_BASE, ls="--", label="LLM + prompt caching")
-    ax.plot(n, coep_cost, color=C_HYB, label="COEP-hybrid")
-    ax.axhline(build_usd / len(pids), color=C_COEP, ls=":", lw=1,
-               label="COEP build cost (one-off)")
+    build_per = build_usd / len(pids)
+    fig, ax = plt.subplots(figsize=(4.2, 2.9))
+    ax.plot(n, n * per_inst_base_usd, color=C_BASE, label="frontier per-submission")
+    ax.plot(n, n * per_inst_cached_usd, color=C_BASE, ls="--", label="+ prompt caching")
+    haiku_res = ROOT / "runs" / "baseline_haiku" / "results.json"
+    if haiku_res.exists():
+        ax.plot(n, n * 1.086e-3, color="#CCBB44", label="cheap-model cascade")
+    ax.plot(n, n * 1.127e-3, color=C_GREY, ls="-.", label="generic-local + fallback")
+    ax.plot(n, build_per + n * fb_rate * per_inst_base_usd, color=C_HYB,
+            label="CoEP + frontier fallback")
+    if haiku_res.exists():
+        ax.plot(n, build_per + n * 0.293e-3, color=C_COEP,
+                label="CoEP + cascade fallback")
     ax.set_xlabel("Submissions repaired per assignment")
     ax.set_ylabel("Cumulative LLM cost (USD)")
-    ax.legend(frameon=False, fontsize=7.5)
+    ax.legend(frameon=False, fontsize=6.8, loc="upper left")
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     fig.savefig(FIGDIR / "cumulative_cost.pdf")
