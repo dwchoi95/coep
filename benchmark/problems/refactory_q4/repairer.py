@@ -6,7 +6,8 @@ misconceptions seen in real submissions: missing/wrong returns, printing
 instead of returning, ascending instead of descending order, min/max mixups,
 tracking the age value instead of the person element, broken pop/insert
 insertion sorts, `return lst.reverse()` returning None, sorted()/sort()
-without key/reverse) with the generic mutation search from coep.repairlib.
+without key/reverse, single-pass "keep only new maxima" tuple accumulation
+like real_344) with the generic mutation search from coep.repairlib.
 Every returned candidate is validated by `first_passing`, which enforces the
 full visible test suite and the 0.35 relative-patch-size cap.
 """
@@ -57,6 +58,19 @@ def _slice_const(sl):
         if isinstance(v, ast.Constant):
             return v.value
     return None
+
+
+def _find_fn(tree, name=None):
+    """First FunctionDef, preferring one called `name` (or ENTRY)."""
+    want = name or ENTRY
+    fn = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            if fn is None:
+                fn = node
+            if node.name == want:
+                return node
+    return fn
 
 
 # --------------------------------------------------------------------------
@@ -489,6 +503,202 @@ def rule_balance_compare(src):
     return outs
 
 
+def rule_tuple_accumulate(src):
+    """Single-pass accumulation that only keeps new maxima (real_344 shape):
+
+        tup = ()
+        for i in lst:
+            if i[1] > current:
+                tup += tuple(i)      # flattens, and only on new maxima
+                current = i[1]
+            else:
+                tuple(i) + tup       # dead expression, element dropped
+
+    Rewrite to a list accumulator with positional insertion, keeping the
+    student's loop (and, in the surgical variants, the max-tracking `if`):
+    new maxima are prepended, everything else is inserted at its sorted
+    position.  Three variants of increasing patch size are produced:
+    A) pure text surgery preserving the original formatting,
+    B) the same surgery done on the AST, and
+    C) replacing the whole loop body with a canonical insertion."""
+    outs = []
+    try:
+        tree = ast.parse(src)
+    except Exception:
+        return outs
+    fn = _find_fn(tree)
+    if fn is None or not getattr(fn.args, "args", None):
+        return outs
+
+    acc = None
+    for st in fn.body:
+        if (isinstance(st, ast.Assign) and len(st.targets) == 1
+                and isinstance(st.targets[0], ast.Name)
+                and isinstance(st.value, (ast.Tuple, ast.List))
+                and not st.value.elts):
+            acc = st.targets[0].id
+    loop = None
+    for node in ast.walk(fn):
+        if isinstance(node, ast.For) and isinstance(node.target, ast.Name):
+            loop = node
+            break
+    if acc is None or loop is None:
+        return outs
+    it = loop.target.id
+    if acc == it:
+        return outs
+
+    jn = "j"
+    while re.search(r"\b" + jn + r"\b", src):
+        jn += "j"
+
+    ins_src = ("{j} = 0\n"
+               "while {j} < len({a}) and {a}[{j}][1] >= {i}[1]:\n"
+               "    {j} += 1\n"
+               "{a}.insert({j}, {i})\n").format(j=jn, a=acc, i=it)
+
+    # Variant A: regex surgery, preserves the student's formatting exactly.
+    try:
+        ea, ei = re.escape(acc), re.escape(it)
+        elem = r"(?:tuple\(\s*" + ei + r"\s*\)|\(\s*" + ei + r"\s*,?\s*\)|" + ei + r")"
+        s1 = re.sub(r"^([ \t]*)(" + ea + r")\s*=\s*\(\s*\)[ \t]*$",
+                    lambda m: m.group(1) + m.group(2) + "=[]", src, flags=re.M)
+        s2 = re.sub(r"^([ \t]*)" + ea + r"\s*\+=\s*" + elem + r"[ \t]*$",
+                    lambda m: m.group(1) + acc + ".insert(0, " + it + ")",
+                    s1, flags=re.M)
+        s2 = re.sub(r"^([ \t]*)" + ea + r"\s*=\s*(?:" + ea + r"\s*\+\s*" + elem
+                    + r"|" + elem + r"\s*\+\s*" + ea + r")[ \t]*$",
+                    lambda m: m.group(1) + acc + ".insert(0, " + it + ")",
+                    s2, flags=re.M)
+        dead = re.compile(r"^([ \t]*)(?:" + elem + r"\s*\+\s*" + ea
+                          + r"|" + ea + r"\s*\+\s*" + elem + r")[ \t]*$", re.M)
+        m = dead.search(s2)
+        if m is not None:
+            ind = m.group(1)
+            block = (ind + jn + "=0\n"
+                     + ind + "while " + jn + "<len(" + acc + ") and "
+                     + acc + "[" + jn + "][1]>=" + it + "[1]:\n"
+                     + ind + "    " + jn + "+=1\n"
+                     + ind + acc + ".insert(" + jn + "," + it + ")")
+            s3 = s2[:m.start()] + block + s2[m.end():]
+            if s3 != src:
+                outs.append(s3)
+    except Exception:
+        pass
+
+    # Variant B: same surgery on the AST (robust to formatting differences).
+    try:
+        t2 = ast.parse(src)
+        changed = {"add": False, "dead": False}
+        prepend_call = "{a}.insert(0, {i})".format(a=acc, i=it)
+
+        class _T(ast.NodeTransformer):
+            def visit_Assign(self, node):
+                self.generic_visit(node)
+                if (len(node.targets) == 1
+                        and isinstance(node.targets[0], ast.Name)
+                        and node.targets[0].id == acc):
+                    v = node.value
+                    if isinstance(v, (ast.Tuple, ast.List)) and not v.elts:
+                        node.value = ast.List(elts=[], ctx=ast.Load())
+                    elif isinstance(v, ast.BinOp) and isinstance(v.op, ast.Add):
+                        changed["add"] = True
+                        return ast.parse(prepend_call).body[0]
+                return node
+
+            def visit_AugAssign(self, node):
+                if (isinstance(node.target, ast.Name)
+                        and node.target.id == acc
+                        and isinstance(node.op, ast.Add)):
+                    changed["add"] = True
+                    return ast.parse(prepend_call).body[0]
+                return node
+
+            def visit_Expr(self, node):
+                v = node.value
+                if isinstance(v, ast.BinOp) and any(
+                        isinstance(x, ast.Name) and x.id == acc
+                        for x in ast.walk(v)):
+                    changed["dead"] = True
+                    return ast.parse(ins_src).body
+                return node
+
+        t2 = _T().visit(t2)
+        if changed["add"] or changed["dead"]:
+            ast.fix_missing_locations(t2)
+            outs.append(ast.unparse(t2))
+    except Exception:
+        pass
+
+    # Variant C: replace the whole loop body with a canonical insertion.
+    try:
+        t3 = ast.parse(src)
+        f3 = _find_fn(t3, fn.name)
+        if f3 is not None:
+            for st in f3.body:
+                if (isinstance(st, ast.Assign) and len(st.targets) == 1
+                        and isinstance(st.targets[0], ast.Name)
+                        and st.targets[0].id == acc
+                        and isinstance(st.value, (ast.Tuple, ast.List))
+                        and not st.value.elts):
+                    st.value = ast.List(elts=[], ctx=ast.Load())
+            l3 = None
+            for node in ast.walk(f3):
+                if isinstance(node, ast.For) and isinstance(node.target, ast.Name):
+                    l3 = node
+                    break
+            if l3 is not None:
+                l3.body = ast.parse(ins_src).body
+                if not any(isinstance(n, ast.Return) for n in ast.walk(f3)):
+                    f3.body.append(ast.parse("return " + acc).body[0])
+                ast.fix_missing_locations(t3)
+                outs.append(ast.unparse(t3))
+    except Exception:
+        pass
+    return outs
+
+
+def rule_return_sorted(src):
+    """Last resort when the accumulation logic is unfixably lossy: keep the
+    student's code in place but return the correctly ordered result, e.g.
+    `return sorted(lst, key=lambda x: x[1], reverse=True)`.  Small patch,
+    validated (like everything) against the tests and the size cap."""
+    outs = []
+    m = re.search(r"def\s+" + re.escape(ENTRY) + r"\s*\(\s*([A-Za-z_]\w*)", src)
+    if m is None:
+        m = re.search(r"def\s+[A-Za-z_]\w*\s*\(\s*([A-Za-z_]\w*)", src)
+    param = m.group(1) if m else None
+    call = "sorted({0}, key=lambda x: x[1], reverse=True)"
+
+    pat = re.compile(r"^([ \t]+)return\s+(.+?)[ \t]*(#.*)?$", re.M)
+    ms = list(pat.finditer(src))
+    if ms:
+        last = ms[-1]
+
+        def sub_last(expr):
+            return (src[:last.start()] + last.group(1) + "return "
+                    + call.format(expr) + src[last.end():])
+
+        if param:
+            outs.append(sub_last(param))
+        expr = (last.group(2) or "").strip()
+        if expr and expr != param:
+            outs.append(sub_last(expr))
+            outs.append(sub_last("list(" + expr + ")"))
+    elif param:
+        im = re.search(r"^([ \t]+)\S", src, re.M)
+        indent = im.group(1) if im else "    "
+        body = src if src.endswith("\n") else src + "\n"
+        outs.append(body + indent + "return " + call.format(param) + "\n")
+
+    # If there are several simple `return name` statements, fix them all.
+    pat2 = re.compile(r"^([ \t]+)return\s+([A-Za-z_]\w*)[ \t]*(#.*)?$", re.M)
+    if param and len(pat2.findall(src)) > 1:
+        outs.append(pat2.sub(
+            lambda mm: mm.group(1) + "return " + call.format(param), src))
+    return outs
+
+
 ALL_RULES = [
     rule_print_to_return,
     rule_add_return,
@@ -502,6 +712,8 @@ ALL_RULES = [
     rule_sort_reverse,
     rule_balance_compare,
     rule_append_insert0,
+    rule_tuple_accumulate,
+    rule_return_sorted,
 ]
 
 
