@@ -356,7 +356,8 @@ This is the paradigm's core claim made measurable: what the builder amortizes is
 \textbf{Refinement rounds.}
 Seven of ten builders produced a repairer that fixed all five build samples in a single shot; three did not (two returned no patches at all due to internal defects, one missed structural cases).
 Feedback rounds repaired the builders themselves: round~2 fixed \texttt{is\_palindrome} outright ($0/5 \to 5/5$; its eventual held-out rate, 70\%, is indistinguishable from single-shot builders), and rounds 2--3 lifted \texttt{flatten} and \texttt{unique\_in\_order} from $0$--$3/5$ to $4/5$.
-Overall build-sample success rose from $38/50$ (round 1) to $48/50$ (final)---evidence that the validate-and-refine loop, not single-shot generation luck, makes synthesis reliable; feedback that includes the still-failing submissions (added in round 3) was what unlocked the two hardest builders.
+Overall build-sample success rose from $38/50$ (round 1) to $48/50$ (final)---evidence that the validate-and-refine loop, not single-shot generation luck, makes synthesis reliable; feedback that includes the still-failing submissions was what unlocked the two hardest builders.
+An independent replication of the entire frontier-builder pipeline (fresh samples, same prompts and $R_{\max}$) confirms this mechanism: single-shot success varied substantially ($27/50$ vs.\ $38/50$), yet refinement converged both replications to $48/50$ build success and statistically indistinguishable held-out repair (72.6\% vs.\ 74.9\%, both inside the CI)---the loop absorbs synthesis variance.
 
 \textbf{Builder capability.}
 Re-running the entire synthesis pipeline with the Haiku-tier model as builder (same prompts, same $R_{\max}{=}3$) yields repairers that fix 51.4\% of held-out submissions (92/179)---above the generic-only floor (62.0\% pooled, but only 21\% on crafted bugs, vs.\ 31\% for the cheap builder's rules) yet well below the frontier builder's 74.9\%; two of its ten repairers never became usable within three rounds.
@@ -449,6 +450,7 @@ No proprietary or human-subject data are used.
 Source code, prompts, synthesized repairers, raw LLM responses, and analysis scripts are released; experiments run on a single CPU container (no GPU).
 Model version, pricing snapshot, tokenizer convention, decoding budget (single sample), seeds for benchmark generation and splits, timeouts, and the RPS threshold are stated in Experimental Setup and are fixed in the released configuration.
 Metrics are formally defined; repair rates carry 95\% Wilson intervals and paired claims use exact McNemar tests.
-Local search and evaluation are deterministic; LLM calls are single-shot by design (deployment matches one attempt per submission), so no cross-run variance is reported for them---a limitation noted in Discussion.
+Local search and evaluation are deterministic; per-submission LLM calls are single-shot by design (deployment matches one attempt per submission).
+The stochastic synthesis stage was replicated end-to-end twice with the frontier builder; both replications' build trajectories and held-out results are reported (RQ3) and released.
 
 \end{document}
