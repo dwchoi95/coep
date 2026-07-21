@@ -1,23 +1,36 @@
 """Local, LLM-free automatic repair system for the `is_palindrome` assignment.
 
-Strategy:
-  1. Try the original source (it is validated like any other candidate).
-  2. Apply problem-specific AST rewrite rules targeting the common
-     misconceptions for this assignment (wrong filter predicate, missing
-     case fold, half-split comparison, inverted result, bad two-pointer
-     initialization, missing call parentheses, missing filtering step, ...),
-     lightly dispatched on the observed failing-test pattern.
-  3. Fall back to the generic single-edit search, then compositions
-     (specific+specific, specific+generic, generic two-edit search).
-All candidates are validated through `first_passing`, which enforces the
-full visible test suite and the relative-patch-size cap (<= 0.35).
+Revision notes (round 2): the previous version produced no patch for any
+sample, which pointed at systematic internal failures rather than weak
+rules.  This revision hardens every fragile point:
+
+  * No reliance on optional repairlib names (`chain` is now taken from
+    itertools; `candidates_generic` is looked up defensively with getattr).
+  * `first_passing` is called through a signature-adaptive shim: it first
+    tries the keyword form with the explicit patch-size cap (max_rps=0.35)
+    and degrades to plainer positional forms on TypeError, so an argument
+    mismatch can never silently disable validation.
+  * The pipeline is a simple staged search, each stage validated
+    independently: original -> problem-specific AST rewrites -> generic
+    1-edit search -> built-in micro-mutations (a local backup 1-edit
+    mutator that does not depend on repairlib internals) -> two-fix
+    combinations -> generic 2-edit search.
+  * Candidate lists are bounded and pre-screened only by "parses as
+    Python" (never by anything semantic), so no over-restrictive filter
+    can drop a viable candidate.
+
+`repair(source)` returns a full repaired module source (str) or None and
+never raises.
 """
 
 import ast
 import copy
 import itertools
 
-from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
+from coep import repairlib as _repairlib
+
+first_passing = _repairlib.first_passing
+candidates_generic = getattr(_repairlib, "candidates_generic", None)
 
 ENTRY = "is_palindrome"
 
@@ -37,6 +50,68 @@ TESTS = [
     {"args": ["Was it a car or a cat I saw?"], "expected": True},
     {"args": ["ab"], "expected": False},
 ]
+
+
+# --------------------------------------------------------------------------
+# Validation shim: adapt to whatever signature first_passing actually has.
+# --------------------------------------------------------------------------
+
+_SIG = {"idx": None}
+
+_CALLS = [
+    lambda cands, src: first_passing(cands, ENTRY, TESTS, src, max_rps=0.35),
+    lambda cands, src: first_passing(cands, ENTRY, TESTS, src),
+    lambda cands, src: first_passing(cands, ENTRY, TESTS),
+]
+
+
+def _validate(cands, source):
+    """Run first_passing over a bounded candidate list; None on failure."""
+    try:
+        cands = [c for c in cands
+                 if isinstance(c, str) and c and _parse(c) is not None]
+    except Exception:
+        return None
+    if not cands:
+        return None
+    if _SIG["idx"] is not None:
+        try:
+            return _CALLS[_SIG["idx"]](list(cands), source)
+        except Exception:
+            return None
+    for i, call in enumerate(_CALLS):
+        try:
+            res = call(list(cands), source)
+        except TypeError:
+            continue
+        except Exception:
+            return None
+        _SIG["idx"] = i
+        return res
+    return None
+
+
+def _generic(source, edits, cap):
+    """Defensive wrapper around repairlib's generic edit search."""
+    if candidates_generic is None:
+        return []
+    attempts = (
+        lambda: candidates_generic(source, max_edits=edits),
+        lambda: candidates_generic(source, edits),
+        lambda: candidates_generic(source),
+    )
+    for attempt in attempts:
+        try:
+            gen = attempt()
+        except TypeError:
+            continue
+        except Exception:
+            return []
+        try:
+            return list(itertools.islice(iter(gen), cap))
+        except Exception:
+            return []
+    return []
 
 
 # --------------------------------------------------------------------------
@@ -94,6 +169,7 @@ def _apply_rule(source, rule):
             continue
         try:
             new_tree = _Replacer(rule, k).visit(t2)
+            ast.fix_missing_locations(new_tree)
             cand = ast.unparse(new_tree)
         except Exception:
             continue
@@ -275,9 +351,6 @@ def rule_whole_reverse(node):
 
     if not (_ok(L) and _ok(R)):
         return None
-    if not (isinstance(L, ast.Name) or isinstance(R, ast.Name)
-            or isinstance(L, ast.Subscript) or isinstance(R, ast.Subscript)):
-        return None
     if isinstance(L, ast.Name) and isinstance(R, ast.Name):
         return None  # nothing sliced; unrelated comparison
     bl = L.value if isinstance(L, ast.Subscript) else L
@@ -367,69 +440,157 @@ def _mk_filter_rules(source):
     return [r_join, r_filter]
 
 
-# --------------------------------------------------------------------------
-# Candidate generation
-# --------------------------------------------------------------------------
-
-def _specific_list(source, prioritize_lower=False):
-    rules_case = [rule_lower_elt, rule_lower_iter, rule_lower_cmp,
-                  rule_call_elt]
-    rules_filter = [rule_isalnum, rule_notspace, rule_call_attr] \
-        + _mk_filter_rules(source)
-    rules_struct = [rule_halfsplit, rule_whole_reverse, rule_reversed,
-                    rule_init_fix]
-    if prioritize_lower:
-        ordered = rules_case + rules_filter + rules_struct
-    else:
-        ordered = rules_filter + rules_case + rules_struct
+def _specific_list(source, cap=80):
+    try:
+        rules = ([rule_isalnum, rule_notspace, rule_call_attr]
+                 + _mk_filter_rules(source)
+                 + [rule_lower_elt, rule_lower_iter, rule_lower_cmp,
+                    rule_call_elt, rule_halfsplit, rule_whole_reverse,
+                    rule_reversed, rule_init_fix])
+    except Exception:
+        return []
     out = []
     seen = {source}
-    for rule in ordered:
-        for cand in _apply_rule(source, rule):
+    for rule in rules:
+        try:
+            cands = _apply_rule(source, rule)
+        except Exception:
+            continue
+        for cand in cands:
             if cand not in seen:
                 seen.add(cand)
                 out.append(cand)
-            if len(out) >= 80:
+            if len(out) >= cap:
                 return out
     return out
 
 
-def _safe(gen):
-    try:
-        for c in gen:
-            yield c
-    except Exception:
-        return
+# --------------------------------------------------------------------------
+# Built-in micro-mutations: a self-contained backup single-edit mutator so
+# the search does not depend on repairlib's generic search being usable.
+# --------------------------------------------------------------------------
+
+def _mk_cmp_rule(frm, to):
+    def rule(node):
+        if (isinstance(node, ast.Compare) and len(node.ops) == 1
+                and type(node.ops[0]) is frm):
+            return ast.Compare(left=copy.deepcopy(node.left), ops=[to()],
+                               comparators=[copy.deepcopy(node.comparators[0])])
+        return None
+    return rule
 
 
-def _second_wave(spec, prioritize_lower):
-    # Compositions of two specific fixes.
-    n = 0
-    for s1 in spec[:25]:
+_CMP_SWAPS = [(ast.Eq, ast.NotEq), (ast.NotEq, ast.Eq),
+              (ast.Lt, ast.LtE), (ast.LtE, ast.Lt),
+              (ast.Gt, ast.GtE), (ast.GtE, ast.Gt),
+              (ast.Lt, ast.Gt), (ast.Gt, ast.Lt)]
+
+
+def rule_true_to_false(node):
+    if isinstance(node, ast.Constant) and node.value is True:
+        return ast.Constant(False)
+    return None
+
+
+def rule_false_to_true(node):
+    if isinstance(node, ast.Constant) and node.value is False:
+        return ast.Constant(True)
+    return None
+
+
+def rule_drop_not(node):
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return copy.deepcopy(node.operand)
+    return None
+
+
+def rule_add_not_return(node):
+    if (isinstance(node, ast.Return) and node.value is not None
+            and not isinstance(node.value, ast.Constant)):
+        return ast.Return(value=ast.UnaryOp(op=ast.Not(),
+                                            operand=copy.deepcopy(node.value)))
+    return None
+
+
+def rule_and_to_or(node):
+    if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And):
+        return ast.BoolOp(op=ast.Or(), values=copy.deepcopy(node.values))
+    return None
+
+
+def rule_or_to_and(node):
+    if isinstance(node, ast.BoolOp) and isinstance(node.op, ast.Or):
+        return ast.BoolOp(op=ast.And(), values=copy.deepcopy(node.values))
+    return None
+
+
+def rule_add_to_sub(node):
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return ast.BinOp(left=copy.deepcopy(node.left), op=ast.Sub(),
+                         right=copy.deepcopy(node.right))
+    return None
+
+
+def rule_sub_to_add(node):
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Sub):
+        return ast.BinOp(left=copy.deepcopy(node.left), op=ast.Add(),
+                         right=copy.deepcopy(node.right))
+    return None
+
+
+def rule_aug_add_to_sub(node):
+    if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
+        return ast.AugAssign(target=copy.deepcopy(node.target), op=ast.Sub(),
+                             value=copy.deepcopy(node.value))
+    return None
+
+
+def rule_aug_sub_to_add(node):
+    if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Sub):
+        return ast.AugAssign(target=copy.deepcopy(node.target), op=ast.Add(),
+                             value=copy.deepcopy(node.value))
+    return None
+
+
+def _mk_int_rule(delta):
+    def rule(node):
+        if (isinstance(node, ast.Constant) and isinstance(node.value, int)
+                and not isinstance(node.value, bool)
+                and abs(node.value) <= 4):
+            return ast.Constant(node.value + delta)
+        return None
+    return rule
+
+
+def _micro_rules():
+    rules = [_mk_cmp_rule(a, b) for a, b in _CMP_SWAPS]
+    rules += [rule_true_to_false, rule_false_to_true, rule_drop_not,
+              rule_add_not_return, rule_and_to_or, rule_or_to_and,
+              rule_add_to_sub, rule_sub_to_add,
+              rule_aug_add_to_sub, rule_aug_sub_to_add,
+              _mk_int_rule(1), _mk_int_rule(-1)]
+    return rules
+
+
+def _micro_list(source, cap=200):
+    out = []
+    seen = {source}
+    for rule in _micro_rules():
         try:
-            more = _specific_list(s1, prioritize_lower)
+            cands = _apply_rule(source, rule)
         except Exception:
             continue
-        for s2 in more[:10]:
-            yield s2
-            n += 1
-            if n >= 120:
-                return
-
-
-def _spec_plus_generic(spec):
-    # A specific fix plus one generic edit.
-    for s1 in spec[:6]:
-        try:
-            gen = candidates_generic(s1, max_edits=1)
-        except Exception:
-            continue
-        for s2 in _safe(itertools.islice(gen, 40)):
-            yield s2
+        for cand in cands:
+            if cand not in seen:
+                seen.add(cand)
+                out.append(cand)
+            if len(out) >= cap:
+                return out
+    return out
 
 
 # --------------------------------------------------------------------------
-# Entry point
+# Entry point: staged pipeline, each stage validated via first_passing.
 # --------------------------------------------------------------------------
 
 def repair(source):
@@ -440,48 +601,78 @@ def repair(source):
 
 
 def _repair(source):
-    if not isinstance(source, str):
+    if not isinstance(source, str) or not source.strip():
         return None
     if _parse(source) is None:
-        return None  # syntax error
+        return None  # syntax error: out of scope for these rewrites
 
-    # Light dispatch on the observed failing-test pattern: if the pure
-    # case-sensitivity probe "Aa" fails, the case fold is likely missing,
-    # so try the lowercasing rules first.
-    prioritize_lower = False
-    try:
-        res = failing_tests(source, ENTRY, TESTS)
-        if getattr(res, "compiled", False):
-            for f in getattr(res, "failures", []) or []:
-                try:
-                    if f["args"][0] == "Aa":
-                        prioritize_lower = True
-                        break
-                except Exception:
-                    pass
-    except Exception:
-        pass
+    seen = set()
 
-    try:
-        spec = _specific_list(source, prioritize_lower)
-    except Exception:
-        spec = []
+    def fresh(cands):
+        out = []
+        for c in cands:
+            if isinstance(c, str) and c and c not in seen:
+                seen.add(c)
+                out.append(c)
+        return out
 
-    generators = [iter([source]), iter(spec)]
-    try:
-        generators.append(_safe(candidates_generic(source, max_edits=1)))
-    except Exception:
-        pass
-    generators.append(_second_wave(spec, prioritize_lower))
-    generators.append(_spec_plus_generic(spec))
-    try:
-        generators.append(_safe(candidates_generic(source, max_edits=2,
-                                                   budget=2500)))
-    except Exception:
-        pass
+    # Stage 0: the original source (validated like any other candidate).
+    res = _validate(fresh([source]), source)
+    if isinstance(res, str) and res:
+        return res
 
-    try:
-        return first_passing(chain(*generators), ENTRY, TESTS, source,
-                             max_rps=0.35, max_checks=800)
-    except Exception:
-        return None
+    # Stage 1: problem-specific rewrites.
+    spec = _specific_list(source)
+    res = _validate(fresh(spec), source)
+    if isinstance(res, str) and res:
+        return res
+
+    # Stage 2: repairlib's generic single-edit search.
+    gen1 = _generic(source, 1, cap=500)
+    res = _validate(fresh(gen1), source)
+    if isinstance(res, str) and res:
+        return res
+
+    # Stage 3: built-in micro-mutations (backup single-edit mutator).
+    micro = _micro_list(source)
+    res = _validate(fresh(micro), source)
+    if isinstance(res, str) and res:
+        return res
+
+    # Stage 4: specific fix composed with a second specific fix.
+    combo = []
+    for s1 in spec[:20]:
+        combo.extend(_specific_list(s1, cap=8))
+        if len(combo) >= 200:
+            break
+    res = _validate(fresh(combo), source)
+    if isinstance(res, str) and res:
+        return res
+
+    # Stage 5: (specific or micro) fix composed with a micro-mutation.
+    combo2 = []
+    for s1 in itertools.chain(spec[:12], micro[:25]):
+        combo2.extend(_micro_list(s1, cap=12))
+        if len(combo2) >= 400:
+            break
+    res = _validate(fresh(combo2), source)
+    if isinstance(res, str) and res:
+        return res
+
+    # Stage 6: specific fix composed with a generic single edit.
+    combo3 = []
+    for s1 in spec[:6]:
+        combo3.extend(_generic(s1, 1, cap=60))
+        if len(combo3) >= 300:
+            break
+    res = _validate(fresh(combo3), source)
+    if isinstance(res, str) and res:
+        return res
+
+    # Stage 7: repairlib's generic two-edit search.
+    gen2 = _generic(source, 2, cap=1500)
+    res = _validate(fresh(gen2), source)
+    if isinstance(res, str) and res:
+        return res
+
+    return None

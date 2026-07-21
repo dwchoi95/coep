@@ -4,13 +4,17 @@ Strategy:
   1. Parse the submission (syntax errors -> None).
   2. Diagnose the failure pattern with `failing_tests` and reorder the
      problem-specific rewrite rules accordingly (wrong order -> stack/pop
-     rules first, TypeError -> guarded-extend rules first, etc.).
+     rules first, TypeError -> guarded-extend rules first, dropped elements
+     -> missing-else rules first, etc.).
   3. Generate candidates from problem-specific AST rewrite rules targeting
      the common misconceptions for THIS assignment:
        - swapped isinstance arguments (single site and all sites at once),
        - append/extend confusion,
        - missing recursion (shallow one-level flattening),
        - missing isinstance guard around extend,
+       - missing `else` branch that drops non-list elements,
+       - `type(x) == list` / `type(x) is list` checks (wrong type name,
+         wrong comparison operator) instead of isinstance,
        - inverted / negated isinstance tests, int<->list confusion,
        - any/all confusion, `if` instead of `while` for repeated passes,
        - sorting / deduplication of the result,
@@ -220,6 +224,43 @@ def _r_iso_type(n):
     return n
 
 
+# --- type(x) == list / type(x) is list style checks -----------------------
+
+def _m_type_cmp(n):
+    return (isinstance(n, ast.Compare) and len(n.ops) == 1
+            and isinstance(n.ops[0], (ast.Eq, ast.NotEq, ast.Is, ast.IsNot))
+            and isinstance(n.left, ast.Call)
+            and isinstance(n.left.func, ast.Name)
+            and n.left.func.id == "type" and len(n.left.args) == 1
+            and isinstance(n.comparators[0], ast.Name))
+
+
+def _m_type_cmp_il(n):
+    return _m_type_cmp(n) and n.comparators[0].id in ("int", "list")
+
+
+def _r_type_cmp_toggle(n):
+    name = n.comparators[0]
+    if name.id == "int":
+        name.id = "list"
+    elif name.id == "list":
+        name.id = "int"
+    else:
+        return None
+    return n
+
+
+def _r_type_cmp_negop(n):
+    op = n.ops[0]
+    mapping = {ast.Eq: ast.NotEq, ast.NotEq: ast.Eq,
+               ast.Is: ast.IsNot, ast.IsNot: ast.Is}
+    nt = mapping.get(type(op))
+    if nt is None:
+        return None
+    n.ops = [nt()]
+    return n
+
+
 def _m_test_holder(n):
     return isinstance(n, (ast.If, ast.While, ast.IfExp))
 
@@ -229,7 +270,7 @@ def _r_toggle_not(n):
     if isinstance(t, ast.UnaryOp) and isinstance(t.op, ast.Not):
         n.test = t.operand
         return n
-    if _m_iso(t):
+    if _m_iso(t) or _m_type_cmp(t):
         n.test = ast.UnaryOp(op=ast.Not(), operand=t)
         return n
     return None
@@ -242,6 +283,59 @@ def _m_if_full(n):
 def _r_swap_branches(n):
     n.body, n.orelse = n.orelse, n.body
     return n
+
+
+# --- missing `else: acc.append(x)` that silently drops elements -----------
+
+def _acc_from_body(stmts):
+    """Return the name of the list being append/extend-ed inside `stmts`."""
+    for st in stmts:
+        for nd in ast.walk(st):
+            if (isinstance(nd, ast.Call) and isinstance(nd.func, ast.Attribute)
+                    and nd.func.attr in ("append", "extend")
+                    and isinstance(nd.func.value, ast.Name)):
+                return nd.func.value.id
+    return None
+
+
+def _m_for_missing_else(n):
+    if not isinstance(n, ast.For) or not isinstance(n.target, ast.Name):
+        return False
+    for s in n.body:
+        if isinstance(s, ast.If) and not s.orelse and _acc_from_body(s.body):
+            return True
+    return False
+
+
+def _r_for_missing_else(n):
+    tgt = n.target.id
+    changed = False
+    for s in n.body:
+        if isinstance(s, ast.If) and not s.orelse:
+            acc = _acc_from_body(s.body)
+            if acc is not None:
+                s.orelse = [ast.Expr(value=ast.Call(
+                    func=ast.Attribute(value=_name(acc), attr="append",
+                                       ctx=ast.Load()),
+                    args=[_name(tgt)], keywords=[]))]
+                changed = True
+    return n if changed else None
+
+
+def _r_for_missing_else_ext(n):
+    """Variant: add `else: acc.extend(x)` (for tuple/iterable leaves)."""
+    tgt = n.target.id
+    changed = False
+    for s in n.body:
+        if isinstance(s, ast.If) and not s.orelse:
+            acc = _acc_from_body(s.body)
+            if acc is not None:
+                s.orelse = [ast.Expr(value=ast.Call(
+                    func=ast.Attribute(value=_name(acc), attr="extend",
+                                       ctx=ast.Load()),
+                    args=[_name(tgt)], keywords=[]))]
+                changed = True
+    return n if changed else None
 
 
 def _m_anyall(n):
@@ -441,6 +535,10 @@ _STATIC_RULES = [
     ("unwrap_flat", _m_entry_call, _r_unwrap_call, False),
     ("guard_extend", _m_expr_ae, _r_guard_extend, False),
     ("iso_type", _m_iso_type, _r_iso_type, False),
+    ("type_cmp_toggle", _m_type_cmp_il, _r_type_cmp_toggle, False),
+    ("type_cmp_negop", _m_type_cmp, _r_type_cmp_negop, False),
+    ("missing_else", _m_for_missing_else, _r_for_missing_else, False),
+    ("missing_else_ext", _m_for_missing_else, _r_for_missing_else_ext, False),
     ("toggle_not", _m_test_holder, _r_toggle_not, False),
     ("swap_branches", _m_if_full, _r_swap_branches, False),
     ("any_all", _m_anyall, _r_anyall, False),
@@ -526,7 +624,7 @@ def _level2(source, bases, cap=300):
     seen = set(bases)
     seen.add(source)
     produced = 0
-    for b in bases[:50]:
+    for b in bases[:60]:
         try:
             for c in _specific_candidates(b):
                 if c in seen:
@@ -558,7 +656,7 @@ def _dispatch_order(source):
         fails = list(getattr(res, "failures", []) or [])
     except Exception:
         return None
-    wrong_order = type_err = shallow = sorted_like = False
+    wrong_order = type_err = shallow = sorted_like = dropped = False
     for f in fails:
         got = _get(f, "got")
         exp = _get(f, "expected")
@@ -572,6 +670,10 @@ def _dispatch_order(source):
                 wrong_order = True
             if any(isinstance(x, list) for x in got):
                 shallow = True
+            # elements silently dropped: fewer, non-nested, all a subset
+            if (not any(isinstance(x, list) for x in got)
+                    and len(got) < len(exp)):
+                dropped = True
             try:
                 if got != exp and got == sorted(exp):
                     sorted_like = True
@@ -584,10 +686,16 @@ def _dispatch_order(source):
         return ["sorted_unwrap", "drop_sort_stmt", "iso_swap"]
     if type_err:
         return ["guard_extend", "wrap_arg", "toggle_ae", "iso_swap",
-                "swap_branches", "toggle_not"]
+                "iso_type", "type_cmp_toggle", "swap_branches", "toggle_not",
+                "missing_else"]
+    if dropped:
+        return ["missing_else", "missing_else_ext", "swap_branches",
+                "toggle_not", "iso_swap", "iso_type", "type_cmp_toggle",
+                "type_cmp_negop", "toggle_ae"]
     if shallow:
-        return ["wrap_arg", "wrap_iter", "toggle_ae", "iso_swap",
-                "if_to_while", "any_all"]
+        return ["wrap_arg", "wrap_iter", "toggle_ae", "missing_else",
+                "iso_swap", "iso_type", "type_cmp_toggle", "if_to_while",
+                "any_all"]
     return None
 
 
@@ -619,7 +727,7 @@ def _repair_impl(source):
 
     order = _dispatch_order(source)
     try:
-        level1 = list(itertools.islice(_specific_candidates(source, order), 250))
+        level1 = list(itertools.islice(_specific_candidates(source, order), 300))
     except Exception:
         level1 = []
 
@@ -628,7 +736,7 @@ def _repair_impl(source):
         stage1 = chain(iter([source]), iter(level1))
     except Exception:
         stage1 = itertools.chain(iter([source]), iter(level1))
-    fix = _validate(stage1, source, 260)
+    fix = _validate(stage1, source, 320)
     if fix is not None:
         return fix
 
@@ -645,7 +753,7 @@ def _repair_impl(source):
         return fix
 
     # stage 3: compositions of two targeted rewrites
-    fix = _validate(_level2(source, level1), source, 260)
+    fix = _validate(_level2(source, level1), source, 320)
     if fix is not None:
         return fix
 

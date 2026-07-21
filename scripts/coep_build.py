@@ -91,7 +91,8 @@ def cmd_prompt(pid):
         prev = (PROBLEMS / pid / "repairer.py").read_text()
         results = json.loads((RUNS / "build_eval" / f"{pid}_round{k-1}.json").read_text())
         fb = [{"id": r["bug"], "status": "REPAIRED" if r["repaired"] else "NOT REPAIRED",
-               "detail": r.get("detail", r["status"] if not r["repaired"] else "")}
+               "detail": r.get("detail", r["status"] if not r["repaired"] else ""),
+               "source": (PROBLEMS / pid / "buggy" / r["bug"]).read_text()}
               for r in results]
         text = builder_refine_prompt(p, prev, fb)
     path = RUNS / "prompts" / f"{pid}_round{k}.md"

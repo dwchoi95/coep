@@ -119,8 +119,13 @@ def builder_refine_prompt(problem: dict, prev_module: str,
                           results: list[dict]) -> str:
     """Feedback round: previous repairer + its per-example outcomes."""
     lines = []
+    failed_srcs = []
     for r in results:
         lines.append(f"- {r['id']}: {r['status']}" + (f" — {r['detail']}" if r.get("detail") else ""))
+        if r["status"] != "REPAIRED" and r.get("source"):
+            failed_srcs.append(f"### Failed submission {r['id']}\n```python\n{r['source']}\n```")
+    failed_part = ("\n\nFor reference, the submissions the module failed on:\n\n"
+                   + "\n\n".join(failed_srcs)) if failed_srcs else ""
     return f"""You previously wrote the following per-assignment repair module for the assignment "{problem['id']}":
 
 ```python
@@ -128,7 +133,7 @@ def builder_refine_prompt(problem: dict, prev_module: str,
 ```
 
 Evaluated on the sample buggy submissions, the outcomes were:
-{chr(10).join(lines)}
+{chr(10).join(lines)}{failed_part}
 
 Revise the module to fix the failures while keeping all constraints from before (define `repair(source) -> str | None`; no LLM/network; validate with `first_passing`; patch-size cap 0.35; preserve the student's approach; generalize beyond these samples; never raise). Output ONLY the complete revised module in a single ```python code block, nothing else.
 """
