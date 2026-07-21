@@ -2,24 +2,27 @@
 
 Strategy:
   * Parse the student's submission (syntax error -> None).
-  * Apply a small set of problem-specific AST rewrites that target the
-    common misconceptions for THIS task:
+  * Apply a small set of problem-specific rewrites that target the common
+    misconceptions for THIS task:
       - swapped `isinstance` arguments, e.g. `isinstance(list, x)`;
       - a list branch that appends the sublist itself instead of recursing;
       - a shallow inner `for`-loop copy instead of recursion;
       - a bare `.extend(item)` with no type check / no recursion.
-    These are generated in every non-empty combination (minimal changes
-    first) so the smallest correct patch is preferred.
-  * Fall back to the generic edit search (1 then 2 edits with a budget).
-  * EVERY candidate is validated with `first_passing`, which enforces the
+  * Every candidate is validated with `first_passing`, which enforces the
     full visible test suite AND the relative-patch-size cap (rps <= 0.35),
     so the student's own approach is preserved and no fixed reference
     solution is ever returned.
+  * Fall back to the generic edit search (1 then 2 edits with a budget).
 
-Round-2 fix
+Round-3 fix
 -----------
-The previous version turned a bare `L.extend(item)` into a multi-line
-`if/else` block.  On a *very short* submission such as::
+Round 2 tried to shrink the ``.extend`` guard from a multi-line ``if/else``
+block down to a one-line conditional expression::
+
+    total.extend(flatten(item) if isinstance(item, list) else [item])
+
+reasoning that the relative patch size was *line*-based.  It was not enough,
+and ``crafted_08`` still returned ``no_patch``::
 
     def flatten(nested):
         total = []
@@ -27,19 +30,32 @@ The previous version turned a bare `L.extend(item)` into a multi-line
             total.extend(item)
         return total
 
-that rewrite grew the function from 5 to 8 lines, so the relative patch
-size blew past the 0.35 cap and `first_passing` rejected the (otherwise
-correct) candidate -> ``no_patch``.  The behaviour was right; the patch was
-just too large for such a tiny original.
+Tracing it by hand: the swap / for-append / list-branch transforms all no-op
+on this source; only ``_t_extend`` fires and produces a semantically correct
+candidate that passes every test.  So the *only* thing rejecting it is the
+``rps`` cap.  The real culprit was not the number of lines but the way the
+candidate is emitted: it was produced with ``ast.unparse(tree)``, which
+**reformats the entire function and discards the original layout** -- trailing
+blank lines, comments, and the student's own spacing all vanish.  On a tiny
+five-line submission that whole-file reformat, together with the inherently
+large ``flatten(...) if isinstance(...) else [...]`` insertion, pushes the
+*character-level* relative patch size past 0.35 even though only one line
+"really" changed.  The one-liner cut the line count but not the character
+footprint, so ``first_passing`` kept rejecting it.
 
-The `.extend` guard is now emitted as a single-line conditional expression::
-
-    total.extend(flatten(item) if isinstance(item, list) else [item])
-
-which is semantically identical to the old `if/else` (``L.append(x)`` ==
-``L.extend([x])``) but changes only the one offending line, keeping the
-relative patch size small enough to survive the cap on short and long
-submissions alike.
+The fix stops routing the extend-guard through ``ast.unparse``.  It is now
+applied as a **surgical, formatting-preserving text edit**: only the argument
+span of the offending ``L.extend(<arg>)`` call is spliced, leaving every other
+byte of the submission byte-for-byte identical (no dropped blank lines, no
+re-spacing, no lost comments).  In addition several increasingly compact but
+equivalent guard spellings are offered smallest-first, so ``first_passing``
+selects the minimal patch that survives the rps cap.  This keeps the patch
+small on short submissions like ``crafted_08`` while remaining correct on the
+longer ones, and it generalises: any submission that accumulates with a bare
+``.extend`` now gets the tightest possible fix instead of a reformatted whole
+file.  The previous ``ast.unparse``-based transforms are retained as a
+fallback for the shapes they still handle best, and the generic edit search
+remains the final safety net.  ``repair`` never raises.
 """
 
 import ast
@@ -82,11 +98,10 @@ def _is_flatten_call(node):
 
 
 def _guarded_arg(arg):
-    """Build ``flatten(arg) if isinstance(arg, list) else [arg]``.
+    """Build ``flatten(arg) if isinstance(arg, list) else [arg]`` as an AST.
 
-    A single-line conditional expression that recurses on lists and wraps
-    scalars, so ``L.extend(<this>)`` behaves correctly for both cases while
-    touching only one line of the original source.
+    Used only by the ``ast.unparse`` fallback transform; the primary path
+    emits the guard as source text (see ``_surgical_extend_candidates``).
     """
     return ast.IfExp(
         test=ast.Call(
@@ -100,8 +115,100 @@ def _guarded_arg(arg):
 
 
 # --------------------------------------------------------------------------
-# Problem-specific AST transforms.  Each mutates `tree` in place and returns
-# True if it changed anything.
+# Primary path: surgical, formatting-preserving guard on `L.extend(<arg>)`.
+#
+# Instead of reformatting the whole function with `ast.unparse` (which drops
+# the student's layout and inflates the character-level patch size on short
+# submissions), we splice only the argument span of the offending extend
+# call, leaving every other byte identical.  Several equivalent spellings are
+# tried smallest-first so the minimal patch that clears the rps cap wins.
+# --------------------------------------------------------------------------
+
+# Spellings ordered from most compact to most readable.  `{A}` is the exact
+# original source text of the extend argument, so we recurse on nested lists
+# and wrap scalars while touching only the one call.
+_GUARD_SPELLINGS = [
+    "flatten({A})if type({A})==list else[{A}]",
+    "flatten({A}) if type({A}) == list else [{A}]",
+    "flatten({A}) if isinstance({A}, list) else [{A}]",
+]
+
+
+def _bare_extend_args(tree):
+    """Return the arg nodes of `X.extend(arg)` calls that need guarding.
+
+    Skips calls that already recurse (`flatten(...)`), are already guarded
+    (an `IfExp`), already wrap a literal list, or whose argument spans more
+    than one line (which we cannot splice safely).
+    """
+    out = []
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "extend"
+                and len(node.args) == 1
+                and not node.keywords):
+            arg = node.args[0]
+            if _is_flatten_call(arg) or isinstance(arg, ast.IfExp):
+                continue
+            if isinstance(arg, ast.List):
+                continue
+            lineno = getattr(arg, "lineno", None)
+            end_lineno = getattr(arg, "end_lineno", None)
+            col = getattr(arg, "col_offset", None)
+            end_col = getattr(arg, "end_col_offset", None)
+            if (lineno is None or end_lineno is None
+                    or col is None or end_col is None):
+                continue
+            if lineno != end_lineno:
+                continue
+            out.append((lineno, col, end_col))
+    return out
+
+
+def _surgical_extend_candidates(source):
+    """Yield sources where every bare `L.extend(arg)` is guarded, smallest
+    spelling first, preserving all other formatting exactly."""
+    try:
+        tree = ast.parse(source)
+    except Exception:
+        return
+
+    spots = _bare_extend_args(tree)
+    if not spots:
+        return
+
+    lines = source.splitlines(keepends=True)
+    seen = set()
+
+    for spelling in _GUARD_SPELLINGS:
+        try:
+            new_lines = list(lines)
+            # Apply from the bottom-most, right-most span first so earlier
+            # column offsets on the same line stay valid.
+            for (lineno, col, end_col) in sorted(
+                    spots, key=lambda t: (t[0], t[1]), reverse=True):
+                idx = lineno - 1
+                if idx < 0 or idx >= len(new_lines):
+                    raise ValueError("line out of range")
+                line = new_lines[idx]
+                argsrc = line[col:end_col]
+                if not argsrc.strip():
+                    raise ValueError("empty argument span")
+                guard = spelling.format(A=argsrc)
+                new_lines[idx] = line[:col] + guard + line[end_col:]
+            cand = "".join(new_lines)
+            ast.parse(cand)  # must stay syntactically valid
+        except Exception:
+            continue
+        if cand and cand != source and cand not in seen:
+            seen.add(cand)
+            yield cand
+
+
+# --------------------------------------------------------------------------
+# Fallback problem-specific AST transforms (via ast.unparse).  Each mutates
+# `tree` in place and returns True if it changed anything.
 # --------------------------------------------------------------------------
 
 def _t_swap_isinstance(tree):
@@ -194,10 +301,8 @@ class _ListBranchAppendFix(ast.NodeTransformer):
 class _ExtendFix(ast.NodeTransformer):
     """`L.extend(x)` -> `L.extend(flatten(x) if isinstance(x, list) else [x])`.
 
-    A one-line guard: recurse on nested lists, wrap scalars.  Emitting a
-    conditional expression (rather than a multi-statement `if/else` block)
-    keeps the patch to a single line so it stays under the rps cap even on
-    very short submissions.
+    Fallback for cases the surgical splicer cannot handle (e.g. a multi-line
+    argument).  Emits a one-line conditional expression.
     """
 
     def __init__(self):
@@ -212,8 +317,9 @@ class _ExtendFix(ast.NodeTransformer):
                 and len(v.args) == 1
                 and not v.keywords):
             arg = v.args[0]
-            # Skip if already recursing via flatten(...) or already guarded.
             if _is_flatten_call(arg) or isinstance(arg, ast.IfExp):
+                return node
+            if isinstance(arg, ast.List):
                 return node
             v.args = [_guarded_arg(arg)]
             self.changed = True
@@ -247,6 +353,8 @@ def _specific_candidates(source):
     """Yield source strings produced by combinations of the fix transforms.
 
     Single-transform (minimal) candidates are yielded first, then pairs, etc.
+    These are reformatted by ``ast.unparse`` and act as a fallback behind the
+    surgical splicer.
     """
     try:
         base = ast.parse(source)
@@ -274,6 +382,26 @@ def _specific_candidates(source):
                 yield src
 
 
+def _all_specific_candidates(source):
+    """Surgical (formatting-preserving) candidates first, then the
+    ast.unparse-based transforms."""
+    seen = set()
+    try:
+        for src in _surgical_extend_candidates(source):
+            if src not in seen:
+                seen.add(src)
+                yield src
+    except Exception:
+        pass
+    try:
+        for src in _specific_candidates(source):
+            if src not in seen:
+                seen.add(src)
+                yield src
+    except Exception:
+        pass
+
+
 def repair(source):
     """Return a corrected `flatten` submission passing all tests, or None."""
     if not isinstance(source, str):
@@ -286,9 +414,11 @@ def repair(source):
     original = source
 
     # 1) Problem-specific rewrites (validated + rps-capped by first_passing).
+    #    Surgical, format-preserving patches are tried first so the smallest
+    #    correct change is selected on short submissions.
     try:
         result = first_passing(
-            _specific_candidates(source), ENTRY, TESTS, original,
+            _all_specific_candidates(source), ENTRY, TESTS, original,
             max_rps=0.35, max_checks=800)
         if result is not None:
             return result
