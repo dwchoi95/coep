@@ -10,17 +10,24 @@ Paper: `paper/main.pdf` (AAAI-format draft; anonymized).
 
 ## Headline results (10 assignments, 229 buggy programs, 179 held-out)
 
-| | Repair rate | RPS ≤ 0.35 | marginal $/submission |
-|---|---|---|---|
-| LLM per-submission baseline | 100.0% | 92.7% | $2.99×10⁻³ |
-| + provider prompt caching | 100.0% | 92.7% | $1.53×10⁻³ |
-| Generic-only ablation | 62.0% | 62.0% | 0 |
-| **CoEP-local** | **74.9%** | 74.9% | **0** |
-| **CoEP-hybrid** | **100.0%** | 92.7% | $0.75×10⁻³ |
+| | Repair rate | RPS ≤ 0.35 | build $/assign. | marginal $/submission |
+|---|---|---|---|---|
+| Frontier per-submission | 100.0% | 92.7% | 0 | $2.99×10⁻³ |
+| + provider prompt caching | 100.0% | 92.7% | 0 | $1.53×10⁻³ |
+| Cheap-model (Haiku) per-subm. | 97.2% | 86.6% | 0 | $0.99×10⁻³ |
+| Cascade (cheap→frontier) | 100.0% | 88.3% | 0 | $1.09×10⁻³ |
+| Generic-only local | 62.0% | 62.0% | 0 | 0 |
+| Generic-hybrid | 100.0% | 92.7% | 0 | $1.13×10⁻³ |
+| **CoEP-local** | **74.9%** | 74.9% | $0.126 | **0** |
+| **CoEP + frontier fallback** | **100.0%** | 92.7% | $0.126 | $0.76×10⁻³ |
+| **CoEP + cascade fallback** | **100.0%** | 91.6% | $0.126 | **$0.29×10⁻³** |
 
-Build cost $0.126/assignment → break-even at ≈56 submissions; asymptotic 4.0×
-cost reduction. On misconception-crafted bugs, synthesized problem-specific
-rules lift local repair from 21% (generic edit search) to 50%.
+Break-evens: ≈56 submissions vs. the frontier baseline; ≈342 vs. the strongest
+zero-build competitor (generic-hybrid); ≈159 for CoEP+cascade vs. the cascade.
+Asymptotic marginal-cost reduction 4.0× (10.2× with cascade fallback). On
+misconception-crafted bugs, synthesized problem-specific rules lift local repair
+from 21% (generic edit search) to 50% (p<10⁻⁶); a Haiku-tier builder reaches
+51.4% local at $0.011/assignment build cost.
 
 ## Repository layout
 
@@ -40,7 +47,9 @@ benchmark/problems/<id>/
 benchmark/splits.json build/eval split (seeded)
 runs/
   baseline/           per-instance prompts, raw LLM responses, results.json
+  baseline_haiku/     cheap-model arm (same prompts, Haiku-tier responses)
   coep/               builder prompts/responses per round, build/eval results
+  coep_haiku/         Haiku-tier builder arm (robustness experiment)
   ablation_generic/   generic-only ablation results
   summary.json        aggregated metrics + statistics
 scripts/              orchestration: make_dataset, gen_baseline_prompts,
