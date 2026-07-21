@@ -35,11 +35,14 @@ def repair(source: str) -> str | None:
             # Already passing
             return source
         
-        # Generate candidates with small edits (allow up to 2 edits)
-        candidates = candidates_generic(source, max_edits=2, budget=5000)
+        # Generate candidates with expanded search space
+        # Increased max_edits to 3 (from 2) to handle multi-location fixes
+        # Increased budget to 10000 (from 5000) for better mutation coverage
+        candidates = candidates_generic(source, max_edits=3, budget=10000)
         
         # Find the first candidate that passes all tests
-        fixed = first_passing(candidates, entry, TESTS, source, max_rps=0.35, max_checks=800)
+        # Increased max_checks to 1500 (from 800) to evaluate more candidates
+        fixed = first_passing(candidates, entry, TESTS, source, max_rps=0.35, max_checks=1500)
         
         return fixed
     except Exception:

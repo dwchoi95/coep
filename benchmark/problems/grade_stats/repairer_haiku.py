@@ -26,15 +26,55 @@ class RoundWrapper(ast.NodeTransformer):
     def visit_Return(self, node):
         if isinstance(node.value, ast.List) and len(node.value.elts) >= 3:
             third = node.value.elts[2]
-            if isinstance(third, ast.BinOp) and isinstance(third.op, ast.Div):
-                rounded = ast.Call(
-                    func=ast.Name(id='round', ctx=ast.Load()),
-                    args=[third, ast.Constant(value=2)],
-                    keywords=[]
-                )
-                node.value.elts[2] = rounded
-                self.changed = True
+            if isinstance(third, ast.Call) and isinstance(third.func, ast.Name) and third.func.id == 'round':
                 return node
+            rounded = ast.Call(
+                func=ast.Name(id='round', ctx=ast.Load()),
+                args=[third, ast.Constant(value=2)],
+                keywords=[]
+            )
+            node.value.elts[2] = rounded
+            self.changed = True
+            return node
+        return self.generic_visit(node)
+
+class MedianToMeanWrapper(ast.NodeTransformer):
+    def __init__(self):
+        self.changed = False
+    
+    def visit_Subscript(self, node):
+        if (isinstance(node.slice, ast.BinOp) and 
+            isinstance(node.slice.op, ast.FloorDiv)):
+            
+            if (isinstance(node.slice.left, ast.Call) and 
+                isinstance(node.slice.left.func, ast.Name) and 
+                node.slice.left.func.id == 'len' and
+                len(node.slice.left.args) == 1 and
+                isinstance(node.slice.right, ast.Constant) and 
+                node.slice.right.value == 2):
+                
+                len_arg = node.slice.left.args[0]
+                if (isinstance(node.value, ast.Name) and 
+                    isinstance(len_arg, ast.Name) and 
+                    node.value.id == len_arg.id):
+                    
+                    collection = node.value
+                    mean_expr = ast.BinOp(
+                        left=ast.Call(
+                            func=ast.Name(id='sum', ctx=ast.Load()),
+                            args=[collection],
+                            keywords=[]
+                        ),
+                        op=ast.Div(),
+                        right=ast.Call(
+                            func=ast.Name(id='len', ctx=ast.Load()),
+                            args=[collection],
+                            keywords=[]
+                        )
+                    )
+                    self.changed = True
+                    return mean_expr
+        
         return self.generic_visit(node)
 
 def _try_add_round(source: str) -> str | None:
@@ -44,6 +84,24 @@ def _try_add_round(source: str) -> str | None:
         return None
     
     transformer = RoundWrapper()
+    new_tree = transformer.visit(tree)
+    
+    if transformer.changed:
+        try:
+            new_source = ast.unparse(new_tree)
+            return new_source
+        except Exception:
+            pass
+    
+    return None
+
+def _try_fix_median(source: str) -> str | None:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    
+    transformer = MedianToMeanWrapper()
     new_tree = transformer.visit(tree)
     
     if transformer.changed:
@@ -73,6 +131,16 @@ def repair(source: str) -> str | None:
         return source
     
     fixed = _try_add_round(source)
+    if fixed is not None:
+        try:
+            result = failing_tests(fixed, "grade_stats", TESTS)
+            if result.compiled and result.passed == result.total:
+                if rps(source, fixed) <= 0.35:
+                    return fixed
+        except Exception:
+            pass
+    
+    fixed = _try_fix_median(source)
     if fixed is not None:
         try:
             result = failing_tests(fixed, "grade_stats", TESTS)

@@ -25,26 +25,34 @@ def repair(source: str) -> str | None:
         return None
     
     try:
-        # Try with max_edits=1 first (catches single operator/constant/index flips)
+        # Try with max_edits=1 first (catches single operator/constant/method name changes)
         # Increased budget to explore method name changes like isalpha→isalnum
-        candidates = candidates_generic(source, max_edits=1, budget=4000)
-        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=1500)
+        candidates = candidates_generic(source, max_edits=1, budget=6000)
+        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=2500)
         
         if result:
             return result
         
-        # Try with max_edits=2 for compound bugs (e.g., multiple index adjustments)
-        # Increased budget for better exploration of complex fixes
-        candidates = candidates_generic(source, max_edits=2, budget=3000)
-        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=1200)
+        # Try with max_edits=2 for compound bugs (e.g., slice adjustments + comparison changes)
+        # Increased budget to explore more complex two-edit combinations
+        candidates = candidates_generic(source, max_edits=2, budget=5000)
+        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=2200)
         
         if result:
             return result
         
         # Try with max_edits=3 for structural logic changes (e.g., slice/comparison rewrites)
         # Handles cases where multiple expressions need simultaneous correction
-        candidates = candidates_generic(source, max_edits=3, budget=2000)
-        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=1000)
+        candidates = candidates_generic(source, max_edits=3, budget=4000)
+        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=1800)
+        
+        if result:
+            return result
+        
+        # Final aggressive pass with max_edits=4 for heavily broken logic
+        # May catch edge cases where slice logic or filtering needs major restructuring
+        candidates = candidates_generic(source, max_edits=4, budget=3000)
+        result = first_passing(candidates, "is_palindrome", TESTS, source, max_rps=0.35, max_checks=1500)
         
         return result
     except Exception:
