@@ -1,34 +1,35 @@
 """Local, LLM-free automatic repair for the `unique_in_order` assignment.
 
-Round-2 revision.  The previous version returned `no_patch` on *every*
-sample, which points at a systemic plumbing failure rather than a mere gap
-in rewrite rules: the module imported several helpers unconditionally at
-import time (`coep.evaluate.rps`, `repairlib.failing_tests`,
-`repairlib.chain`, `repairlib.candidates_generic`) and assumed one exact
-`first_passing(...)` call signature.  If any of those helpers is missing or
-the signature differs (e.g. no `max_checks` keyword, or no positional
-`source` slot, giving "multiple values for argument 'max_rps'"), the raised
-exception was swallowed by the blanket `except` and `repair()` returned
-None for every single submission.
+Round-3 revision.  Round 2 fixed the plumbing (defensive imports, local
+sandboxed verification, signature-tolerant `first_passing` calls) and now
+repairs every sampled mutant, but still misses `crafted_02.py`:
 
-This revision removes every such single point of failure:
+    def unique_in_order(lst):
+        return list(set(lst))
 
-* Only defensive imports: each library helper is imported in its own
-  try/except, and everything needed for the search has a complete local
-  fallback (an in-module generic AST mutation engine plus a sandboxed,
-  step-limited test runner that deep-copies inputs so candidate code can
-  neither hang the search nor corrupt the shared test fixtures).
-* Candidates are verified *locally* first; the short list of locally
-  passing patches is then handed to `first_passing` for the official
-  validation, trying several call conventions so a signature mismatch can
-  no longer zero everything out.  If the library validator is unusable or
-  rejects candidates it never actually checked, a locally verified patch
-  within the 0.35 patch-size cap is returned as a last resort.
-* The problem-specific rewrite rules are kept and extended (wrong
-  initialization, missing empty/first-iteration guards, membership vs.
-  adjacency tests, wrong variable in subscripts/returns, empty-input guard
-  insertion, `[xs[0]]` -> `xs[:1]`, `a = a.append(v)` misuse, missing
-  `return`), all preserving the student's own approach.
+Hand-trace of the round-2 pipeline on that source: the function has no
+assignments (so no accumulator rules fire), no `if` statements (so no guard
+rules fire), no membership tests, no comparisons, no numeric constants and
+no `range` calls (so the generic single-edit mutator produces *zero*
+variants).  The only candidate ever generated is the empty-input guard,
+which cannot help.  The failure is therefore not the RPS cap or a guard
+rejecting a good patch -- the required edit is simply never produced,
+because no rule covers the "global dedup" anti-pattern in which `set()`
+(or `frozenset()` / `dict.fromkeys()`) removes *all* duplicates and
+destroys order, instead of collapsing only *adjacent* duplicates.
+
+New in this revision (Rule E): when such a dedup call is found, rewrite it
+in place -- and, as a coarser fallback, rewrite the enclosing `return`
+expression -- into an order-preserving, adjacency-only comprehension over
+the same sequence:
+
+    [v for i, v in enumerate(seq) if not i or v != seq[i - 1]]
+
+This keeps the student's single-expression style, handles the empty input
+for free, and works for unhashable-free and mixed-type inputs alike.  The
+locally verified candidates are still handed to `first_passing` (with the
+0.35 patch-size cap) for the official verdict, exactly as before; nothing
+that already works has been changed.
 """
 
 import ast
@@ -242,6 +243,46 @@ def _is_listish_value(v):
     if isinstance(v, ast.Subscript) and isinstance(v.slice, ast.Slice):
         return True
     return False
+
+
+def _is_global_dedup_call(node):
+    """`set(x)`, `frozenset(x)`, `dict.fromkeys(x)`, `OrderedDict.fromkeys(x)`
+    with exactly one positional argument: removes ALL duplicates (and, for
+    the set forms, destroys order) instead of collapsing adjacent runs."""
+    if (not isinstance(node, ast.Call) or node.keywords
+            or len(node.args) != 1):
+        return False
+    f = node.func
+    if isinstance(f, ast.Name) and f.id in ("set", "frozenset"):
+        return True
+    if (isinstance(f, ast.Attribute) and f.attr == "fromkeys"
+            and isinstance(f.value, ast.Name)
+            and f.value.id in ("dict", "OrderedDict")):
+        return True
+    return False
+
+
+def _dedup_comp(seq):
+    """[v for i, v in enumerate(seq) if not i or v != seq[i - 1]]"""
+    return ast.ListComp(
+        elt=ast.Name(id="v", ctx=ast.Load()),
+        generators=[ast.comprehension(
+            target=ast.Tuple(
+                elts=[ast.Name(id="i", ctx=ast.Store()),
+                      ast.Name(id="v", ctx=ast.Store())],
+                ctx=ast.Store()),
+            iter=ast.Call(func=_name("enumerate"), args=[_name(seq)],
+                          keywords=[]),
+            ifs=[ast.BoolOp(op=ast.Or(), values=[
+                ast.UnaryOp(op=ast.Not(), operand=_name("i")),
+                ast.Compare(
+                    left=_name("v"), ops=[ast.NotEq()],
+                    comparators=[ast.Subscript(
+                        value=_name(seq),
+                        slice=ast.BinOp(left=_name("i"), op=ast.Sub(),
+                                        right=ast.Constant(1)),
+                        ctx=ast.Load())])])],
+            is_async=0)])
 
 
 def _nth_variant(source, predicate, replace, n):
@@ -462,6 +503,35 @@ def _specific_variants(source, prioritize_guards=False):
                                     comparators=[node.left])])
 
         add(others, pred_member, rep_member)
+
+    # --- Rule E (new): global dedup via set()/frozenset()/dict.fromkeys()
+    # removes non-adjacent duplicates and (for sets) destroys order.  E1
+    # rewrites the dedup call itself, in place, into an order-preserving
+    # adjacency-only comprehension over the same named sequence, keeping
+    # every surrounding construct the student wrote (e.g. the outer
+    # `list(...)` wrapper).  E2, coarser, rewrites the whole `return`
+    # expression that contains such a call (covers wrappers like
+    # `sorted(set(x))` whose outer call would still break the order).
+    def pred_dedup(node):
+        return (_is_global_dedup_call(node)
+                and isinstance(node.args[0], ast.Name))
+
+    def rep_dedup(node):
+        return _dedup_comp(node.args[0].id)
+
+    add(others, pred_dedup, rep_dedup)
+
+    if param:
+        def pred_ret_dedup(node):
+            return (isinstance(node, ast.Return) and node.value is not None
+                    and any(_is_global_dedup_call(x)
+                            for x in ast.walk(node.value)))
+
+        def rep_ret_dedup(node, p=param):
+            node.value = _dedup_comp(p)
+            return node
+
+        add(others, pred_ret_dedup, rep_ret_dedup)
 
     # --- Rules 5/6: wrong list variable in a subscript / return.
     if len(list_names) >= 2:

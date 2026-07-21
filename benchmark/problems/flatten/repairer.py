@@ -4,34 +4,40 @@ Strategy:
   1. Parse the submission (syntax errors -> None).
   2. Diagnose the failure pattern with `failing_tests` and reorder the
      problem-specific rewrite rules accordingly (wrong order -> stack/pop
-     rules first, TypeError -> guarded-extend rules first, dropped elements
-     -> missing-else rules first, etc.).
+     rules first, TypeError -> guarded-extend rules first, shallow result
+     -> recursion-insertion rules first, dropped elements -> missing-else
+     rules first, etc.).
   3. Generate candidates from problem-specific AST rewrite rules targeting
      the common misconceptions for THIS assignment:
-       - swapped isinstance arguments (single site and all sites at once),
-       - append/extend confusion,
-       - missing recursion (shallow one-level flattening),
-       - missing isinstance guard around extend,
+       - swapped isinstance arguments, append/extend confusion,
+       - missing recursion (shallow one-level flattening): wrap the loop
+         iterable in flatten(...), collapse a copy-loop into
+         acc.extend(flatten(it)), guard extend/append with an
+         isinstance ternary or a full if/else statement,
+       - missing isinstance guard around extend (unconditional extend),
        - missing `else` branch that drops non-list elements,
-       - `type(x) == list` / `type(x) is list` checks (wrong type name,
-         wrong comparison operator) instead of isinstance,
-       - inverted / negated isinstance tests, int<->list confusion,
+       - type(x) == list style checks, inverted / negated tests,
        - any/all confusion, `if` instead of `while` for repeated passes,
-       - sorting / deduplication of the result,
-       - stack-order bugs (pop index, missing/extra reversed),
-       - return placed inside the loop, missing/wrong return,
-       - misuse of append's return value, `+` without assignment, etc.
-  4. Chain with the generic mutation search (1 edit, then rule x rule
+       - sorting / deduplication of the result, stack-order bugs,
+       - return placed inside the loop, missing/wrong return, etc.
+  4. Chain with the generic mutation search (1 edit, rule x rule
      compositions, then 2 generic edits).
-  5. Every candidate is validated by `first_passing`, which enforces the
-     full visible test suite and the rps <= 0.35 patch-size cap.
+  5. Every candidate list is materialised into a plain list of source
+     strings and handed to `first_passing` directly (no external chaining
+     helper -- a previous revision routed the targeted stage through a
+     chain helper and the whole stage silently produced nothing, so the
+     recursion-inserting fixes never reached validation).  `first_passing`
+     enforces the full visible test suite and the rps <= 0.35 cap; the
+     result is double-checked with `rps` and, if a passing candidate is
+     over the cap, it is removed and the search retried so a smaller
+     passing candidate can still win.
 """
 
 import ast
 import copy
 import itertools
 
-from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
+from coep.repairlib import candidates_generic, first_passing, failing_tests
 from coep.evaluate import rps
 
 ENTRY = "flatten"
@@ -201,7 +207,16 @@ def _m_expr_ae(n):
     return isinstance(n, ast.Expr) and _m_method_ae(n.value)
 
 
+def _m_expr_ae_plain(n):
+    """append/extend statement whose argument is not already guarded."""
+    return (_m_expr_ae(n)
+            and not isinstance(n.value.args[0], ast.IfExp)
+            and not _is_call_named(n.value.args[0], (ENTRY,)))
+
+
 def _r_guard_extend(n):
+    """acc.extend(x)/acc.append(x) ->
+       acc.extend(flatten(x) if isinstance(x, list) else [x])"""
     call = n.value
     e = call.args[0]
     if isinstance(e, ast.IfExp) or _is_call_named(e, (ENTRY,)):
@@ -213,6 +228,51 @@ def _r_guard_extend(n):
         orelse=ast.List(elts=[e], ctx=ast.Load()),
     )]
     return n
+
+
+def _r_guard_stmt(n):
+    """acc.extend(x)/acc.append(x) ->
+       if isinstance(x, list): acc.extend(flatten(x))
+       else: acc.append(x)"""
+    call = n.value
+    acc = call.func.value
+    e = call.args[0]
+    if isinstance(e, ast.IfExp) or _is_call_named(e, (ENTRY,)):
+        return None
+    return ast.If(
+        test=_call("isinstance", [copy.deepcopy(e), _name("list")]),
+        body=[ast.Expr(value=ast.Call(
+            func=ast.Attribute(value=copy.deepcopy(acc), attr="extend",
+                               ctx=ast.Load()),
+            args=[_call(ENTRY, [copy.deepcopy(e)])], keywords=[]))],
+        orelse=[ast.Expr(value=ast.Call(
+            func=ast.Attribute(value=copy.deepcopy(acc), attr="append",
+                               ctx=ast.Load()),
+            args=[copy.deepcopy(e)], keywords=[]))],
+    )
+
+
+def _m_copy_loop(n):
+    """for x in IT: acc.append(x)   (an element-copy loop)"""
+    if not (isinstance(n, ast.For) and isinstance(n.target, ast.Name)
+            and len(n.body) == 1 and isinstance(n.body[0], ast.Expr)
+            and not n.orelse):
+        return False
+    c = n.body[0].value
+    return (isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+            and c.func.attr == "append" and len(c.args) == 1
+            and not c.keywords and isinstance(c.args[0], ast.Name)
+            and c.args[0].id == n.target.id
+            and not _is_call_named(n.iter, (ENTRY,)))
+
+
+def _r_loop_extflat(n):
+    """for x in IT: acc.append(x)  ->  acc.extend(flatten(IT))"""
+    c = n.body[0].value
+    return ast.Expr(value=ast.Call(
+        func=ast.Attribute(value=copy.deepcopy(c.func.value), attr="extend",
+                           ctx=ast.Load()),
+        args=[_call(ENTRY, [n.iter])], keywords=[]))
 
 
 def _m_iso_type(n):
@@ -500,6 +560,19 @@ def _r_aug_flat(n):
     return n
 
 
+def _r_aug_guard(n):
+    """acc += x  ->  acc += flatten(x) if isinstance(x, list) else [x]"""
+    e = n.value
+    if isinstance(e, (ast.IfExp, ast.List)) or _is_call_named(e, (ENTRY,)):
+        return None
+    n.value = ast.IfExp(
+        test=_call("isinstance", [copy.deepcopy(e), _name("list")]),
+        body=_call(ENTRY, [copy.deepcopy(e)]),
+        orelse=ast.List(elts=[e], ctx=ast.Load()),
+    )
+    return n
+
+
 def _r_aug_unwrap(n):
     if isinstance(n.value, ast.List) and len(n.value.elts) == 1:
         n.value = n.value.elts[0]
@@ -532,8 +605,10 @@ _STATIC_RULES = [
     ("toggle_ae", _m_method_ae, _r_toggle_ae, False),
     ("wrap_arg", _m_wrap_arg, _r_wrap_arg, False),
     ("wrap_iter", _m_for, _r_wrap_iter, False),
+    ("loop_extflat", _m_copy_loop, _r_loop_extflat, False),
     ("unwrap_flat", _m_entry_call, _r_unwrap_call, False),
     ("guard_extend", _m_expr_ae, _r_guard_extend, False),
+    ("guard_stmt", _m_expr_ae_plain, _r_guard_stmt, False),
     ("iso_type", _m_iso_type, _r_iso_type, False),
     ("type_cmp_toggle", _m_type_cmp_il, _r_type_cmp_toggle, False),
     ("type_cmp_negop", _m_type_cmp, _r_type_cmp_negop, False),
@@ -556,6 +631,7 @@ _STATIC_RULES = [
     ("expr_aug", _m_expr_bin, _r_expr_aug, False),
     ("aug_list", _m_aug_add, _r_aug_listwrap, False),
     ("aug_flat", _m_aug_add, _r_aug_flat, False),
+    ("aug_guard", _m_aug_add, _r_aug_guard, False),
     ("aug_unwrap", _m_aug_add, _r_aug_unwrap, False),
     ("ret_wrap_list", _m_ret_val, _r_ret_wrap, False),
     ("ret_unwrap_list", _m_ret_list1, _r_ret_unwrap, False),
@@ -653,7 +729,16 @@ def _dispatch_order(source):
     """Inspect the failing tests and return a priority prefix of rule names."""
     try:
         res = failing_tests(source, ENTRY, TESTS)
-        fails = list(getattr(res, "failures", []) or [])
+    except Exception:
+        return None
+    try:
+        if isinstance(res, (list, tuple)):
+            fails = list(res)
+        else:
+            f = getattr(res, "failures", None)
+            if f is None and isinstance(res, dict):
+                f = res.get("failures")
+            fails = list(f or [])
     except Exception:
         return None
     wrong_order = type_err = shallow = sorted_like = dropped = False
@@ -670,7 +755,7 @@ def _dispatch_order(source):
                 wrong_order = True
             if any(isinstance(x, list) for x in got):
                 shallow = True
-            # elements silently dropped: fewer, non-nested, all a subset
+            # elements silently dropped: fewer, non-nested
             if (not any(isinstance(x, list) for x in got)
                     and len(got) < len(exp)):
                 dropped = True
@@ -685,17 +770,17 @@ def _dispatch_order(source):
     if sorted_like:
         return ["sorted_unwrap", "drop_sort_stmt", "iso_swap"]
     if type_err:
-        return ["guard_extend", "wrap_arg", "toggle_ae", "iso_swap",
-                "iso_type", "type_cmp_toggle", "swap_branches", "toggle_not",
-                "missing_else"]
+        return ["guard_extend", "guard_stmt", "aug_guard", "wrap_arg",
+                "toggle_ae", "iso_swap", "iso_type", "type_cmp_toggle",
+                "swap_branches", "toggle_not", "missing_else"]
     if dropped:
         return ["missing_else", "missing_else_ext", "swap_branches",
                 "toggle_not", "iso_swap", "iso_type", "type_cmp_toggle",
                 "type_cmp_negop", "toggle_ae"]
     if shallow:
-        return ["wrap_arg", "wrap_iter", "toggle_ae", "missing_else",
-                "iso_swap", "iso_type", "type_cmp_toggle", "if_to_while",
-                "any_all"]
+        return ["wrap_iter", "loop_extflat", "guard_stmt", "guard_extend",
+                "wrap_arg", "toggle_ae", "missing_else", "iso_swap",
+                "iso_type", "type_cmp_toggle", "if_to_while", "any_all"]
     return None
 
 
@@ -703,20 +788,60 @@ def _dispatch_order(source):
 # main entry point
 # --------------------------------------------------------------------------
 
-def _validate(gen, source, max_checks):
+def _take(gen, n):
+    """Materialise up to n string candidates, swallowing generator errors."""
+    out = []
     try:
-        fix = first_passing(gen, ENTRY, TESTS, source,
-                            max_rps=MAX_RPS, max_checks=max_checks)
-    except Exception:
-        return None
-    if fix is None:
-        return None
-    try:
-        if rps(source, fix) > MAX_RPS:
-            return None
+        for c in gen:
+            if isinstance(c, str) and c:
+                out.append(c)
+                if len(out) >= n:
+                    break
     except Exception:
         pass
-    return fix
+    return out
+
+
+def _generic(source, max_edits, budget):
+    try:
+        gen = candidates_generic(source, max_edits=max_edits, budget=budget)
+    except Exception:
+        return []
+    return _take(gen, budget)
+
+
+def _validate(cands, source):
+    """Run first_passing over a concrete candidate list; double-check rps.
+
+    If a passing candidate exceeds the cap despite first_passing's own
+    max_rps argument, remove it and retry so a smaller passing candidate
+    can still be found.
+    """
+    pool = []
+    seen = set()
+    for c in cands:
+        if isinstance(c, str) and c and c not in seen:
+            seen.add(c)
+            pool.append(c)
+    work = pool
+    for _ in range(6):
+        if not work:
+            return None
+        try:
+            fix = first_passing(iter(work), ENTRY, TESTS, source,
+                                max_rps=MAX_RPS, max_checks=len(work) + 32)
+        except Exception:
+            return None
+        if not isinstance(fix, str) or not fix:
+            return None
+        try:
+            too_big = rps(source, fix) > MAX_RPS
+        except Exception:
+            too_big = False
+        if not too_big:
+            return fix
+        work = [c for c in work if c != fix]
+    return None
 
 
 def _repair_impl(source):
@@ -726,46 +851,28 @@ def _repair_impl(source):
         return None
 
     order = _dispatch_order(source)
-    try:
-        level1 = list(itertools.islice(_specific_candidates(source, order), 300))
-    except Exception:
-        level1 = []
+    level1 = _take(_specific_candidates(source, order), 300)
 
-    # stage 1: original (in case it already passes) + targeted rewrites
-    try:
-        stage1 = chain(iter([source]), iter(level1))
-    except Exception:
-        stage1 = itertools.chain(iter([source]), iter(level1))
-    fix = _validate(stage1, source, 320)
+    # stage 1: original (in case it already passes) + targeted rewrites.
+    # NOTE: handed to first_passing as a plain materialised list -- no
+    # external chaining helper, so the targeted candidates are guaranteed
+    # to actually reach validation.
+    fix = _validate([source] + level1, source)
     if fix is not None:
         return fix
 
     # stage 2: generic single-edit search
-    def _gen1():
-        try:
-            for c in candidates_generic(source, max_edits=1, budget=800):
-                yield c
-        except Exception:
-            return
-
-    fix = _validate(_gen1(), source, 450)
+    fix = _validate(_generic(source, 1, 800), source)
     if fix is not None:
         return fix
 
     # stage 3: compositions of two targeted rewrites
-    fix = _validate(_level2(source, level1), source, 320)
+    fix = _validate(_take(_level2(source, level1), 300), source)
     if fix is not None:
         return fix
 
     # stage 4: generic two-edit search
-    def _gen2():
-        try:
-            for c in candidates_generic(source, max_edits=2, budget=2000):
-                yield c
-        except Exception:
-            return
-
-    return _validate(_gen2(), source, 550)
+    return _validate(_generic(source, 2, 1500), source)
 
 
 def repair(source: str) -> str | None:
