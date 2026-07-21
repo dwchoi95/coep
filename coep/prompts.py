@@ -43,7 +43,52 @@ Rules:
 """
 
 
-REPAIRLIB_DOC = '''You may use the helper library `coep.repairlib` (importable as shown):
+def pydex_repair_prompt(problem: dict, buggy_source: str,
+                        fewshot_pairs: list[tuple[str, str]],
+                        failures: list[dict]) -> str:
+    """PyDex-style per-instance prompt: few-shot (buggy, fixed) pairs from the
+    same assignment plus concrete failing-test feedback (Joshi et al., 2024)."""
+    shots = []
+    for i, (bug, fix) in enumerate(fewshot_pairs, 1):
+        shots.append(f"### Example {i}: buggy submission\n```python\n{bug}\n```\n"
+                     f"### Example {i}: corrected version\n```python\n{fix}\n```")
+    fb = []
+    for f in failures[:5]:
+        args = ", ".join(json.dumps(a) for a in f["args"])
+        fn = f.get("entry", problem["entry"])
+        got = f.get("error") or json.dumps(f.get("got"))
+        fb.append(f"- {fn}({args}) expected {json.dumps(f['expected'])} but got {got}")
+    return f"""You are an automated program repair system for introductory programming assignments.
+
+## Assignment
+{problem['description']}
+
+The solution must be a Python function named `{problem['entry']}`.
+
+## Visible test suite
+{render_tests(problem['entry'], problem['tests'])}
+
+## Example repairs from past students of THIS assignment
+{chr(10).join(shots)}
+
+## Buggy student submission
+```python
+{buggy_source}
+```
+
+## Observed failures when running the submission
+{chr(10).join(fb)}
+
+## Task
+Fix the student's submission so that it passes every test above.
+Rules:
+- Preserve the student's overall approach and identifiers; make the smallest change that fixes the bug. Do NOT rewrite the program from scratch.
+- Do not add comments or explanations.
+- Output ONLY the complete corrected program in a single ```python code block, nothing else.
+"""
+
+
+REPAIRLIB_DOC ='''You may use the helper library `coep.repairlib` (importable as shown):
 
 ```python
 from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
