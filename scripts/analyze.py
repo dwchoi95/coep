@@ -174,6 +174,43 @@ def main():
         },
         "per_problem": per_problem,
     }
+    # ---------------- extra baseline arms (real-data experiment) ----------------
+    # PyDex-style few-shot per-submission arm (own prompts => own token counts)
+    pydex_path = ROOT / "runs" / "pydex" / "results.json"
+    if pydex_path.exists():
+        prows = json.loads(pydex_path.read_text())
+        pdone = [r for r in prows if "passed" in r]
+        pfx = [r for r in pdone if r["passed"]]
+        pq = [r for r in pfx if r.get("rps", 1) <= 0.35]
+        pusage = Usage(input_tokens=sum(r["prompt_tokens"] for r in pdone),
+                       output_tokens=sum(r.get("response_tokens", 0) for r in pdone))
+        summary["pydex"] = {
+            "repair_rate": len(pfx) / len(pdone),
+            "quality_repair_rate": len(pq) / len(pdone),
+            "mean_rps": round(float(np.mean([r["rps"] for r in pfx] or [0])), 4),
+            "usage": pusage.as_dict(),
+            "usd_per_instance": round(pusage.dollars() / len(pdone), 6),
+            "ci_quality": wilson_ci(len(pq), len(pdone)),
+            "per_problem": {pid: sum(1 for r in pq if r["pid"] == pid) for pid in pids},
+        }
+    # Non-LLM Refactory tool (ASE'19), re-validated under our harness
+    rtool_path = ROOT / "runs" / "refactory_tool" / "results.json"
+    if rtool_path.exists():
+        rt = json.loads(rtool_path.read_text())
+        rt_n = sum(v["n"] for v in rt.values())
+        rt_ok = sum(v["repaired"] for v in rt.values())
+        rt_rps = [s["our_rps"] for v in rt.values()
+                  for s in v["per_submission"].values() if s.get("repaired")]
+        rt_time = [s["tool_time"] for v in rt.values()
+                   for s in v["per_submission"].values() if s.get("tool_time")]
+        summary["refactory_tool"] = {
+            "repair_rate": rt_ok / rt_n,
+            "mean_rps": round(float(np.mean(rt_rps or [0])), 4),
+            "mean_seconds": round(float(np.mean(rt_time or [0])), 2),
+            "ci": wilson_ci(rt_ok, rt_n),
+            "per_problem": {pid: rt[pid]["repaired"] for pid in pids if pid in rt},
+        }
+
     # statistics: Wilson CIs and paired McNemar tests
     coep_ok_keys = {f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all if r["repaired"]}
     bq_keys = {r["key"] for r in b_quality}
@@ -211,11 +248,13 @@ def main():
     }
     summary["ablation_generic"] = abl
 
-    # crafted vs mutant breakdown across methods
+    # crafted vs mutant breakdown across methods (synthetic benchmark only;
+    # the Refactory import has real_* bugs exclusively, so this is skipped)
     def kind(bug):
         return "crafted" if bug.startswith("crafted") else "mutant"
     breakdown = {}
-    for k in ("crafted", "mutant"):
+    kinds = () if all(r["bug"].startswith("real") for r in coep_all) else ("crafted", "mutant")
+    for k in kinds:
         keys_k = [f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all if kind(r["bug"]) == k]
         nk = len(keys_k)
         breakdown[k] = {

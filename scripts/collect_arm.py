@@ -28,13 +28,19 @@ def main():
     args = ap.parse_args()
     price_in, price_out = MODEL_PRICES[args.model]
 
-    manifest = json.loads((ROOT / "runs" / "baseline" / "manifest.json").read_text())
     out = ROOT / "runs" / args.arm
+    # arms with their own prompts (e.g. pydex few-shot) are priced on those;
+    # response-only arms (e.g. other models on the same prompts) fall back to baseline's
+    prompts_dir = (out / "prompts") if (out / "prompts").exists() else (
+        ROOT / "runs" / "baseline" / "prompts")
+    manifest_path = (out / "manifest.json") if (out / "manifest.json").exists() else (
+        ROOT / "runs" / "baseline" / "manifest.json")
+    manifest = json.loads(manifest_path.read_text())
     results = []
     for item in manifest:
         key, pid = item["key"], item["pid"]
         p = json.loads((PROBLEMS / pid / "problem.json").read_text())
-        prompt = (ROOT / "runs" / "baseline" / "prompts" / f"{key}.md").read_text()
+        prompt = (prompts_dir / f"{key}.md").read_text()
         rec = {"key": key, "pid": pid, "bug": item["bug"],
                "prompt_tokens": tokens.count(prompt)}
         resp_path = out / "responses" / f"{key}.md"
