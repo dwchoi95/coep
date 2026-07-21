@@ -1,0 +1,244 @@
+{
+  "id": "flatten",
+  "entry": "flatten",
+  "description": "Write a function with the exact signature `def flatten(nested):` that takes a list `nested` whose elements are either integers or lists that themselves contain integers or further nested lists, to any depth. The function must return a new flat list containing every integer that appears anywhere inside `nested`, in left-to-right order, exactly as the integers would be encountered when reading the structure from left to right at every level.\n\nEdge-case semantics you must get right: an empty input list produces an empty result, so `flatten([]) == []`. Empty sublists contribute nothing but must not cause errors; for example `flatten([1, [], 2]) == [1, 2]`. Nesting can be arbitrarily deep, so a value wrapped in many layers of lists, such as `[[[[1]]]]`, still yields just `[1]`. The integers themselves may be zero or negative and must be preserved exactly. Do not mutate the input list, do not sort the result, and do not remove duplicates -- every integer occurrence must appear in the output exactly once per occurrence, in order.\n\nWorked examples:\n- `flatten([1, [2, 3]])` returns `[1, 2, 3]`.\n- `flatten([[1, 2], [3, [4]], 5])` returns `[1, 2, 3, 4, 5]`.\n- `flatten([[[[1]]]])` returns `[1]`.\n\nYou may solve this with recursion, an explicit stack, or repeated single-level flattening passes; use `isinstance(item, list)` to decide whether an element needs further flattening. Only the standard library is allowed.",
+  "tests": [
+    {
+      "args": [
+        []
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            [
+              [
+                1
+              ]
+            ]
+          ]
+        ]
+      ],
+      "expected": [
+        1
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          [
+            2,
+            [
+              3,
+              [
+                4,
+                [
+                  5
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "args": [
+        [
+          [],
+          [],
+          []
+        ]
+      ],
+      "expected": []
+    },
+    {
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": [
+        0
+      ]
+    },
+    {
+      "args": [
+        [
+          1,
+          [],
+          2
+        ]
+      ],
+      "expected": [
+        1,
+        2
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            1
+          ],
+          [
+            2
+          ],
+          3,
+          [
+            4,
+            [
+              5,
+              6
+            ]
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "args": [
+        [
+          -1,
+          [
+            -2,
+            [
+              -3
+            ]
+          ]
+        ]
+      ],
+      "expected": [
+        -1,
+        -2,
+        -3
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            []
+          ],
+          [
+            [
+              []
+            ]
+          ],
+          5
+        ]
+      ],
+      "expected": [
+        5
+      ]
+    },
+    {
+      "args": [
+        [
+          10,
+          [
+            20
+          ],
+          [
+            30,
+            [
+              40
+            ]
+          ],
+          50
+        ]
+      ],
+      "expected": [
+        10,
+        20,
+        30,
+        40,
+        50
+      ]
+    },
+    {
+      "args": [
+        [
+          [
+            1,
+            [
+              2
+            ]
+          ],
+          3
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3
+      ]
+    }
+  ]
+}
