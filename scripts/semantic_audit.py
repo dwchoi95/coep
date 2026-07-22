@@ -71,6 +71,7 @@ def main():
     from coep import sandbox
     splits = json.loads((ROOT / "benchmark" / "splits.json").read_text())
     pooled = {"coep": [0, 0], "baseline": [0, 0]}
+    detail = {}
     base = {r["key"]: r for r in json.loads((ROOT / "runs" / "baseline" / "results.json").read_text())}
     for pid in sorted(splits):
         p = json.loads((PROBLEMS / pid / "problem.json").read_text())
@@ -93,6 +94,7 @@ def main():
             ("baseline", lambda k, b: _base_patch(k, base)),
         ):
             agree = tot = 0
+            verdicts = {}
             rows = json.loads((ROOT / "runs" / "coep" / "results" / f"{pid}.json").read_text())
             for r0 in rows:
                 key = f"{pid}__{r0['bug'][:-3]}"
@@ -118,11 +120,15 @@ def main():
                         break
                 agree += ok
                 tot += 1
+                verdicts[key] = ok
             pooled[arm][0] += agree
             pooled[arm][1] += tot
             print(f"{pid} {arm}: {agree}/{tot} semantically agree with reference")
+            detail.setdefault(arm, {}).update(verdicts)
     for arm, (a, t) in pooled.items():
         print(f"TOTAL {arm}: {a}/{t} = {a/t*100:.1f}% agreement on {N_INPUTS} random inputs/assignment")
+    import json as _j
+    (ROOT / "runs" / "semantic_audit.json").write_text(_j.dumps(detail, indent=1))
 
 
 _patch_cache = {}

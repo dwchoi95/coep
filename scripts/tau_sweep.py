@@ -66,7 +66,7 @@ def main():
         print(f"{name:22s}" + "  ".join(f"{y:4.1f}" for y in ys))
 
     plt.rcParams.update({"font.size": 8, "figure.dpi": 150})
-    fig, ax = plt.subplots(figsize=(4.2, 1.85))
+    fig, ax = plt.subplots(figsize=(4.2, 1.6))
     styles = {"Frontier per-subm.": ("#4477AA", "-"), "+ validator, 1 retry": ("#4477AA", "--"),
               "PyDex-style": ("#66CCEE", "-"), "Cheap (Haiku)": ("#CCBB44", "-"),
               "Refactory tool": ("#AA3377", "-"), "CoEP-local": ("#EE6677", "--"),
