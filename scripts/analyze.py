@@ -203,8 +203,11 @@ def main():
                   for s in v["per_submission"].values() if s.get("repaired")]
         rt_time = [s["tool_time"] for v in rt.values()
                    for s in v["per_submission"].values() if s.get("tool_time")]
+        rt_pass = sum(1 for v in rt.values()
+                      for s in v["per_submission"].values() if s.get("passes_our_tests"))
         summary["refactory_tool"] = {
             "repair_rate": rt_ok / rt_n,
+            "test_pass_rate": rt_pass / rt_n,
             "mean_rps": round(float(np.mean(rt_rps or [0])), 4),
             "mean_seconds": round(float(np.mean(rt_time or [0])), 2),
             "ci": wilson_ci(rt_ok, rt_n),
