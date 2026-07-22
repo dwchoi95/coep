@@ -1,12 +1,20 @@
 """Local, LLM-free automatic repair for the Top-K assignment.
 
-Combines problem-specific AST rewrite rules (targeting common misconceptions
-for this assignment) with the generic mutation search from coep.repairlib.
-Every returned candidate is validated by first_passing (test suite + rps cap).
+Round 2. The previous version generated semantically correct candidates but
+emitted them through ast.unparse, which reformats the WHOLE file (indentation,
+blank lines, spacing). That inflated the relative patch size past the 0.35
+cap, so first_passing rejected otherwise-correct repairs. This version adds
+line-preserving *textual* candidate generators that edit only the offending
+line(s) of the original source, keeping patches genuinely minimal. The old
+AST-based rules and the generic 1-edit / 2-edit mutation searches are kept as
+fallbacks. Every candidate is still validated by first_passing (test suite +
+rps cap), so speculative candidates are harmless.
 """
 
 import ast
 import copy
+import difflib
+import re
 
 from coep.repairlib import candidates_generic, first_passing, failing_tests, chain
 from coep.evaluate import rps
@@ -115,12 +123,597 @@ def _safe_iter(gen):
         yield item
 
 
-# ---------------------------------------------------------------- rules
-# Every rule: source string -> list of candidate source strings.
-# Candidates are only ever accepted after validation by first_passing.
+# ------------------------------------------- textual (format-preserving) layer
+# These rules edit individual lines of the ORIGINAL source, never reformatting
+# untouched lines, so the resulting patch size stays minimal.
+
+def _lines(src):
+    return src.split("\n")
+
+
+def _join(ls):
+    return "\n".join(ls)
+
+
+def _variant_line(src, i, new_line):
+    ls = _lines(src)
+    if not (0 <= i < len(ls)):
+        return None
+    if ls[i] == new_line:
+        return None
+    ls2 = list(ls)
+    ls2[i] = new_line
+    v = _join(ls2)
+    if _parse(v) is None:
+        return None
+    return v
+
+
+def _diff_score(a, b):
+    try:
+        return 1.0 - difflib.SequenceMatcher(None, a, b).ratio()
+    except Exception:
+        return 1.0
+
+
+_SUB_RE = re.compile(r"\b([A-Za-z_]\w*)\s*\[\s*-?\d+\s*\]")
+
+
+def txt_strip_subscript_cmp(src):
+    """`if i[1] > big[1]:` (comparison copied from a pairs exercise) -> `if i > big:`.
+    Edits only the comparison line, preserving its original indentation."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        st = line.strip()
+        if not st.startswith(("if ", "elif ", "while ")):
+            continue
+        if not any(op in st for op in (">", "<", "==", "!=")):
+            continue
+        new = _SUB_RE.sub(r"\1", line)
+        if new != line:
+            v = _variant_line(src, i, new)
+            if v:
+                out.append(v)
+    return out
+
+
+_APREM_RE = re.compile(
+    r"^(\s*)([A-Za-z_]\w*)\.append\(\s*([A-Za-z_]\w*)\.remove\((.*)\)\s*\)(\s*)$")
+
+
+def txt_append_remove(src):
+    """`new.append(lst.remove(X))` appends None. Same-line fixes first:
+    pop-by-index (no extra line), then a semicolon pair, then a 2-line split."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        m = _APREM_RE.match(line)
+        if not m:
+            continue
+        ind, X, Y, Z, tail = m.groups()
+        try:
+            ast.parse(Z, mode="eval")
+        except Exception:
+            continue
+        same_line = [
+            "%s%s.append(%s.pop(%s.index(%s)))%s" % (ind, X, Y, Y, Z, tail),
+            "%s%s.append(%s); %s.remove(%s)%s" % (ind, X, Z, Y, Z, tail),
+        ]
+        for c in same_line:
+            v = _variant_line(src, i, c)
+            if v:
+                out.append(v)
+        ls2 = list(ls)
+        ls2[i] = "%s%s.append(%s)" % (ind, X, Z)
+        ls2.insert(i + 1, "%s%s.remove(%s)" % (ind, Y, Z))
+        v = _join(ls2)
+        if _parse(v) is not None:
+            out.append(v)
+    return out
+
+
+_MUT_RE = re.compile(
+    r"^(\s*)([A-Za-z_]\w*)\s*=\s*"
+    r"([A-Za-z_]\w*\.(?:sort|remove|reverse|append|insert|extend)\(.*\))(\s*)$")
+
+
+def txt_drop_assign(src):
+    """`x = lst.sort()` / `x = lst.remove(...)` (None) -> bare mutation call."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        m = _MUT_RE.match(line)
+        if not m:
+            continue
+        v = _variant_line(src, i, m.group(1) + m.group(3) + m.group(4))
+        if v:
+            out.append(v)
+    return out
+
+
+def txt_insert_remove(src):
+    """Loop appends max(lst)/min(lst) but never shrinks lst -> insert a
+    matching `lst.remove(max(lst))` line right after the append."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    out = []
+    ls = _lines(src)
+    for loop in [n for n in ast.walk(tree) if isinstance(n, (ast.For, ast.While))]:
+        if any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+               and n.func.attr in ("remove", "pop") for n in ast.walk(loop)):
+            continue
+        for st in loop.body:
+            if not (isinstance(st, ast.Expr) and isinstance(st.value, ast.Call)):
+                continue
+            c = st.value
+            if not (isinstance(c.func, ast.Attribute) and c.func.attr == "append"
+                    and len(c.args) == 1):
+                continue
+            a = c.args[0]
+            if not (isinstance(a, ast.Call) and isinstance(a.func, ast.Name)
+                    and a.func.id in ("max", "min") and len(a.args) == 1
+                    and isinstance(a.args[0], ast.Name)):
+                continue
+            if getattr(st, "end_lineno", st.lineno) != st.lineno:
+                continue
+            i = st.lineno - 1
+            if not (0 <= i < len(ls)):
+                continue
+            ind = re.match(r"^(\s*)", ls[i]).group(1)
+            ls2 = list(ls)
+            ls2.insert(i + 1, "%s%s.remove(%s(%s))"
+                       % (ind, a.args[0].id, a.func.id, a.args[0].id))
+            v = _join(ls2)
+            if _parse(v) is not None:
+                out.append(v)
+    return out
+
+
+_OFF1_RE = re.compile(r"\[\s*:\s*([A-Za-z_]\w*)\s*-\s*1\s*\]")
+_OFF2_RE = re.compile(r"\[\s*:\s*([A-Za-z_]\w*)\s*\+\s*1\s*\]")
+
+
+def txt_slice_offbyone(src):
+    """Boundary fix per line: X[:k-1] -> X[:k], X[:k+1] -> X[:k]."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        for rx in (_OFF1_RE, _OFF2_RE):
+            new = rx.sub(lambda m: "[:%s]" % m.group(1), line)
+            if new != line:
+                v = _variant_line(src, i, new)
+                if v:
+                    out.append(v)
+    return out
+
+
+def _is_len_break(st, L):
+    if not isinstance(st, ast.If) or st.orelse:
+        return False
+    if not (len(st.body) == 1 and isinstance(st.body[0], ast.Break)):
+        return False
+    t = st.test
+    if not (isinstance(t, ast.Compare) and len(t.ops) == 1):
+        return False
+
+    def is_lenL(e):
+        return (isinstance(e, ast.Call) and isinstance(e.func, ast.Name)
+                and e.func.id == "len" and len(e.args) == 1
+                and isinstance(e.args[0], ast.Name) and e.args[0].id == L)
+
+    return is_lenL(t.left) or is_lenL(t.comparators[0])
+
+
+def txt_swap_append_check(src):
+    """`out.append(x)` followed by `if len(out) == k: break` returns the whole
+    list when k == 0. Move the append line to AFTER the break block (check
+    before appending), preserving every line's text."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    out = []
+    ls = _lines(src)
+    for loop in [n for n in ast.walk(tree) if isinstance(n, (ast.For, ast.While))]:
+        body = loop.body
+        for i in range(len(body) - 1):
+            L = _append_target(body[i])
+            if L is None or not _is_len_break(body[i + 1], L):
+                continue
+            a, b = body[i], body[i + 1]
+            if getattr(a, "end_lineno", a.lineno) != a.lineno:
+                continue
+            al = a.lineno - 1
+            bend = getattr(b, "end_lineno", b.lineno) - 1
+            if not (0 <= al < bend < len(ls)):
+                continue
+            ls2 = list(ls)
+            moved = ls2.pop(al)
+            ls2.insert(bend, moved)
+            v = _join(ls2)
+            if _parse(v) is not None:
+                out.append(v)
+    return out
+
+
+def txt_while_progress(src):
+    """Rewrite a broken while condition (single line) as `len(out) < k` for
+    each list the loop appends to; only for loops that also shrink a list."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    k = _kname(tree)
+    out = []
+    ls = _lines(src)
+    for w in [n for n in ast.walk(tree) if isinstance(n, ast.While)]:
+        shrinks = any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                      and n.func.attr in ("remove", "pop")
+                      for n in ast.walk(w)) or \
+            any(isinstance(n, ast.Delete) for n in ast.walk(w))
+        if not shrinks:
+            continue
+        i = w.lineno - 1
+        if not (0 <= i < len(ls)):
+            continue
+        m = re.match(r"^(\s*)while\s+.*:(\s*)$", ls[i])
+        if m is None:
+            continue
+        for L in sorted(_appended_names(w)):
+            for cond in ("len(%s) < %s" % (L, k),
+                         "%s > len(%s)" % (k, L),
+                         "len(%s) != %s" % (L, k)):
+                v = _variant_line(src, i, "%swhile %s:%s"
+                                  % (m.group(1), cond, m.group(2)))
+                if v:
+                    out.append(v)
+    return out
+
+
+_SUM3_RE = re.compile(
+    r"^(\s*)([A-Za-z_]\w*)\s*=\s*([A-Za-z_]\w*)\s*\+\s*([A-Za-z_]\w*)"
+    r"\s*\+\s*([A-Za-z_]\w*)(\s*)$")
+_SUM2_RE = re.compile(
+    r"^(\s*)([A-Za-z_]\w*)\s*=\s*([A-Za-z_]\w*)\s*\+\s*([A-Za-z_]\w*)(\s*)$")
+
+
+def txt_partition_recurse(src):
+    """One-pass pivot partition is not a sort: recurse on the partitions.
+    `sort_list = lower + plist + higher` becomes
+    `sort_list = top_k(lower, len(lower))[::-1] + plist + top_k(higher, len(higher))[::-1]`
+    (only that one line changes)."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    f = _entry_func(tree)
+    if f is None:
+        return []
+    appended = _appended_names(f)
+    out = []
+    ls = _lines(src)
+
+    def wrap(p):
+        return "%s(%s, len(%s))[::-1]" % (ENTRY, p, p)
+
+    for i, line in enumerate(ls):
+        m3 = _SUM3_RE.match(line)
+        m2 = None if m3 else _SUM2_RE.match(line)
+        if m3:
+            ind, tgt, tail = m3.group(1), m3.group(2), m3.group(6)
+            parts = [m3.group(3), m3.group(4), m3.group(5)]
+            idxsets = [(0, 2), (0, 1, 2)]
+        elif m2:
+            ind, tgt, tail = m2.group(1), m2.group(2), m2.group(5)
+            parts = [m2.group(3), m2.group(4)]
+            idxsets = [(0, 1), (0,), (1,)]
+        else:
+            continue
+        for idxs in idxsets:
+            if not all(parts[j] in appended for j in idxs):
+                continue
+            np = [wrap(p) if j in idxs else p for j, p in enumerate(parts)]
+            v = _variant_line(src, i, "%s%s = %s%s"
+                              % (ind, tgt, " + ".join(np), tail))
+            if v:
+                out.append(v)
+    return out
+
+
+_RET_RE = re.compile(r"^(\s*)return\s+(.+?)(\s*)$")
+
+
+def txt_return_variants(src):
+    """Forgot to slice / built ascending: `return X` -> `X[:k]`, `X[::-1][:k]`,
+    `X[::-1]`; `return f(...)` -> sliced forms; `return X[a:b]` -> reversed base."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    k = _kname(tree)
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        m = _RET_RE.match(line)
+        if not m:
+            continue
+        ind, expr, tail = m.groups()
+        if "#" in expr:
+            continue
+        try:
+            e = ast.parse(expr, mode="eval").body
+        except Exception:
+            continue
+        news = []
+        if isinstance(e, ast.Name):
+            if e.id == k:
+                continue
+            news = ["%s[:%s]" % (expr, k),
+                    "%s[::-1][:%s]" % (expr, k),
+                    "%s[::-1]" % expr]
+        elif isinstance(e, ast.Call):
+            news = ["%s[:%s]" % (expr, k), "%s[::-1][:%s]" % (expr, k)]
+        elif isinstance(e, ast.Subscript):
+            m2 = re.match(r"^([A-Za-z_]\w*)\[", expr)
+            if m2:
+                news = [m2.group(1) + "[::-1]" + expr[len(m2.group(1)):]]
+        for ne in news:
+            v = _variant_line(src, i, ind + "return " + ne + tail)
+            if v:
+                out.append(v)
+    return out
+
+
+def txt_minmax(src):
+    """Swap min <-> max (bottom-k misconception), whole file and per line."""
+    out = []
+    for a, b in (("max(", "min("), ("min(", "max(")):
+        if a in src:
+            v = src.replace(a, b)
+            if _parse(v) is not None and v != src:
+                out.append(v)
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        for a, b in (("max(", "min("), ("min(", "max(")):
+            if a in line:
+                v = _variant_line(src, i, line.replace(a, b))
+                if v:
+                    out.append(v)
+    return out
+
+
+def txt_sort_reverse(src):
+    """Add reverse=True to sort()/sorted() calls, one line at a time."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        news = []
+        if ".sort()" in line:
+            news.append(line.replace(".sort()", ".sort(reverse=True)"))
+        for mm in re.finditer(r"sorted\(([^()]+)\)", line):
+            news.append(line[:mm.start()]
+                        + "sorted(%s, reverse=True)" % mm.group(1)
+                        + line[mm.end():])
+        for n2 in news:
+            v = _variant_line(src, i, n2)
+            if v:
+                out.append(v)
+    return out
+
+
+_NEG_RE = re.compile(r"\b([A-Za-z_]\w*)\[\s*-\s*([A-Za-z_]\w*)\s*:\s*\]")
+
+
+def txt_neg_slice(src):
+    """Ascending list sliced X[-k:] (wrong order, breaks k=0) ->
+    X[::-1][:k] (also offer X[-k:][::-1])."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        m = _NEG_RE.search(line)
+        if not m:
+            continue
+        X, K = m.groups()
+        for rep in ("%s[::-1][:%s]" % (X, K), "%s[-%s:][::-1]" % (X, K)):
+            v = _variant_line(src, i, line[:m.start()] + rep + line[m.end():])
+            if v:
+                out.append(v)
+    return out
+
+
+def txt_range_k(src):
+    """Selection loop iterating over the wrong thing -> for ... in range(k)."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    k = _kname(tree)
+    out = []
+    ls = _lines(src)
+    for fr in [n for n in ast.walk(tree) if isinstance(n, ast.For)]:
+        if not _appended_names(fr):
+            continue
+        i = fr.lineno - 1
+        if not (0 <= i < len(ls)):
+            continue
+        m = re.match(r"^(\s*)for\s+(.+?)\s+in\s+(.+?):(\s*)$", ls[i])
+        if not m:
+            continue
+        if m.group(3).strip() == "range(%s)" % k:
+            continue
+        v = _variant_line(src, i, "%sfor %s in range(%s):%s"
+                          % (m.group(1), m.group(2), k, m.group(4)))
+        if v:
+            out.append(v)
+    return out
+
+
+def txt_for_slice_k(src):
+    """Copy loop takes too many items: `for j in sort:` -> `for j in sort[:k]:`."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    k = _kname(tree)
+    out = []
+    ls = _lines(src)
+    for fr in [n for n in ast.walk(tree) if isinstance(n, ast.For)]:
+        i = fr.lineno - 1
+        if not (0 <= i < len(ls)):
+            continue
+        m = re.match(r"^(\s*)for\s+(\w+)\s+in\s+([A-Za-z_]\w*):(\s*)$", ls[i])
+        if not m:
+            continue
+        v = _variant_line(src, i, "%sfor %s in %s[:%s]:%s"
+                          % (m.group(1), m.group(2), m.group(3), k, m.group(4)))
+        if v:
+            out.append(v)
+    return out
+
+
+def txt_cmp_flip(src):
+    """Flip a comparison on a single if/elif/while line."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        st = line.strip()
+        if not st.startswith(("if ", "elif ", "while ")):
+            continue
+        cands = []
+        if ">=" in line:
+            cands.append(line.replace(">=", "<=", 1))
+        elif "<=" in line:
+            cands.append(line.replace("<=", ">=", 1))
+        elif ">" in line and "->" not in line and "<" not in line:
+            cands.append(line.replace(">", "<", 1))
+        elif "<" in line and ">" not in line:
+            cands.append(line.replace("<", ">", 1))
+        for c in cands:
+            v = _variant_line(src, i, c)
+            if v:
+                out.append(v)
+    return out
+
+
+def txt_eq_cmp(src):
+    """Loosen equality guards: `== k` -> `>=` / `<=` on if/while lines."""
+    out = []
+    ls = _lines(src)
+    for i, line in enumerate(ls):
+        st = line.strip()
+        if not st.startswith(("if ", "elif ", "while ")):
+            continue
+        if "==" in line:
+            for rep in (">=", "<="):
+                v = _variant_line(src, i, line.replace("==", rep, 1))
+                if v:
+                    out.append(v)
+    return out
+
+
+def txt_k0_guard(src):
+    """Insert an early `if k <= 0: return []` at the top of the entry body."""
+    tree = _parse(src)
+    if tree is None:
+        return []
+    f = _entry_func(tree)
+    if f is None or not f.body:
+        return []
+    k = _kname(tree)
+    first = f.body[0]
+    if first.lineno == f.lineno:
+        return []
+    i = first.lineno - 1
+    ls = _lines(src)
+    if not (0 <= i < len(ls)):
+        return []
+    ind = re.match(r"^(\s*)", ls[i]).group(1)
+    ls2 = list(ls)
+    ls2.insert(i, "%sif %s <= 0:" % (ind, k))
+    ls2.insert(i + 1, "%s    return []" % ind)
+    v = _join(ls2)
+    return [v] if _parse(v) is not None else []
+
+
+# Textual rules whose fixes must compose (e.g. append-remove split + while
+# condition for real_070-style bugs; slice off-by-one + partition recursion
+# for real_016-style bugs). Order matters: prerequisites come first.
+TXT_COMBO = [
+    txt_strip_subscript_cmp,
+    txt_append_remove,
+    txt_drop_assign,
+    txt_insert_remove,
+    txt_slice_offbyone,
+    txt_swap_append_check,
+    txt_while_progress,
+    txt_partition_recurse,
+]
+
+# Textual rules applied only to the original source.
+TXT_SINGLE = [
+    txt_return_variants,
+    txt_minmax,
+    txt_sort_reverse,
+    txt_neg_slice,
+    txt_range_k,
+    txt_for_slice_k,
+    txt_cmp_flip,
+    txt_eq_cmp,
+    txt_k0_guard,
+]
+
+
+def _txt_variants(source):
+    seen = {source, _norm(source)}
+    pool = [source]
+
+    def add(lst, v):
+        if not v or not isinstance(v, str):
+            return
+        if v in seen:
+            return
+        key = _norm(v)
+        if key in seen:
+            return
+        seen.add(v)
+        seen.add(key)
+        lst.append(v)
+
+    for rule in TXT_COMBO:
+        additions = []
+        for s in list(pool):
+            if len(additions) >= 24:
+                break
+            try:
+                vs = rule(s)
+            except Exception:
+                vs = []
+            for v in vs:
+                add(additions, v)
+                if len(additions) >= 24:
+                    break
+        pool.extend(additions)
+        if len(pool) > 90:
+            pool = pool[:90]
+
+    singles = []
+    for rule in TXT_SINGLE:
+        try:
+            vs = rule(source)
+        except Exception:
+            vs = []
+        for v in vs:
+            add(singles, v)
+
+    variants = pool[1:] + singles
+    try:
+        variants.sort(key=lambda v: _diff_score(source, v))
+    except Exception:
+        pass
+    return variants[:110]
+
+
+# ---------------------------------------------------------------- AST rules
+# Kept from round 1 as a lower-priority tier (their unparse output loses the
+# original formatting, but they still catch cases the textual layer misses).
 
 def rule_strip_subscript_compare(src):
-    """Fix comparisons copied from another exercise, e.g. i[1] > big[1] -> i > big."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -163,7 +756,6 @@ def _split_append_remove_stmt(st):
 
 
 def rule_split_append_remove(src):
-    """new.append(lst.remove(x)) appends None -> new.append(x); lst.remove(x)."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -191,7 +783,6 @@ def rule_split_append_remove(src):
 
 
 def rule_drop_bad_assign(src):
-    """x = lst.remove(...) / x = lst.sort() (returns None) -> bare mutation call."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -217,7 +808,6 @@ def rule_drop_bad_assign(src):
 
 
 def rule_slice_upper(src):
-    """Boundary fix in slices: X[:k-1] -> X[:k]."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -235,25 +825,7 @@ def rule_slice_upper(src):
     return [u] if u else []
 
 
-def _is_len_break(st, L):
-    if not isinstance(st, ast.If) or st.orelse:
-        return False
-    if not (len(st.body) == 1 and isinstance(st.body[0], ast.Break)):
-        return False
-    t = st.test
-    if not (isinstance(t, ast.Compare) and len(t.ops) == 1):
-        return False
-
-    def is_lenL(e):
-        return (isinstance(e, ast.Call) and isinstance(e.func, ast.Name)
-                and e.func.id == "len" and len(e.args) == 1
-                and isinstance(e.args[0], ast.Name) and e.args[0].id == L)
-
-    return is_lenL(t.left) or is_lenL(t.comparators[0])
-
-
 def rule_swap_append_check(src):
-    """out.append(x); if len(out)==k: break  -> check before appending (fixes k=0)."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -278,7 +850,6 @@ def rule_swap_append_check(src):
 
 
 def rule_insert_remove(src):
-    """Loop appends max(lst) but never removes it -> insert lst.remove(max(lst))."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -316,8 +887,6 @@ def rule_insert_remove(src):
 
 
 def rule_while_cond(src):
-    """Replace a broken while condition by len(out) < k (or k > len(out)) for each
-    list that the loop appends to; only for loops that also shrink some list."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -359,10 +928,6 @@ def _wrap_topk(name_id):
 
 
 def rule_partition_recurse(src):
-    """One-pass pivot partition is not a sort: make the partition recursive.
-    sort_list = lower + plist + higher
-      -> sort_list = top_k(lower, len(lower))[::-1] + plist + top_k(higher, len(higher))[::-1]
-    """
     tree = _parse(src)
     if tree is None:
         return []
@@ -417,7 +982,6 @@ def rule_alias_entry(src):
 
 
 def rule_minmax(src):
-    """Swap min <-> max calls (bottom-k instead of top-k misconception)."""
     out = []
     for a, b in (("min", "max"), ("max", "min")):
         tree = _parse(src)
@@ -437,7 +1001,6 @@ def rule_minmax(src):
 
 
 def rule_sort_reverse(src):
-    """If the student used sort()/sorted() anyway, add reverse=True."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -460,7 +1023,6 @@ def rule_sort_reverse(src):
 
 
 def rule_neg_slice(src):
-    """Ascending list sliced X[-k:] (breaks for k=0, wrong order) -> X[::-1][:k]."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -481,8 +1043,6 @@ def rule_neg_slice(src):
 
 
 def rule_return_slice(src):
-    """Forgot to slice / built ascending: return X -> X[:k], X[::-1][:k], X[::-1];
-    return X[a:b] -> return X[::-1][a:b]."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -523,7 +1083,6 @@ def rule_return_slice(src):
 
 
 def rule_for_range_k(src):
-    """Selection loop iterating over the wrong thing -> for _ in range(k)."""
     tree = _parse(src)
     if tree is None:
         return []
@@ -552,8 +1111,6 @@ def rule_for_range_k(src):
     return out
 
 
-# Rules whose fixes are worth composing with each other (applied to the whole
-# growing pool, so e.g. split-append-remove + while-condition compose).
 COMBO_RULES = [
     rule_strip_subscript_compare,
     rule_split_append_remove,
@@ -565,7 +1122,6 @@ COMBO_RULES = [
     rule_partition_recurse,
 ]
 
-# Rules applied only to the original source.
 SINGLE_RULES = [
     rule_minmax,
     rule_sort_reverse,
@@ -588,7 +1144,6 @@ def _rule_variants(source):
         seen.add(key)
         lst.append(v)
 
-    # Alias variants first (they unlock everything else when the name is wrong).
     alias = []
     try:
         for v in rule_alias_entry(source):
@@ -626,27 +1181,63 @@ def _rule_variants(source):
     return variants[:60]
 
 
+# ---------------------------------------------------------------- driver
+
 def _repair(source):
     if not isinstance(source, str):
         return None
-    if _parse(source) is None:
+    tree0 = _parse(source)
+    if tree0 is None:
         return None
 
+    # Tier 1: format-preserving textual candidates (minimal patch size).
     try:
-        variants = _rule_variants(source)
+        txt = _txt_variants(source)
     except Exception:
-        variants = []
+        txt = []
 
-    # Phase 1: original, rule-based variants, 1-edit generic search on the
-    # original, then 1-edit generic search chained on the best rule variants.
+    # If the entry point is misnamed, alias it and rerun the textual layer on
+    # the aliased source so name + logic bugs can be fixed together.
+    if _entry_func(tree0) is None:
+        extra = []
+        try:
+            for al in rule_alias_entry(source)[:3]:
+                extra.append(al)
+                try:
+                    extra.extend(_txt_variants(al)[:25])
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        txt = extra + txt
+
+    # Tier 2: round-1 AST rules (unparse-based) as a fallback.
+    try:
+        ast_variants = _rule_variants(source)
+    except Exception:
+        ast_variants = []
+
+    seen = set()
+    ordered = []
+    for v in txt + ast_variants:
+        if isinstance(v, str) and v and v != source and v not in seen:
+            seen.add(v)
+            ordered.append(v)
+
+    # Phase 1: original, textual+rule variants, 1-edit generic search, then
+    # 1-edit generic search chained on the most promising variants.
     gens = [iter([source])]
-    if variants:
-        gens.append(iter(list(variants)))
+    if ordered:
+        gens.append(iter(ordered))
     try:
         gens.append(_safe_iter(candidates_generic(source, max_edits=1, budget=1500)))
     except Exception:
         pass
-    for v in variants[:12]:
+    seeds = []
+    for v in txt[:6] + ast_variants[:8]:
+        if isinstance(v, str) and v and v not in seeds:
+            seeds.append(v)
+    for v in seeds:
         try:
             gens.append(_safe_iter(candidates_generic(v, max_edits=1, budget=250)))
         except Exception:
@@ -654,13 +1245,13 @@ def _repair(source):
     cand = None
     try:
         cand = first_passing(chain(*gens), ENTRY, TESTS, source,
-                             max_rps=MAX_RPS, max_checks=800)
+                             max_rps=MAX_RPS, max_checks=1500)
     except Exception:
         cand = None
     if cand is not None:
         return cand
 
-    # Phase 2: 2-edit generic search on the original as a fallback.
+    # Phase 2: 2-edit generic search on the original as a last resort.
     try:
         cand = first_passing(
             _safe_iter(candidates_generic(source, max_edits=2, budget=2500)),
