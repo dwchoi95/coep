@@ -247,7 +247,7 @@ The local path's advantage is therefore not average patch size but \emph{enforce
 The tool comparison is no artifact of re-validation: Refactory's own oracle reports 91.0\% on these runs, within a point of our 90.5\% test-pass figure---the gap under our \emph{quality} metric is entirely its patch sizes.
 Guarantees, not just averages, change character: a prompt can \emph{request} minimality, but only a validator can \emph{enforce} it---a point we return to with an enforcement-parity baseline in RQ2.
 
-Scaling the zero-marginal local arm to the \emph{full} corpus---all 1{,}660 non-build submissions---confirms the estimate with a tight interval: 50.7\% coverage [48.3, 53.1], per-assignment 27.9\% (\texttt{remove\_extras}) to 71.4\% (\texttt{search}).
+Scaling the zero-marginal local arm to the \emph{full} corpus (all 1{,}660 non-build submissions) confirms the estimate tightly: 50.7\% coverage [48.3, 53.1], per-assignment 27.9--71.4\%.
 The dispersion tracks idiom diversity (\texttt{search} is variations of one loop; \texttt{remove\_extras} attracts diverse list-surgery styles whose aliasing bugs defeat rules from five samples); the hybrid absorbs it, and build-round trajectories signal it \emph{before} deployment---a routing cue for larger build budgets on harder assignments.
 
 \smallskip
@@ -285,7 +285,7 @@ Table~\ref{tab:ladder} prices every configuration.
 Within the pay-per-query paradigm the trade-off is stark: the cheap model saves $3\times$ but surrenders 21 quality points; the cascade buys most back at \$1.94$\times10^{-3}$; caching is inapplicable to the plain prompt (the table's row is the no-minimum bound) and brings the few-shot variant only to \$2.91$\times10^{-3}$; and giving the baseline \textsc{CoEP}'s own enforcement---a validator plus one minimality-feedback retry, the PyDex-style iterative protocol---lifts it to \RetryRate\% for \$\RetryUsd$\times10^{-3}$.
 The retry protocol defines this study's quality ceiling---and \textsc{CoEP} \emph{inherits} it: since the local path never emits an unsafe patch, fronting any protocol preserves its quality set while diverting half its traffic.
 Empirically the inheritance is exact: \textsc{CoEP}+retry repairs the \emph{identical} 197/200 submissions as the retry arm (discordant $0{:}0$, per-assignment identical) at $1.8\times$ lower marginal cost, while \textsc{CoEP}+frontier beats the plain baseline outright ($p{=}0.008$) and \textsc{CoEP}+cascade does so at the lowest marginal cost of any quality-competitive arm ($p{=}0.004$; vs.\ the cascade alone, discordant $4{:}0$, n.s.; only the 65\%-quality Haiku arm is cheaper).
-Hybrid cost remains linear in enrollment---the claim is a $1.8$--$2.5\times$ smaller slope plus a one-off intercept, not zero marginal cost---and the slope shrinks as local coverage grows.
+Hybrid cost stays linear in enrollment---the claim is a $1.8$--$2.5\times$ smaller slope plus an intercept, not zero marginal cost---and the slope shrinks as coverage grows.
 
 Synthesizing an assignment's repairer costs \$\BuildUsdPerProblem{} on average (\BuildInTok{} prompt + \BuildOutTok{} response tokens across five assignments and ten builder calls; the price of ${\approx}$94 baseline repairs, paid once).
 Let $C$ be the build cost and $\Delta$ the marginal saving per submission over a competitor; synthesis wins once $N > N^{*} = C/\Delta$.
@@ -335,7 +335,7 @@ Its rules cost \$0.022 per assignment but repair too little to matter; upgrading
 
 \textbf{Construct validity.}
 Repair rate is measured against the instructor's visible tests, as in prior assignment-repair work \citep{refactory2019,pydex2024}; a patch could overfit the suite, and \textsc{CoEP}'s search optimizes that oracle directly, but the RPS cap bounds the degenerate form of that overfit (wholesale replacement)---and it is the \emph{per-submission} arms that exceed it in practice (14\% of frontier patches, a third of the tool's) while the local path produced zero unsafe outputs.
-The threshold ($\tau{=}0.35$) follows the patch-size discipline of Refactory and PyDex, and a $\tau$-sweep from stored patch sizes (Figure~\ref{fig:tau}) shows the orderings are not its artifact: the validated-retry arm dominates at every $\tau$, the hybrid tracks or exceeds the plain baseline for $\tau \ge 0.25$ (below that the recomputation is conservative---frozen repairers searched under $0.35$ and would re-search under a smaller deployed cap), and the tool's collapse appears at every threshold.
+The threshold ($\tau{=}0.35$) follows Refactory and PyDex, and a $\tau$-sweep from stored patch sizes (Figure~\ref{fig:tau}) shows the orderings are not its artifact: the validated-retry arm dominates at every $\tau$, the hybrid tracks or exceeds the plain baseline for $\tau \ge 0.25$ (below that the recomputation is conservative---frozen repairers searched under $0.35$), and the tool's collapse appears at every threshold.
 Because \textsc{CoEP}'s search optimizes the visible suite directly, suite overfitting favors it differentially; hidden-test evaluation is the natural next control.
 The cost model prices one tier from modeled (not billed) token counts; released raw strings let any pricing and tokenizer substitute into RQ2's closed-form break-even.
 
@@ -355,9 +355,9 @@ Local repair is heterogeneous (28--71\% by assignment) and bounded by what five 
 \label{sec:related}
 
 \textbf{APR for programming assignments.}
-Pre-LLM systems exploit per-assignment structure---CLARA's clustering \citep{clara2018}, Sarfgen's aligned-example search \citep{sarfgen2018}, Refactory's refactoring \citep{refactory2019}, Verifix's verified alignment \citep{verifix2022}---and \citet{itsp2017} established test-based repair rates and the feedback-suitability concern behind patch-size metrics; all are cheap per submission but need many prior correct solutions or hand-built machinery, and our head-to-head run shows the quality cost of the latter's invasive patches.
-At AAAI the setting remains active from the per-submission side \citep{orvalho2025,adapr2025}.
-\textsc{CoEP} keeps the classical per-assignment amortization but replaces the machinery with LLM synthesis from a handful of examples.
+Pre-LLM systems exploit per-assignment structure---CLARA's clustering \citep{clara2018}, Sarfgen's aligned examples \citep{sarfgen2018}, Refactory's refactoring \citep{refactory2019}, Verifix \citep{verifix2022}---and \citet{itsp2017} established test-based repair rates and the feedback concern behind patch-size metrics; all need many prior solutions or hand-built machinery, and our head-to-head run shows the quality cost of invasive patches.
+At AAAI the setting stays active from the per-submission side: counterexample-guided and preference-tuned minimal repair at AAAI-25 \citep{orvalho2025,adapr2025}, and AAAI-26's learner-tailored repair, which retrieves per-assignment example fixes to guide each query \citep{lsgen2026}---amortizing \emph{data} into a retrieval index while every repair still pays for an LLM call (our PyDex-style arm bounds this design's economics).
+\textsc{CoEP} instead amortizes \emph{reasoning} into an executable artifact and pays only on escalation.
 
 \textbf{LLM-based repair.}
 AlphaRepair recast repair as generation \citep{alpharepair2022}; ChatRepair adds conversational test feedback and per-bug cost accounting \citep{chatrepair2024}; PyDex/MMAPR target student programs \citep{pydex2024,mmapr2022}; FastFixer accelerates per-query inference \citep{fastfixer2024}; CREF adds a tutor in the loop \citep{cref2024}.
@@ -380,7 +380,7 @@ On real student programs, \textsc{CoEP} turns 26 cents of frontier-model reasoni
 The recipe---\emph{amortize LLM reasoning into verifiable executable artifacts wherever many instances share a specification}---extends to grading rubrics, hint generation, and beyond.
 
 \section*{Ethical Statement}
-\textsc{CoEP} automates feedback, not grading, under instructor oversight: unhandled students get full-LLM treatment, local repair is deterministic and auditable, and all data are the public, de-identified Refactory corpus.
+\textsc{CoEP} automates feedback, not grading, under instructor oversight: unhandled students get full-LLM treatment, local repair is auditable, and all data are public (Refactory).
 
 \bibliography{references}
 
