@@ -291,6 +291,30 @@ def main():
             "quality_repair_rate": cc_fixed / len(coep_all),
             "marginal_usd_per_instance": cc_usd / len(coep_all)}
 
+    # cheap-BUILDER ablation (runs/coep_haiku), if present
+    hb_dir = ROOT / "runs" / "coep_haiku" / "results"
+    if hb_dir.exists() and any(hb_dir.glob("*.json")):
+        hb_rows = [dict(r, pid=p.stem) for p in sorted(hb_dir.glob("*.json"))
+                   for r in json.loads(p.read_text())]
+        hb_ok = sum(r["repaired"] for r in hb_rows)
+        hin, hout_p = MODEL_PRICES["claude-haiku"]
+        hb_usage = Usage()
+        for f in sorted((ROOT / "runs" / "coep_haiku" / "prompts").glob("*_round*.md")):
+            resp = ROOT / "runs" / "coep_haiku" / "responses" / f.name
+            if resp.exists():
+                hb_usage.input_tokens += tokens.count(f.read_text())
+                hb_usage.output_tokens += tokens.count(resp.read_text())
+        hb_usd = (hb_usage.input_tokens * hin + hb_usage.output_tokens * hout_p) / 1e6
+        summary["haiku_builder"] = {
+            "local_repair_rate": hb_ok / len(hb_rows),
+            "n_fixed": hb_ok,
+            "ci": wilson_ci(hb_ok, len(hb_rows)),
+            "build_usd_total": round(hb_usd, 4),
+            "build_usd_per_problem": round(hb_usd / len(pids), 4),
+            "per_problem": {pid: sum(1 for r in hb_rows if r["pid"] == pid and r["repaired"])
+                            for pid in pids},
+        }
+
     # statistics: Wilson CIs and paired McNemar tests
     coep_ok_keys = {f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all if r["repaired"]}
     bq_keys = {r["key"] for r in b_quality}
