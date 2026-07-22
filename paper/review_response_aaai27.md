@@ -70,3 +70,31 @@ entirely patch size (its test-passing repairs average 0.386 RPS).
 - Dropping the 5-assignment corpus for a larger synthetic one: contradicts
   the (user-mandated) real-data design; instead uncertainty is quantified and
   the corpus's own per-offering volumes anchor the economics.
+
+## Round 3 (post-revision fresh reviews)
+
+**Scores: R1 7/10 (accept, conf 4); R2 7/10 (accept, conf 4).**
+R2 independently recomputed all Wilson CIs, McNemar p-values, and the
+cost/break-even arithmetic — all verified. Camera-ready items completed
+immediately:
+
+- **tau-sweep** (`scripts/tau_sweep.py`, Fig. tau): orderings stable across
+  tau in [0.15, 0.50]; retry arm dominates everywhere; tool collapse at every
+  threshold; CoEP curves conservative below 0.35 (frozen cap).
+- **Full-corpus local eval** (`scripts/full_corpus_eval.py`): 841/1,660 =
+  50.7% [48.3, 53.1] local coverage (per-assignment 27.9-71.4%), confirming
+  the subsample estimate with a +-2.4pp interval; full-corpus hybrid slope
+  1.35e-3.
+- **Claim scoping**: "exceeds every per-submission configuration" -> "every
+  deployed single-shot configuration"; "study's lowest marginal cost" ->
+  "lowest among quality-competitive arms (only the 65%-quality Haiku arm is
+  cheaper)".
+- **Numeric consistency**: prompt decomposition fixed to 241+99+99=439 (77%
+  identical); 0.8s unified via macro; 1.8-2.5x range unified; calibration
+  wording aligned with Protocol; tie-vs-direction wording fixed ("never
+  reversed; strictly better in three, tied in two").
+- Redundant per-problem bar chart removed; content + ethics fit exactly 7pp.
+
+Remaining camera-ready suggestions not blocking acceptance (multi-seed
+builder replication, hidden-test control, amortize-into-prompt middle point,
+k-sweep) are acknowledged in Discussion as priced extensions.
