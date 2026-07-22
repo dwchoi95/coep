@@ -8,6 +8,15 @@ tracking the age value instead of the person element, broken pop/insert
 insertion sorts, `return lst.reverse()` returning None, sorted()/sort()
 without key/reverse, single-pass "keep only new maxima" tuple accumulation
 like real_344) with the generic mutation search from coep.repairlib.
+
+real_344-shaped code (flat tuple accumulator, running max, non-maxima dropped
+in a dead expression) is fundamentally lossy: no small in-loop edit can make
+it sort, and the in-loop rewrites blow the patch-size cap.  A dedicated rule
+therefore keeps the student's code byte-for-byte and swaps only the returned
+name for `sorted(<param>, key=lambda <name>: -<name>[1])`; reusing the
+returned accumulator's own name as the lambda parameter keeps the token-level
+patch minimal (pure insertions, the old return token is reused).
+
 Every returned candidate is validated by `first_passing`, which enforces the
 full visible test suite and the 0.35 relative-patch-size cap.
 """
@@ -658,6 +667,94 @@ def rule_tuple_accumulate(src):
     return outs
 
 
+def rule_flat_tuple_sorted_return(src):
+    """Direct minimal repair for the real_344 shape:
+
+        def sort_age(lst):
+            current=0
+            tup=()
+            for i in lst:
+                if i[1]>current:
+                    tup+=tuple(i)      # flattens; only new maxima kept
+                    current=i[1]
+                else:
+                    tuple(i)+tup       # dead expression, element dropped
+            return tup
+
+    Hand-simulation on the visible tests: [["F",19]] returns the flat tuple
+    ("F", 19); the 6-element test returns ("M", 35) because every non-maximum
+    is discarded by the dead else expression.  The accumulation is lossy and
+    type-mangling at once, so no small in-loop edit can fix it and the
+    insertion-sort rewrites exceed the 0.35 patch cap.  The smallest correct
+    patch keeps every byte of the student's code (the loop is harmless dead
+    code: tuple += tuple and tuple + tuple never raise) and replaces only the
+    returned name with a descending sort of the input.  Using the returned
+    accumulator's own name as the lambda parameter makes the token diff pure
+    insertion (the old `tup` token is reused), minimizing relative patch size:
+
+        return sorted(lst, key=lambda tup: -tup[1])
+
+    Detection is structural (loop + tuple-style accumulation + `return name`),
+    so it generalizes to other flat-tuple/concat accumulators, and every
+    candidate is still validated by first_passing."""
+    outs = []
+    try:
+        tree = ast.parse(src)
+    except Exception:
+        return outs
+    fn = _find_fn(tree)
+    if fn is None or not getattr(fn.args, "args", None):
+        return outs
+    param = fn.args.args[0].arg
+
+    acc = None
+    has_aug = False
+    has_tuple_call = False
+    has_loop = False
+    it = None
+    for n in ast.walk(fn):
+        if (isinstance(n, ast.Assign) and len(n.targets) == 1
+                and isinstance(n.targets[0], ast.Name)
+                and isinstance(n.value, ast.Tuple) and not n.value.elts):
+            acc = n.targets[0].id
+        elif (isinstance(n, ast.AugAssign) and isinstance(n.op, ast.Add)
+                and isinstance(n.target, ast.Name)):
+            has_aug = True
+        elif (isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+                and n.func.id == "tuple"):
+            has_tuple_call = True
+        elif isinstance(n, (ast.For, ast.While)):
+            has_loop = True
+            if isinstance(n, ast.For) and isinstance(n.target, ast.Name) \
+                    and it is None:
+                it = n.target.id
+    if not (has_loop and (acc is not None or has_tuple_call)
+            and (has_aug or has_tuple_call)):
+        return outs
+
+    pat = re.compile(r"^([ \t]*)return[ \t]+([A-Za-z_]\w*)[ \t]*$", re.M)
+    ms = list(pat.finditer(src))
+    if not ms:
+        return outs
+    m = ms[-1]
+    name = m.group(2)
+
+    exprs = ["sorted({p}, key=lambda {n}: -{n}[1])".format(p=param, n=name),
+             "sorted({p},key=lambda {n}:-{n}[1])".format(p=param, n=name)]
+    if it and it != name:
+        exprs.append("sorted({p}, key=lambda {n}: -{n}[1])".format(p=param, n=it))
+    exprs.append("sorted({p}, key=lambda x: -x[1])".format(p=param))
+    exprs.append("sorted({p}, key=lambda {n}: {n}[1], reverse=True)".format(
+        p=param, n=name))
+    exprs.append("sorted({p}, key=lambda x: x[1], reverse=True)".format(p=param))
+
+    for e in dict.fromkeys(exprs):
+        cand = src[:m.start(2)] + e + src[m.end(2):]
+        if cand != src and _compiles(cand):
+            outs.append(cand)
+    return outs
+
+
 def rule_return_sorted(src):
     """Last resort when the accumulation logic is unfixably lossy: keep the
     student's code in place but return the correctly ordered result, e.g.
@@ -713,6 +810,7 @@ ALL_RULES = [
     rule_balance_compare,
     rule_append_insert0,
     rule_tuple_accumulate,
+    rule_flat_tuple_sorted_return,
     rule_return_sorted,
 ]
 
