@@ -120,7 +120,7 @@ def main():
         fb_count += 1
         fallback_usage.input_tokens += b["prompt_tokens"]
         fallback_usage.output_tokens += b.get("response_tokens", 0)
-        if b.get("passed"):
+        if b.get("passed") and b.get("rps", 1) <= 0.35:
             hybrid_fixed.append(r)
 
     # ---------------- summary ----------------
@@ -213,6 +213,83 @@ def main():
             "ci": wilson_ci(rt_ok, rt_n),
             "per_problem": {pid: rt[pid]["repaired"] for pid in pids if pid in rt},
         }
+
+    # ---------------- cheap-model arm + cascade (computed from data) ----------------
+    from coep.costmodel import MODEL_PRICES
+    haiku_res = ROOT / "runs" / "baseline_haiku" / "results.json"
+    haiku = cascade = None
+    if haiku_res.exists():
+        hrows = json.loads(haiku_res.read_text())
+        h_by_key = {r["key"]: r for r in hrows}
+        hin, hout = MODEL_PRICES["claude-haiku"]
+        h_usd = sum(r["prompt_tokens"] * hin + r.get("response_tokens", 0) * hout
+                    for r in hrows) / 1e6
+        h_fixed = [r for r in hrows if r.get("passed")]
+        h_quality = [r for r in h_fixed if r.get("rps", 1) <= 0.35]
+        haiku = {"repair_rate": len(h_fixed) / len(hrows),
+                 "quality_repair_rate": len(h_quality) / len(hrows),
+                 "usd_per_instance": h_usd / len(hrows),
+                 "ci_quality": wilson_ci(len(h_quality), len(hrows))}
+        # cascade: haiku first; if its patch fails tests or busts the cap,
+        # escalate that instance to the frontier per-submission call
+        casc_usd, casc_fixed, esc = h_usd, 0, 0
+        for r in hrows:
+            ok = r.get("passed") and r.get("rps", 1) <= 0.35
+            if ok:
+                casc_fixed += 1
+                continue
+            esc += 1
+            b = base_by_key[r["key"]]
+            casc_usd += (b["prompt_tokens"] * PRICE_IN_PER_MTOK
+                         + b.get("response_tokens", 0) * PRICE_OUT_PER_MTOK) / 1e6
+            if b.get("passed") and b.get("rps", 1) <= 0.35:
+                casc_fixed += 1
+        cascade = {"quality_repair_rate": casc_fixed / len(hrows),
+                   "usd_per_instance": casc_usd / len(hrows),
+                   "escalation_rate": esc / len(hrows)}
+        summary["haiku"] = haiku
+        summary["cascade"] = cascade
+
+    # generic-local + frontier fallback arm (computed from ablation + baseline)
+    generic_fb = None
+    abl_rows_path = ROOT / "runs" / "ablation_generic" / "results.json"
+    if abl_rows_path.exists():
+        grows = json.loads(abl_rows_path.read_text())
+        g_usd, g_fixed = 0.0, 0
+        for r in grows:
+            key = f"{r['pid']}__{r['bug'][:-3]}"
+            if r["repaired"]:
+                g_fixed += 1
+                continue
+            b = base_by_key[key]
+            g_usd += (b["prompt_tokens"] * PRICE_IN_PER_MTOK
+                      + b.get("response_tokens", 0) * PRICE_OUT_PER_MTOK) / 1e6
+            if b.get("passed") and b.get("rps", 1) <= 0.35:
+                g_fixed += 1
+        generic_fb = {"quality_repair_rate": g_fixed / len(grows),
+                      "usd_per_instance": g_usd / len(grows)}
+        summary["generic_fallback"] = generic_fb
+
+    # CoEP + cascade fallback (escalate CoEP misses to haiku, then frontier)
+    if haiku:
+        cc_usd, cc_fixed = 0.0, len(c_fixed)
+        for r in coep_all:
+            if r["repaired"]:
+                continue
+            key = f"{r['pid']}__{r['bug'][:-3]}"
+            h = h_by_key[key]
+            cc_usd += (h["prompt_tokens"] * hin + h.get("response_tokens", 0) * hout) / 1e6
+            if h.get("passed") and h.get("rps", 1) <= 0.35:
+                cc_fixed += 1
+                continue
+            b = base_by_key[key]
+            cc_usd += (b["prompt_tokens"] * PRICE_IN_PER_MTOK
+                       + b.get("response_tokens", 0) * PRICE_OUT_PER_MTOK) / 1e6
+            if b.get("passed") and b.get("rps", 1) <= 0.35:
+                cc_fixed += 1
+        summary["coep_cascade"] = {
+            "quality_repair_rate": cc_fixed / len(coep_all),
+            "marginal_usd_per_instance": cc_usd / len(coep_all)}
 
     # statistics: Wilson CIs and paired McNemar tests
     coep_ok_keys = {f"{r['pid']}__{r['bug'][:-3]}" for r in coep_all if r["repaired"]}
@@ -336,15 +413,17 @@ def main():
     fig, ax = plt.subplots(figsize=(4.2, 2.55))
     ax.plot(n, n * per_inst_base_usd, color=C_BASE, label="frontier per-submission")
     ax.plot(n, n * per_inst_cached_usd, color=C_BASE, ls="--", label="+ prompt caching")
-    haiku_res = ROOT / "runs" / "baseline_haiku" / "results.json"
-    if haiku_res.exists():
-        ax.plot(n, n * 1.086e-3, color="#CCBB44", label="cheap-model cascade")
-    ax.plot(n, n * 1.127e-3, color=C_GREY, ls="-.", label="generic-local + fallback")
+    if cascade:
+        ax.plot(n, n * cascade["usd_per_instance"], color="#CCBB44",
+                label="cheap-model cascade")
+    if generic_fb:
+        ax.plot(n, n * generic_fb["usd_per_instance"], color=C_GREY, ls="-.",
+                label="generic-local + fallback")
     ax.plot(n, build_per + n * fb_rate * per_inst_base_usd, color=C_HYB,
             label="CoEP + frontier fallback")
-    if haiku_res.exists():
-        ax.plot(n, build_per + n * 0.293e-3, color=C_COEP,
-                label="CoEP + cascade fallback")
+    if haiku:
+        ax.plot(n, build_per + n * summary["coep_cascade"]["marginal_usd_per_instance"],
+                color=C_COEP, label="CoEP + cascade fallback")
     ax.set_xlabel("Submissions repaired per assignment")
     ax.set_ylabel("Cumulative LLM cost (USD)")
     ax.legend(frameon=False, fontsize=6.8, loc="upper left")
