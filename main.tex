@@ -35,14 +35,11 @@
 \maketitle
 
 \begin{abstract}
-Large language models (LLMs) have made automated program repair (APR) a practical vehicle for feedback on introductory programming assignments: given a buggy student submission, an LLM can usually produce a passing fix.
-However, existing LLM-based APR deploys the model \emph{one query per submission}: every request re-transmits the same assignment description and test suite before the model ever sees the student's code, so the dominant share of prompt tokens is duplicated across a class, cost grows linearly with enrollment, and the expense recurs every term even though the assignment itself never changes.
-Provider-side prompt caching and cheaper models reduce the constant but leave this linear structure intact.
-We observe that assignment repair is a \emph{many-instances, one-specification} regime and propose \textsc{CoEP}, a framework that changes the unit of LLM investment from the submission to the assignment.
-In the first stage, an LLM agent reads the assignment specification, its test suite, and a handful of sample buggy and correct programs, and synthesizes an executable symbolic repairer---problem-specific AST rewrite rules layered over a generic bounded edit search---whose every candidate patch is independently validated against the tests and capped in patch size.
-In the second stage, the repairer is iteratively refined from validation feedback on the sample bugs, then deployed locally, repairing subsequent submissions at zero marginal LLM cost; submissions it cannot fix escalate to conventional per-submission repair, so repair coverage is never sacrificed.
-Beyond cost, the synthesized repairer is a transparent, auditable artifact: instructors can inspect the rules it applies, its patches are minimal by construction, and repair runs in milliseconds on local hardware.
-Experiments on real student programs from a public assignment-repair benchmark, against per-submission LLM repair (including few-shot, execution-feedback variants), a symbolic non-LLM repair tool, and cost-reduction alternatives such as caching and model cascades, show that amortizing LLM reasoning into a verifiable per-assignment artifact preserves repair quality while fundamentally improving the cost structure of serving many instances of one specification.
+Large language models (LLMs) repair buggy submissions to programming assignments well, but they are deployed \emph{one query per submission}: every request re-transmits the same assignment description and test suite, so cost grows linearly with enrollment and recurs every term, while caching and cheaper models shrink only the constant, not the structure.
+Observing that assignment repair is a \emph{many-instances, one-specification} regime, we propose \textsc{CoEP}, a framework that shifts LLM investment from the submission to the assignment.
+An LLM agent reads the specification, tests, and a few sample programs once, and synthesizes an executable symbolic repairer---problem-specific AST rewrite rules over a generic bounded edit search---whose every patch is independently test-validated and size-capped.
+Refined through validation feedback and then deployed locally, the repairer fixes subsequent submissions at zero marginal LLM cost, escalating the rest to conventional per-submission repair so that coverage is never sacrificed; it is also a transparent artifact that instructors can audit, produces minimal patches by construction, and runs in milliseconds.
+Experiments on real student programs, against per-submission LLM repair, a symbolic non-LLM tool, and cost-reduction alternatives such as caching and model cascades, show that amortizing LLM reasoning into a verifiable per-assignment artifact preserves repair quality while fundamentally improving the cost structure of serving many instances of one specification.
 \end{abstract}
 
 \section{Introduction}
