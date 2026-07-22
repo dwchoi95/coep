@@ -54,14 +54,14 @@ On the real student corpus we study, 77\% of the input tokens of a per-submissio
 Provider-side prompt caching \citep{anthropiccaching,openaicaching} discounts redundant prefixes but does not change the paradigm---here it cannot even engage, since the entire 439-token prompt sits below the provider's 1{,}024-token cacheable minimum---and every submission still requires a frontier-model round trip, with the attendant marginal cost, latency, rate limits, and external dependence.
 
 Our key observation is that assignment repair is a \emph{many-instances, one-specification} regime: a single assignment is attempted by hundreds of students whose failures cluster into recurring misconceptions \citep{clara2018,refactory2019}.
-Pre-LLM systems exploited exactly this structure (CLARA clustered correct solutions; Refactory refactored them into a per-problem search space), achieving cheap per-submission repair at the cost of hand-built machinery or large pools of prior solutions; per-submission LLM repair inverts the trade-off, automatic and general but paying for the same specification-level reasoning on every query.
+Pre-LLM systems exploited exactly this structure (CLARA clustered correct solutions; Refactory refactored them into a per-problem search space), cheap per submission but needing hand-built machinery or large solution pools; per-submission LLM repair inverts the trade-off, automatic and general but paying for the same specification-level reasoning on every query.
 
 We propose to get both halves: \textbf{spend the LLM once per assignment, not once per submission}.
 In \textsc{CoEP} (\underline{Co}st-\underline{E}ffective \underline{P}rogram repair), an LLM agent receives the assignment specification, test suite, a few reference solutions, and a handful of historical buggy submissions, and \emph{writes a program repairer}: a deterministic Python module combining problem-specific rewrite rules with a generic edit-search library, validating every candidate against the visible tests under a patch-size cap.
 After at most three harness-driven refinement rounds it is frozen and deployed: submissions are repaired \emph{locally}, in under a second on average, at zero marginal LLM cost, and any the repairer cannot fix escalate to the conventional LLM path---so the hybrid never does worse than the paradigm it replaces.
 
 On \NumProblems{} real assignments from the public Refactory dataset \citep{refactory2019}---1{,}685 buggy Python submissions written by university CS1 students---holding the underlying LLM fixed across all conditions, \textsc{CoEP}'s synthesized repairers alone fix half of held-out submissions at zero marginal LLM cost (50.7\% [48.3, 53.1] on the full corpus), and the central result is one of \emph{inheritance}: fronting any per-submission protocol with \textsc{CoEP} preserves that protocol's quality set---verified instance by instance---while cutting its marginal cost $1.8$--$1.9\times$.
-Against the deployed plain-prompt convention the hybrid additionally repairs strictly more within the patch-size cap (\HybridRate\% vs.\ \BaseQualityRate\%; 8 unique wins, none reversed, concentrated in 3 of 5 assignments---significant at the submission level, $p{=}0.008$, suggestive at the cluster level), because unconstrained generations bust the cap on 14\% of instances.
+Against the deployed plain-prompt convention the hybrid additionally repairs strictly more within the patch-size cap (\HybridRate\% vs.\ \BaseQualityRate\%; 8 unique wins, none reversed, in 3 of 5 assignments---submission-level $p{=}0.008$, suggestive at cluster level), because unconstrained generations bust the cap on 14\% of instances.
 The one-off synthesis cost of \$\BuildUsdPerProblem{} per assignment is recouped after $\approx$\BreakEvenN{} repaired submissions on corpus-average economics---below the 337 buggy submissions per assignment this corpus averages in a \emph{single} offering---with per-assignment break-evens of 38--704 disclosed in RQ2.
 The alternatives this observation invites do not close the gap: PyDex-style few-shot prompting raises cost $2.4\times$ without raising quality (85.5\%); the non-LLM Refactory tool, given \emph{every} correct student solution, passes tests on 90.5\% but busts the cap on a third of instances (56.0\% quality); a cheap-model cascade floors at 88.5\% for $1.8\times$ \textsc{CoEP}'s marginal cost; and granting the baseline \textsc{CoEP}'s own enforcement---a size validator with one feedback retry---reaches 98.5\%, but at \$3.26$\times10^{-3}$ per submission.
 \textsc{CoEP} composes with all of them: fronting the cascade delivers 90.5\% at the lowest marginal cost of any arm above 86\% quality, and fronting the enforced-retry protocol repairs the \emph{identical} 98.5\% at $1.8\times$ lower cost---for every fallback, the same quality at a smaller slope.
@@ -143,23 +143,8 @@ The library contributes three reusable capabilities:
 The builder's essential creative work is the \emph{problem-specific rule set}: AST rewrite rules that anticipate the misconceptions students exhibit for \emph{this} assignment---occurrence thresholds off by an idiom in \texttt{unique\_day} (\texttt{>=2} for \texttt{!=1}), a tuple accumulator discarding non-maxima in \texttt{sort\_age}, a helper copied from the previous exercise in \texttt{top\_k}---derived from $d$, $T$, $R$, and $B_{\mathrm{build}}$.
 These rules generate edits far outside the generic operator space, and our ablation shows they, not the generic search, carry the paradigm (RQ3).
 
-\begin{algorithm}[t]
-\caption{Per-assignment repairer synthesis}
-\label{alg:builder}
-\begin{algorithmic}[1]
-\REQUIRE assignment $(d,T,R)$, sample bugs $B_{\mathrm{build}}$, rounds $R_{\max}$
-\STATE $\rho \leftarrow \mathrm{LLM}_{\mathrm{build}}(d, T, R, B_{\mathrm{build}}, \mathrm{lib})$ \hfill$\triangleright$ single shot
-\FOR{$r = 2 \dots R_{\max}$}
-  \STATE $F \leftarrow \{(b,\mathrm{outcome}(\rho,b)) : b \in B_{\mathrm{build}}\}$ \hfill$\triangleright$ harness
-  \IF{all outcomes are \textsc{repaired}} \RETURN $\rho$ \ENDIF
-  \STATE $\rho \leftarrow \mathrm{LLM}_{\mathrm{refine}}(\rho, F)$ \hfill$\triangleright$ single shot
-\ENDFOR
-\RETURN $\rho$
-\end{algorithmic}
-\end{algorithm}
-
 \textbf{Generate--validate--refine.}
-Because a single-shot synthesized module can contain its own defects, the harness closes the loop (Algorithm~\ref{alg:builder}): it installs the module, applies it to $B_{\mathrm{build}}$, \emph{independently} re-validates every returned patch (sandboxed test execution plus RPS check---the repairer's own claims are never trusted), and, if any sample bug is unrepaired, sends the module back with per-bug outcomes and the failing submissions for revision, up to $R_{\max}{=}3$ total rounds.
+Because a single-shot synthesized module can contain its own defects, the harness closes the loop: it installs the module, applies it to $B_{\mathrm{build}}$, \emph{independently} re-validates every returned patch (sandboxed test execution plus RPS check---the repairer's own claims are never trusted), and, if any sample bug is unrepaired, sends the module back with per-bug outcomes and the failing submissions for revision, up to $R_{\max}{=}3$ total rounds.
 This is a deliberately austere instantiation of self-refinement \citep{selfrefine2023,reflexion2023}: every LLM interaction is a single prompt--response pair, so the entire build cost is the token count of at most $2R_{\max}$ message payloads, measured directly from the raw strings.
 
 \textbf{Deployment.}
@@ -248,8 +233,7 @@ The local path's advantage is therefore not average patch size but \emph{enforce
 The tool comparison is no artifact of re-validation: Refactory's own oracle reports 91.0\% on these runs, within a point of our 90.5\% test-pass figure---the gap under our \emph{quality} metric is entirely its patch sizes.
 Guarantees, not just averages, change character: a prompt can \emph{request} minimality, but only a validator can \emph{enforce} it---a point we return to with an enforcement-parity baseline in RQ2.
 
-Scaling the zero-marginal local arm to the \emph{full} corpus (all 1{,}660 non-build submissions) confirms the estimate tightly: 50.7\% coverage [48.3, 53.1], per-assignment 27.9--71.4\%.
-The dispersion tracks idiom diversity (\texttt{search} is variations of one loop; \texttt{remove\_extras} attracts diverse list-surgery styles whose aliasing bugs defeat rules from five samples); the hybrid absorbs it, and build-round trajectories signal it \emph{before} deployment---a routing cue for larger build budgets on harder assignments.
+Scaling the zero-marginal local arm to the \emph{full} corpus (all 1{,}660 non-build submissions) confirms the estimate tightly: 50.7\% coverage [48.3, 53.1], per-assignment 27.9--71.4\%, the dispersion tracking idiom diversity; the hybrid absorbs it, and build-round trajectories signal it \emph{before} deployment---a routing cue for larger build budgets on harder assignments.
 
 \smallskip
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ1.} Synthesized repairers fix \CoepRate\% locally with zero unsafe outputs; the hybrid's quality repair rate (\HybridRate--90.5\%) \emph{exceeds} every deployed single-shot configuration ($p{=}0.008$; never reversed in any assignment, strictly better in three) and clears the non-LLM tool by 34 points; enforcement itself generalizes---RQ2's validated-retry protocol and its \textsc{CoEP} composition.}}
@@ -288,7 +272,7 @@ Refactory-tool + frontier fb. & 86.5 & 0 & 1.33 \\
 
 Table~\ref{tab:ladder} prices every configuration.
 Within the pay-per-query paradigm the trade-off is stark: the cheap model saves $3\times$ but surrenders 21 quality points; caching is inapplicable to the plain prompt (the table's row is the no-minimum bound) and brings the few-shot variant only to \$2.91$\times10^{-3}$; and enforcement---a validator plus one minimality-feedback retry, the PyDex-style iterative protocol---lifts the frontier baseline to \RetryRate\% for \$\RetryUsd$\times10^{-3}$, the cheap model to 81.5\% for \$1.32, and the cascade (cheap self-retry before escalation) to 89.5\% for \$1.90: every zero-build configuration, enforced or not, stays below \textsc{CoEP}+cascade on quality, cost, or both.
-The classical tool can also front the fallback: Refactory-then-frontier reaches 86.5\% at \$1.33$\times10^{-3}$ with zero build cost---but \textsc{CoEP}+cascade dominates it on \emph{both} axes (90.5\% at \$1.07), \textsc{CoEP}+frontier repairs strictly more (discordant $7{:}0$, $p{=}0.016$), and the tool needs all 2{,}442 correct solutions and 5.5\,s per submission where \textsc{CoEP} needs 3 references, 5 bugs, and 0.9\,s.
+The classical tool can also front the fallback: Refactory-then-frontier reaches 86.5\% at \$1.33$\times10^{-3}$ with zero build cost---but \textsc{CoEP}+cascade dominates it on \emph{both} axes, \textsc{CoEP}+frontier repairs strictly more ($7{:}0$, $p{=}0.016$), and the tool needs all 2{,}442 correct solutions and 5.5\,s/submission vs.\ 3 references, 5 bugs, and 0.9\,s.
 The retry protocol defines this study's quality ceiling---and \textsc{CoEP} \emph{inherits} it: since the local path never emits an unsafe patch, fronting any protocol preserves its quality set while diverting half its traffic.
 Empirically the inheritance is exact: \textsc{CoEP}+retry repairs the \emph{identical} 197/200 submissions as the retry arm (discordant $0{:}0$, per-assignment identical) at $1.8\times$ lower marginal cost, while \textsc{CoEP}+frontier beats the plain baseline outright ($p{=}0.008$) and \textsc{CoEP}+cascade does so at the lowest marginal cost of any quality-competitive arm ($p{=}0.004$; vs.\ the cascade alone, discordant $4{:}0$, n.s.; only the 65\%-quality Haiku arm is cheaper).
 Hybrid cost stays linear in enrollment---the claim is a $1.8$--$2.5\times$ smaller slope plus an intercept, not zero marginal cost---and the slope shrinks as coverage grows.
@@ -327,7 +311,7 @@ The collapse is diagnostic: real student bugs are almost never single-operator s
 On this corpus, \emph{synthesized understanding is not an increment over search; it is 86\% of everything the local path repairs}.
 
 \textbf{Refinement rounds.}
-Two of five frontier builders passed all build samples in one shot; feedback rounds repaired the other three ($15/25 \to 25/25$ build success), each from a \emph{delivery} defect, not a comprehension one: \texttt{unique\_day}'s round-1 rules were semantically right but rendered patches via \texttt{ast.unparse}, whose reformatting blew the cap on every candidate ($0/5 \to 5/5$ after switching to surgical line edits); \texttt{sort\_age} twice produced correct-but-oversized rewrites before a 14-token insertion; \texttt{top\_k} never survived validation until round 3 emitted per-pattern corrected programs ($1/5 \to 5/5$).
+Two of five frontier builders passed all build samples in one shot; feedback rounds repaired the other three ($15/25 \to 25/25$), each from a \emph{delivery} defect, not a comprehension one---e.g., \texttt{unique\_day}'s round-1 rules were semantically right but rendered patches via \texttt{ast.unparse}, whose reformatting blew the cap on every candidate ($0/5 \to 5/5$ after switching to surgical line edits).
 Validation surfaces these defects; feedback fixes them---single-shot synthesis would have shipped three broken repairers of five.
 
 \textbf{Builder capability.}
@@ -335,7 +319,7 @@ Re-running the entire synthesis pipeline with the Haiku-tier model as builder (s
 Its rules cost \$0.022 per assignment but repair too little to matter; upgrading to the frontier builder pays for itself within ${\approx}$230 submissions---synthesis is a frontier-capability task, but that capability is bought once per assignment, not once per submission; that is the entire point.
 
 \smallskip
-\noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ3.} Generic edit search fixes 6.5\% of real bugs---synthesized rules are 86\% of what the local path repairs ($p{<}10^{-24}$); refinement rescues three of five builders ($15/25 \to 25/25$); a cheap-model builder collapses to 10.0\% vs.\ the frontier's \CoepRate\%.}}
+\noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ3.} Generic search fixes 6.5\% of real bugs---synthesized rules are 86\% of local repairs ($p{<}10^{-24}$); refinement rescues three of five builders ($15/25 \to 25/25$); a cheap builder collapses to 10.0\% vs.\ \CoepRate\%.}}
 
 \section{Discussion and Limitations}
 \label{sec:limitations}
@@ -343,20 +327,20 @@ Its rules cost \$0.022 per assignment but repair too little to matter; upgrading
 \textbf{Construct validity.}
 Repair rate is measured against the instructor's visible tests, as in prior assignment-repair work \citep{refactory2019,pydex2024}; a patch could overfit the suite, and \textsc{CoEP}'s search optimizes that oracle directly, but the RPS cap bounds the degenerate form of that overfit (wholesale replacement)---and it is the \emph{per-submission} arms that exceed it in practice (14\% of frontier patches, a third of the tool's) while the local path produced zero unsafe outputs.
 The threshold ($\tau{=}0.35$) follows Refactory and PyDex, and a $\tau$-sweep from stored patch sizes (Figure~\ref{fig:tau}) shows the orderings are not its artifact: the validated-retry arm dominates at every $\tau$, the hybrid tracks or exceeds the plain baseline for $\tau \ge 0.25$ (below that the recomputation is conservative---frozen repairers searched under $0.35$), and the tool's collapse appears at every threshold.
-Because \textsc{CoEP}'s search optimizes the visible suite directly, suite overfitting favors it differentially; a hidden-oracle audit (60 seeded random inputs per assignment, differential against the instructor reference) bounds the effect: 92.6\% of accepted local patches agree with the reference on every probe vs.\ 97.1\% of the baseline's---a measured 4.5pp differential, and a probe the deployment can add as a third validator at zero LLM cost.
+Because \textsc{CoEP}'s search optimizes the visible suite directly, suite overfitting favors it differentially; a hidden-oracle audit (60 seeded random inputs per assignment, differential against the reference) bounds the effect: 92.6\% of accepted local patches agree with the reference on every probe vs.\ 97.1\% of the baseline's---a measured 4.5pp differential, and a probe deployments can add as a third validator at zero LLM cost.
 The cost model prices one tier from modeled (not billed) token counts; released raw strings let any pricing and tokenizer substitute into RQ2's closed-form break-even.
 
 \textbf{Internal validity.}
 Both paradigms use the same model and the same independent validation harness; the builder sees 5 sample bugs and never the 40 evaluation submissions.
-Hybrid-vs-baseline McNemar tests are structurally one-sided (the hybrid contains the fallback) and submissions cluster in five assignments, where a cluster-level sign test on the 8 unique wins (3 wins, 0 losses, 2 ties) is not significant---the quality edge over the plain baseline is consistent but suggestive; the load-bearing comparisons are the symmetric ones we also report: the enforcement-parity arm (both sides validated, equal attempts; quality sets identical at lower cost) and patch sizes on shared instances.
-Reusing cached \emph{patches} across near-duplicate submissions would cover at most 33\% of evaluation instances (those with an identical normalized-AST twin outside the split), below the local rules' 50.7\%---rules generalize where retrieval cannot.
+Hybrid-vs-baseline McNemar tests are structurally one-sided (the hybrid contains the fallback) and submissions cluster in five assignments, where a sign test on the 8 unique wins (3 wins, 0 losses, 2 ties) is not significant---the quality edge over the plain baseline is consistent but suggestive; the load-bearing comparisons are the symmetric ones: the enforcement-parity arm (quality sets identical at lower cost) and patch sizes on shared instances.
+Reusing cached \emph{patches} across near-duplicates would cover at most 33\% of evaluation instances (identical normalized-AST twin outside the split), below the rules' 50.7\%---rules generalize where retrieval cannot.
 The corpus is public since 2019, so training-data contamination is possible---and, by design, \emph{symmetric}: the same model powers every LLM arm, so memorization inflates the baseline at least as much as the builder, whose output must additionally survive execution against the instructor tests; corroboratingly, a builder reciting known fixes would not need refinement rounds to repair \texttt{ast.unparse} formatting defects, nor would the cheap builder---with the same putative memorized knowledge---collapse to 10\%.
 Each assignment reflects one stochastic builder trajectory; the refinement loop absorbed all three observed failures, and multi-seed replication is mechanical with the released harness.
 LLM calls ran through an agent harness constrained to a stateless single-shot endpoint (no tool use, no test execution); costs are computed from the raw message payloads under one fixed approximate tokenizer, so uniform calibration error cancels in every ratio (a differential error shifts break-evens by at most its magnitude; Protocol), and we release all raw strings for exact re-tokenization.
 
 \textbf{External validity.}
-We evaluate five assignments from one course, one language, and one model family (two tiers); multi-function projects beyond \texttt{unique\_day}'s three functions are open.
-Evaluation subsamples 40 buggy submissions per assignment (seeded, fixed before any experiment) from the 1{,}685 available; Wilson intervals quantify the uncertainty, and the local arm's full-corpus re-run (RQ1) confirms the estimate.
+We evaluate five assignments from one course, one language, and one model family (two tiers); multi-function projects beyond \texttt{unique\_day}'s three are open.
+LLM arms subsample 40 buggy submissions per assignment (seeded, fixed in advance) from the 1{,}685 available; the local arm's full-corpus re-run (RQ1) confirms the estimate.
 Local repair is heterogeneous (28--71\% by assignment) and bounded by what five sample bugs can teach; richer build sets or clustering the full history \citep{clara2018} are extensions the framework prices explicitly, and the economics assume assignments recur at scale---this corpus's own regime (108--557 buggy submissions per assignment per offering).
 
 \section{Related Work}
@@ -371,31 +355,25 @@ At AAAI the setting stays active from the per-submission side: counterexample-gu
 AlphaRepair recast repair as generation \citep{alpharepair2022}; ChatRepair adds conversational test feedback and per-bug cost accounting \citep{chatrepair2024}; PyDex/MMAPR target student programs \citep{pydex2024,mmapr2022}; FastFixer accelerates per-query inference \citep{fastfixer2024}; CREF adds a tutor in the loop \citep{cref2024}.
 All are per-submission; \textsc{CoEP} is complementary (any can serve as its fallback) but shifts the primary cost to the assignment.
 
-\textbf{Template- and pattern-based APR.}
-PAR and TBar showed that a fixed library of human-curated fix templates repairs a surprising share of real bugs \citep{par2013,tbar2019}; \textsc{CoEP}'s generic operator layer is a mutation-inversion instance of this idea \citep{mutants2014}, and its novelty is the \emph{synthesized, assignment-specific} template layer, authored per specification by an LLM rather than curated globally by humans.
-
-\textbf{Cost-efficient LLM inference.}
-FrugalGPT's cascades route queries between models of different prices \citep{frugalgpt2024}; SRepair engineers cheap open-model pipelines \citep{srepair2024}; provider caching discounts repeated prefixes \citep{anthropiccaching,openaicaching}.
-All optimize \emph{within} the pay-per-query paradigm and compose with \textsc{CoEP}, which instead removes queries: half of submissions never reach a model.
-
-\textbf{LLMs synthesizing reusable tools.}
-Voyager's skill library and LLMs-as-tool-makers show agents writing reusable code artifacts amortized across future episodes \citep{voyager2024,toolmakers2024}; self-refinement improves one-shot generations \citep{selfrefine2023,reflexion2023}.
-\textsc{CoEP} adds the twists education forces: the tool must be \emph{verifiable} (never-trust-self-reports) and \emph{quality-constrained} (RPS cap), because its output is feedback to a learner.
+\textbf{Templates, cost-efficient inference, and tool synthesis.}
+PAR and TBar showed a fixed library of human-curated fix templates repairs a surprising share of real bugs \citep{par2013,tbar2019}; \textsc{CoEP}'s generic layer is a mutation-inversion instance \citep{mutants2014}, and its novelty is the \emph{synthesized, assignment-specific} template layer, authored per specification by an LLM.
+FrugalGPT cascades, SRepair's cheap pipelines, and provider caching \citep{frugalgpt2024,srepair2024,anthropiccaching,openaicaching} all optimize \emph{within} the pay-per-query paradigm and compose with \textsc{CoEP}, which instead removes queries.
+Voyager and LLMs-as-tool-makers amortize agent-written code across episodes \citep{voyager2024,toolmakers2024}, with self-refinement improving one-shot generations \citep{selfrefine2023,reflexion2023}; \textsc{CoEP} adds the twists education forces---verifiable (never-trust-self-reports) and quality-constrained (RPS cap), because its output is feedback to a learner.
 
 \section{Conclusion}
 Programming-assignment repair has a structure per-submission querying ignores: one specification, many failures, recurring misconceptions.
 On real student programs, \textsc{CoEP} turns 26 cents of frontier-model reasoning into a permanent, local, verifiable repairer per assignment; the hybrid beats the deployed per-submission paradigm on quality repairs (90.5\% vs.\ 86.0\%) and matches the strongest enforced-retry protocol exactly (98.5\%) at a $1.8$--$2.5\times$ smaller cost slope, breaking even inside one offering.
-The recipe---\emph{amortize LLM reasoning into verifiable executable artifacts wherever many instances share a specification}---extends to grading rubrics, hint generation, and beyond.
+The recipe---\emph{amortize LLM reasoning into verifiable executable artifacts wherever many instances share a specification}---extends to rubrics, hints, and beyond.
 
 \section*{Ethical Statement}
-\textsc{CoEP} automates feedback, not grading, under instructor oversight: unhandled students get full-LLM treatment, local repair is auditable, and all data are public (Refactory).
+\textsc{CoEP} automates feedback, not grading, under instructor oversight; unhandled students get full-LLM treatment, local repair is auditable, and data are public.
 
 \bibliography{references}
 
 \clearpage
 \section*{Reproducibility Checklist}
 \noindent\textbf{General paper structure.}
-Conceptual outline of the approach: yes (Algorithm~1, Figure~1).
+Conceptual outline of the approach: yes (Figure~1 and the Approach section's loop specification).
 Claims vs.\ speculation delineated: yes (RQ answer boxes state measured claims; the closing recipe is marked as argument).
 Pedagogical references for background: yes (Related Work).
 
