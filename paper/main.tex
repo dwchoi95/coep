@@ -270,11 +270,14 @@ Frontier per-subm. & 86.0 & 0 & 2.73 \\
 PyDex-style few-shot & 85.5 & 0 & 6.53 \\
 \;+ prompt caching & 85.5 & 0 & 2.91 \\
 Cheap-model (Haiku) & 65.0 & 0 & 0.90 \\
+\;+ validator, 1 retry & 81.5 & 0 & 1.32 \\
 Cascade (cheap$\to$front.) & 88.5 & 0 & 1.94 \\
+\;w/ cheap self-retry & 89.5 & 0 & 1.90 \\
 Generic-hybrid & 86.0 & 0 & 2.55 \\
 Refactory-tool + frontier fb. & 86.5 & 0 & 1.33 \\
 \midrule
 \textsc{CoEP} + cascade fb. & 90.5 & 0.256 & \textbf{1.07} \\
+\textsc{CoEP} + self-retry casc. & 91.0 & 0.256 & 1.08 \\
 \textsc{CoEP} + frontier fb. & 90.0 & 0.256 & 1.43 \\
 \textsc{CoEP} + retry fb. & \textbf{\CoepRetryRate} & 0.256 & \CoepRetryUsd \\
 \bottomrule
@@ -284,7 +287,7 @@ Refactory-tool + frontier fb. & 86.5 & 0 & 1.33 \\
 \end{table}
 
 Table~\ref{tab:ladder} prices every configuration.
-Within the pay-per-query paradigm the trade-off is stark: the cheap model saves $3\times$ but surrenders 21 quality points; the cascade buys most back at \$1.94$\times10^{-3}$; caching is inapplicable to the plain prompt (the table's row is the no-minimum bound) and brings the few-shot variant only to \$2.91$\times10^{-3}$; and giving the baseline \textsc{CoEP}'s own enforcement---a validator plus one minimality-feedback retry, the PyDex-style iterative protocol---lifts it to \RetryRate\% for \$\RetryUsd$\times10^{-3}$.
+Within the pay-per-query paradigm the trade-off is stark: the cheap model saves $3\times$ but surrenders 21 quality points; caching is inapplicable to the plain prompt (the table's row is the no-minimum bound) and brings the few-shot variant only to \$2.91$\times10^{-3}$; and enforcement---a validator plus one minimality-feedback retry, the PyDex-style iterative protocol---lifts the frontier baseline to \RetryRate\% for \$\RetryUsd$\times10^{-3}$, the cheap model to 81.5\% for \$1.32, and the cascade (cheap self-retry before escalation) to 89.5\% for \$1.90: every zero-build configuration, enforced or not, stays below \textsc{CoEP}+cascade on quality, cost, or both.
 The classical tool can also front the fallback: Refactory-then-frontier reaches 86.5\% at \$1.33$\times10^{-3}$ with zero build cost---but \textsc{CoEP}+cascade dominates it on \emph{both} axes (90.5\% at \$1.07), \textsc{CoEP}+frontier repairs strictly more (discordant $7{:}0$, $p{=}0.016$), and the tool needs all 2{,}442 correct solutions and 5.5\,s per submission where \textsc{CoEP} needs 3 references, 5 bugs, and 0.9\,s.
 The retry protocol defines this study's quality ceiling---and \textsc{CoEP} \emph{inherits} it: since the local path never emits an unsafe patch, fronting any protocol preserves its quality set while diverting half its traffic.
 Empirically the inheritance is exact: \textsc{CoEP}+retry repairs the \emph{identical} 197/200 submissions as the retry arm (discordant $0{:}0$, per-assignment identical) at $1.8\times$ lower marginal cost, while \textsc{CoEP}+frontier beats the plain baseline outright ($p{=}0.008$) and \textsc{CoEP}+cascade does so at the lowest marginal cost of any quality-competitive arm ($p{=}0.004$; vs.\ the cascade alone, discordant $4{:}0$, n.s.; only the 65\%-quality Haiku arm is cheaper).
