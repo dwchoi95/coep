@@ -409,6 +409,36 @@ def main():
     if abl:
         macros["AblRate"] = f"{abl['repair_rate']*100:.1f}"
         macros["AblP"] = f"{abl['mcnemar_vs_coep_p']:.2g}"
+    retry_path = ROOT / "runs" / "baseline_retry" / "results.json"
+    if retry_path.exists():
+        rrows = json.loads(retry_path.read_text())
+        rec_keys = {r["key"] for r in rrows if r.get("status") == "ok"}
+        retry_q = bq_keys | rec_keys
+        macros["RetryRate"] = f"{len(retry_q)/n_eval*100:.1f}"
+        retry_usage = Usage()
+        for r in rrows:
+            pr = ROOT / "runs" / "baseline_retry" / "prompts" / f"{r['key']}.md"
+            rs = ROOT / "runs" / "baseline_retry" / "responses" / f"{r['key']}.md"
+            if rs.exists():
+                retry_usage.input_tokens += tokens.count(pr.read_text())
+                retry_usage.output_tokens += tokens.count(rs.read_text())
+        macros["RetryUsd"] = f"{(base_usage.dollars()+retry_usage.dollars())/n_eval*1000:.2f}"
+        # CoEP + enforced-retry fallback: fallback pays base call, plus retry when needed
+        cr_usd = 0.0
+        for k in all_keys:
+            if k in coep_ok_keys:
+                continue
+            b = base_by_key[k]
+            cr_usd += (b["prompt_tokens"] * PRICE_IN_PER_MTOK
+                       + b.get("response_tokens", 0) * PRICE_OUT_PER_MTOK) / 1e6
+            rs = ROOT / "runs" / "baseline_retry" / "responses" / f"{k}.md"
+            pr = ROOT / "runs" / "baseline_retry" / "prompts" / f"{k}.md"
+            if rs.exists():
+                cr_usd += (tokens.count(pr.read_text()) * PRICE_IN_PER_MTOK
+                           + tokens.count(rs.read_text()) * PRICE_OUT_PER_MTOK) / 1e6
+        coep_retry_q = coep_ok_keys | {k for k in all_keys if k in retry_q}
+        macros["CoepRetryRate"] = f"{len(coep_retry_q)/n_eval*100:.1f}"
+        macros["CoepRetryUsd"] = f"{cr_usd/n_eval*1000:.2f}"
     lines = [f"\\newcommand{{\\{k}}}{{{v}}}" for k, v in macros.items()]
     (ROOT / "paper" / "numbers.tex").write_text("\n".join(lines) + "\n")
     print("wrote paper/numbers.tex")
@@ -434,7 +464,7 @@ def main():
     # Fig 2: cumulative cost per problem vs #submissions (amortization ladder)
     n = np.arange(0, 501)
     build_per = build_usd / len(pids)
-    fig, ax = plt.subplots(figsize=(4.2, 2.55))
+    fig, ax = plt.subplots(figsize=(4.2, 2.1))
     ax.plot(n, n * per_inst_base_usd, color=C_BASE, label="frontier per-submission")
     ax.plot(n, n * per_inst_cached_usd, color=C_BASE, ls="--", label="+ prompt caching")
     if cascade:
@@ -456,7 +486,7 @@ def main():
     fig.savefig(FIGDIR / "cumulative_cost.pdf")
 
     # Fig 3: per-problem repair rates
-    fig, ax = plt.subplots(figsize=(6.2, 2.2))
+    fig, ax = plt.subplots(figsize=(6.2, 1.85))
     x = np.arange(len(pids))
     bvals = [per_problem[p]["baseline_fixed"] / per_problem[p]["n_eval"] for p in pids]
     cvals = [per_problem[p]["coep_local_fixed"] / per_problem[p]["n_eval"] for p in pids]
