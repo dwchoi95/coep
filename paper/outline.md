@@ -1,6 +1,6 @@
 # Paper plan (AAAI-26 target)
 
-**Title:** Synthesize Once, Repair Many: Amortizing LLM Costs in Automated Repair of Programming Assignments
+**Title:** Use LLMs to Build Repairers, Not Repairs: Cost-Effective Automated Repair of Programming Assignments
 
 **Working name of technique:** CoEP (Cost-Effective Program repair). Paradigm name: *per-assignment repairer synthesis* / amortized APR.
 
