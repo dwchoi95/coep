@@ -464,7 +464,7 @@ def main():
     # Fig 2: cumulative cost per problem vs #submissions (amortization ladder)
     n = np.arange(0, 501)
     build_per = build_usd / len(pids)
-    fig, ax = plt.subplots(figsize=(4.2, 2.1))
+    fig, ax = plt.subplots(figsize=(4.2, 1.9))
     ax.plot(n, n * per_inst_base_usd, color=C_BASE, label="frontier per-submission")
     ax.plot(n, n * per_inst_cached_usd, color=C_BASE, ls="--", label="+ prompt caching")
     if cascade:
@@ -486,7 +486,7 @@ def main():
     fig.savefig(FIGDIR / "cumulative_cost.pdf")
 
     # Fig 3: per-problem repair rates
-    fig, ax = plt.subplots(figsize=(6.2, 1.85))
+    fig, ax = plt.subplots(figsize=(6.2, 1.6))
     x = np.arange(len(pids))
     bvals = [per_problem[p]["baseline_fixed"] / per_problem[p]["n_eval"] for p in pids]
     cvals = [per_problem[p]["coep_local_fixed"] / per_problem[p]["n_eval"] for p in pids]
