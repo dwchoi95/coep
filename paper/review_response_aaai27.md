@@ -98,3 +98,28 @@ immediately:
 Remaining camera-ready suggestions not blocking acceptance (multi-seed
 builder replication, hidden-test control, amortize-into-prompt middle point,
 k-sweep) are acknowledged in Discussion as priced extensions.
+
+## Rounds 4-6 (fresh-reviewer iteration to stable accept)
+
+Trajectory (fresh reviewer pair each round, same two personas):
+R2 5/5 -> R3 7/7 -> R4 6/6 -> R5 6/7 -> **R6 7/7 (accept, conf 4/4)**.
+
+Round-4/5 weaknesses answered with experiments, all landed by round 6:
+- Enforcement-parity everywhere: frontier+retry 98.5%@3.26; Haiku+retry
+  81.5%@1.32; cascade w/ self-retry 89.5%@1.90 - every zero-build cell,
+  enforced or not, below CoEP+cascade (90.5%@1.07) on quality/cost/both.
+- Classical-tool hybrid: Refactory+frontier 86.5%@1.33, dominated on both
+  axes by CoEP+cascade; CoEP+frontier strictly better (7:0, p=0.016).
+- Multi-seed builder replication (rep2): 43.0% vs 47.5% local (round-1
+  build success identical 15/25), hybrid 88.0 vs 90.0%, slope 1.56 vs
+  1.43e-3 - fallback absorbs seed variance.
+- Hidden-oracle audit + deployed probe validator: 92.6 vs 97.1% probe
+  agreement; deploying the probe: coverage 47.5->44.0%, hybrid quality
+  unchanged 90.0%, slope +2%; probe-oracle scoring 87.5 vs 83.5%.
+- Cluster-level statistics disclosed inline (sign test 3-0-2 n.s.);
+  headline reframed to inheritance-at-lower-slope; per-assignment
+  break-evens (38/88/241/368/704) replace average-only claims;
+  cost formulas + adverse-selection decomposition; stale macros removed.
+
+Verdict quotes (round 6): R1 "internal rigor exceeds most accepted work
+in this line"; both 7/10 accept at confidence 4.
