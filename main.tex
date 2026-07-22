@@ -247,8 +247,8 @@ The local path's advantage is therefore not average patch size but \emph{enforce
 The tool comparison is no artifact of re-validation: Refactory's own oracle reports 91.0\% on these runs, within a point of our 90.5\% test-pass figure---the gap under our \emph{quality} metric is entirely its patch sizes.
 Guarantees, not just averages, change character: a prompt can \emph{request} minimality, but only a validator can \emph{enforce} it---a point we return to with an enforcement-parity baseline in RQ2.
 
-Per-assignment local rates range from 25\% (\texttt{remove\_extras}) to 85\% (\texttt{search}), tracking idiom diversity: \texttt{search}'s submissions are variations of one loop, while \texttt{remove\_extras} attracts a zoo of list-surgery styles whose bugs (aliasing, wrong-variable appends, mutation while iterating) defeat rules induced from five samples.
-The hybrid absorbs this heterogeneity---and build-round trajectories signal it \emph{before} deployment, a natural routing cue for spending larger build budgets on harder assignments.
+Scaling the zero-marginal local arm to the \emph{full} corpus---all 1{,}660 non-build submissions---confirms the estimate with a tight interval: 50.7\% coverage [48.3, 53.1], per-assignment 27.9\% (\texttt{remove\_extras}) to 71.4\% (\texttt{search}).
+The dispersion tracks idiom diversity (\texttt{search} is variations of one loop; \texttt{remove\_extras} attracts diverse list-surgery styles whose aliasing bugs defeat rules from five samples); the hybrid absorbs it, and build-round trajectories signal it \emph{before} deployment---a routing cue for larger build budgets on harder assignments.
 
 \smallskip
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ1.} Synthesized repairers fix \CoepRate\% locally with zero unsafe outputs; the hybrid's quality repair rate (\HybridRate--90.5\%) \emph{exceeds} every deployed single-shot configuration ($p{=}0.008$; never reversed in any assignment, strictly better in three) and clears the non-LLM tool by 34 points; enforcement itself generalizes---RQ2's validated-retry protocol and its \textsc{CoEP} composition.}}
@@ -348,8 +348,8 @@ LLM calls ran through an agent harness constrained to a stateless single-shot en
 
 \textbf{External validity.}
 We evaluate five assignments from one course, one language, and one model family (two tiers); multi-function projects beyond \texttt{unique\_day}'s three functions are open.
-Evaluation subsamples 40 buggy submissions per assignment (seeded, fixed before any experiment) from the 1{,}685 available; Wilson intervals quantify the uncertainty.
-Local repair is heterogeneous (25--85\% by assignment) and bounded by what five sample bugs can teach; richer build sets or clustering the full submission history \citep{clara2018} are extensions the framework prices explicitly, and the economics assume assignments recur at scale---the regime of this corpus itself (108--557 buggy submissions per assignment per offering) and of MOOCs.
+Evaluation subsamples 40 buggy submissions per assignment (seeded, fixed before any experiment) from the 1{,}685 available; Wilson intervals quantify the uncertainty, and the local arm's full-corpus re-run (RQ1) confirms the estimate.
+Local repair is heterogeneous (28--71\% by assignment) and bounded by what five sample bugs can teach; richer build sets or clustering the full history \citep{clara2018} are extensions the framework prices explicitly, and the economics assume assignments recur at scale---this corpus's own regime (108--557 buggy submissions per assignment per offering).
 
 \section{Related Work}
 \label{sec:related}
@@ -380,7 +380,7 @@ On real student programs, \textsc{CoEP} turns 26 cents of frontier-model reasoni
 The recipe---\emph{amortize LLM reasoning into verifiable executable artifacts wherever many instances share a specification}---extends to grading rubrics, hint generation, and beyond.
 
 \section*{Ethical Statement}
-\textsc{CoEP} automates feedback, not grading, under instructor oversight: unhandled students receive full-LLM treatment, local repair is deterministic and auditable, and the RPS cap keeps output minimal; all student programs come from the public, de-identified Refactory dataset.
+\textsc{CoEP} automates feedback, not grading, under instructor oversight: unhandled students get full-LLM treatment, local repair is deterministic and auditable, and all data are the public, de-identified Refactory corpus.
 
 \bibliography{references}
 
