@@ -1,10 +1,33 @@
 # CoEP v2 — Rebuild Plan
 
-Confirmed decisions (2026-07-23): **SFT deferred**; **LSGen 20/problem + CodeNet
-harvest**; **LSGen reproduced directly with our own model**.
+Confirmed decisions (2026-07-23): **SFT deferred**; datasets are
+**Refactory + PyDex**; **no train/test split** (see "Evaluation set" below).
 
-Baselines for v2: `Refactory`, `LSGen`, `LSGen + prompt caching`, `CoEP`.
+Baselines for v2: `Refactory`, `PyDex`, `PyDex + prompt caching`, `CoEP`.
 (`SFT (Qwen2.5-Coder-7B)` is a later phase.)
+
+**Why not LSGen.** Its evaluation set and retrieval database are not released:
+the repository publishes an unfiltered pool (1,668 pairs / 110 problems) while
+the paper evaluates on 407 programs / 65 problems after a filter whose final
+stage (LLM-repair success) is unreleased; re-deriving it from the released
+parameters reaches 536/72, not 407/65. The retrieval database (274,349
+submissions, 110 problems) is absent entirely - only the code that builds it
+ships. LSGen is therefore discussed in Related Work as the retrieval-based
+design point, and the reason is stated, rather than reproduced from a
+reconstruction we cannot verify.
+
+**Evaluation set.** No held-out split. Prior work in this setting (CLARA,
+Refactory, LSGen) assumes the whole submission pool exists at feedback time -
+Refactory consumes *all* correct solutions before repairing - so building a
+tool from buggy programs drawn from that same pool is temporally sound, and our
+resource ask (N representatives) is strictly smaller than Refactory's
+(thousands of correct solutions). What this argument does *not* cover is
+builder memorization: v1 builders demonstrably hard-coded corrected sources for
+build-set programs (four repairers contain verbatim fixes keyed by normalized
+source). We therefore evaluate on **every** buggy program and additionally
+report the figure with the N build programs excluded. Same run, two
+aggregations, zero extra cost; the gap matters where N/|eval| is large
+(~26% on PyDex, ~0.9% on Refactory).
 
 ---
 

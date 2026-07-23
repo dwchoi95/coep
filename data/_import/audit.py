@@ -3,9 +3,9 @@
 
 Checks, per problem, that the oracle behaves as the source labels claim:
 buggy programs must fail at least one test, and the paired accepted program
-(LSGen `fixed/`) or the instructor reference (Refactory) must pass all of them.
-Programs that do not parse are flagged rather than silently dropped, since
-LSGen's release contains accepted submissions that are syntactically invalid.
+(`fixed/`) or the instructor reference must pass all of them. Programs that do
+not parse are flagged rather than silently dropped: PyDex's corpus is entirely
+syntax errors by construction, so a flag is information, not an error.
 
 The manifest is what later phases read, so a corrupt record never reaches a
 builder unnoticed.
@@ -99,7 +99,7 @@ def main() -> int:
     (DATA / "_manifest.json").write_text(json.dumps(
         {"problems": rows}, indent=1))
 
-    for src in ("refactory", "lsgen"):
+    for src in sorted({r["source"] for r in rows if r["source"]}):
         sel = [r for r in rows if r["source"] == src]
         if not sel:
             continue

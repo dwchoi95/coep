@@ -1,0 +1,16 @@
+# compile-errors:success: Compilation Successful #
+# compile-result:1 #
+# save-event:compile #
+num = int(input())
+sum = 0
+temp = num
+while temp > 0:
+   digit = temp % 10
+   sum += digit ** 3
+   temp //= 10
+     
+if num == sum:
+   print("Sum of Cubes is " + str(sum) +". It is the same as the number " + str(num) + '.')
+else:
+   print("Sum of Cubes is " + str(sum) +". It is NOT same as the number " + str(num) + '.')
+

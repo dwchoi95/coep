@@ -11,6 +11,10 @@ import json
 import signal
 import sys
 
+# Algorithmic submissions recurse far deeper than CPython's default 1000;
+# judges raise this, so a correct program must not be failed for it.
+sys.setrecursionlimit(20000)
+
 
 # ---------------------------------------------------------------- comparison
 def _jsonable(x):
