@@ -32,36 +32,59 @@ measure it and report it either way.
 ## Phase 1 — Repository restructure
 
 ```
-src/                    # all CoEP methodology
-  testing.py            # shared test runner (function-entry AND stdin/stdout)
-  cluster.py            # build-set / reference selection  ← new contribution
-  synthesis.py          # builder prompts + generate-validate-refine
-  repair.py             # rule-combination search driver
-  fallback.py           # LLM fallback + self-learning rule induction
-  metrics.py            # RR, RPS, ATT, InT, OuT, Cost
-run.py                  # entrypoint: build | repair | evaluate
-tools/<p_id>/           # generated per-problem repair tool
-  src/rules.py          # synthesized rules
-  run.py                # tool entrypoint; imports src.testing for validation
-datasets/
-  refactory/  lsgen/    # unified schema
+src/                       # all CoEP methodology
+  prompts/                 # every prompt as a .md file (builder, refine, fallback)
+  experiments/             # experiment drivers (former scripts/*)
+  utils/
+    llm.py                 # all LLM API calls live here
+    metrics.py             # RR, RPS, ATT, InT, OuT, Cost
+  runner/
+    testing.py             # shared test runner (function-entry AND stdin/stdout)
+  core/
+    cluster.py             # build-set / reference selection   <- new contribution
+    synthesis.py           # generate-validate-refine loop
+    repair.py              # rule-combination search driver + RULE PROVENANCE
+    fallback.py            # LLM fallback + self-learning rule induction
+run.py                     # entrypoint: build | repair | evaluate (dispatch only)
+tools/<p_id>/
+  fixer.py                 # synthesized rules + tool entrypoint; class Fixer(ast.NodeTransformer);
+                           # imports src.runner.testing for validation
+data/<p_id>/               # unified schema (problem.json, buggy/, refs/)
 baselines/
-  refactory_tool/  lsgen/  (sft/ later)
-runs_v1/                # archive of the current (v1) experiments
+  refactory/  lsgen/       (sft/ later)
+results/v1/                # archive of the current (v1) experiments
 ```
-- Migrate `coep/*` → `src/*`; retire `scripts/*` into `run.py` subcommands.
-- `src/testing.py` is importable by `tools/<p_id>/run.py` (requirement 4).
+
+- Migrate `coep/*` → `src/core|runner|utils`; **`scripts/*` move into
+  `src/experiments/*`** and `run.py` only dispatches to them (no logic in `run.py`).
+- Prompts stop being Python string literals: each becomes a `.md` file under
+  `src/prompts/` and is rendered with explicit parameters.
+- `src/runner/testing.py` is importable by `tools/<p_id>/fixer.py` (requirement 4).
+
+### `tools/<p_id>/fixer.py` contract
+- One file per problem, exposing `class Fixer(ast.NodeTransformer)`.
+- **Rule provenance is mandatory**: every applied rule records its identifier, so
+  each repair carries the list of rules that produced it. `src/core/repair.py`
+  logs this alongside the outcome (v1 discarded it: results only held
+  `bug/repaired/status/rps/seconds`, which is why per-rule statistics were
+  impossible).
+- **Design constraint learned from v1**: locate edits on the AST, but *apply*
+  them as byte-range splices on the original source. Rendering patches through
+  `ast.unparse` reformats untouched lines and inflates patch size; in v1 this was
+  the single largest builder failure mode (one builder went 0/5 → 5/5 only after
+  switching to surgical line edits). `NodeTransformer` is the locator, not the
+  printer.
 
 ## Phase 2 — Datasets
 
-1. **LSGen import** → `datasets/lsgen/<pid>/{problem.json, buggy/, refs/}`
+1. **LSGen import** → `data/<pid>/{problem.json, buggy/, refs/}` (LSGen source)
    - `problem.json`: description, **I/O-based tests** (stdin → expected stdout), time limit.
    - `refs/`: the paired `code2` (same student's accepted submission) of *build-set* programs only, never of eval programs.
 2. **CodeNet harvest** for the same 110 problems (volume for the cost analysis):
    pull additional rejected submissions per problem from the public CodeNet
    release; target ≥200/problem where available.
 3. **Refactory import**: re-clone `dwchoi95/refactory`, reuse the existing
-   importer → `datasets/refactory/`.
+   importer → `data/<pid>/` (Refactory source).
 4. **Split rule (per requirement)**: build = N clustered representatives;
    **eval = every remaining buggy program** (no 40-cap).
 
@@ -106,7 +129,7 @@ candidate, until all tests pass or the combination space is exhausted.
 
 ### 3.4 Self-learning fallback
 When the LLM fallback repairs a program the local tool failed on, diff
-(buggy, fixed) → generalize into a new rule → append to `tools/<p_id>/src/`.
+(buggy, fixed) → generalize into a new rule → append to `tools/<p_id>/fixer.py`.
 Measure RR as a function of accumulated fallbacks (does the tool improve
 across a term?).
 
@@ -140,7 +163,7 @@ framing and the scale/cost argument; fresh reviewer rounds.
 
 ## Order of work and gating
 
-1. **Phase 1 + `src/testing.py` stdin/stdout support** — everything blocks on this.
+1. **Phase 1 + `src/runner/testing.py` stdin/stdout support** — everything blocks on this.
 2. **Phase 2.1 LSGen import** → smoke-test 3 problems end to end.
 3. **Phase 3.2 clustering** → validate on Refactory (where v1 numbers give a
    reference point) *before* scaling to 110 problems.
