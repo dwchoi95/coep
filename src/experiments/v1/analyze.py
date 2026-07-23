@@ -15,8 +15,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+V1 = pathlib.Path(__file__).resolve().parent      # v1 package (coep/)
+ROOT = V1.parents[2] / "results" / "v1"            # v1 data archive
+sys.path.insert(0, str(V1))
 from coep import tokens  # noqa: E402
 from coep.costmodel import (CACHE_READ_MULT, CACHE_WRITE_MULT,  # noqa: E402
                             PRICE_IN_PER_MTOK, PRICE_OUT_PER_MTOK, Usage)

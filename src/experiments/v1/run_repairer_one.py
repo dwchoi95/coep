@@ -11,8 +11,9 @@ import pathlib
 import sys
 import time
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+V1 = pathlib.Path(__file__).resolve().parent      # v1 package (coep/)
+ROOT = V1.parents[2] / "results" / "v1"            # v1 data archive
+sys.path.insert(0, str(V1))
 
 pid, bug = sys.argv[1], sys.argv[2]
 pdir = ROOT / "benchmark" / "problems" / pid

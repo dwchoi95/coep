@@ -15,8 +15,9 @@ import pathlib
 import re
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+V1 = pathlib.Path(__file__).resolve().parent      # v1 package (coep/)
+ROOT = V1.parents[2] / "results" / "v1"            # v1 data archive
+sys.path.insert(0, str(V1))
 from coep.prompts import pydex_repair_prompt  # noqa: E402
 from coep.sandbox import run_tests  # noqa: E402
 

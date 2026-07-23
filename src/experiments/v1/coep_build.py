@@ -19,8 +19,9 @@ import pathlib
 import subprocess
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+V1 = pathlib.Path(__file__).resolve().parent      # v1 package (coep/)
+ROOT = V1.parents[2] / "results" / "v1"            # v1 data archive
+sys.path.insert(0, str(V1))
 from coep.evaluate import rps  # noqa: E402
 from coep.llmio import extract_python_block  # noqa: E402
 from coep.prompts import builder_prompt, builder_refine_prompt  # noqa: E402
