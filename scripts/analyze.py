@@ -394,6 +394,7 @@ def main():
         "CacheSavingFrac": f"{(1-per_inst_cached_usd/per_inst_base)*100:.0f}",
         "BreakEvenN": f"{n_star:.0f}",
         "CoepMeanSec": f"{np.mean([r.get('seconds') or 0 for r in coep_all]):.1f}",
+        "BaseUsdPerInst": f"{per_inst_base*1000:.2f}",
         "BaseInTok": f"{base_usage.input_tokens/n_eval:.0f}",
         "BaseOutTok": f"{base_usage.output_tokens/n_eval:.0f}",
         "BuildInTok": f"{build_usage.input_tokens}",
