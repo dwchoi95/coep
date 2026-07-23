@@ -1,0 +1,420 @@
+{
+ "pid": "p03475",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement A railroad running from west to east in Atcoder Kingdom is now complete.\nThere are N stations on the railroad, numbered 1 through N from west to east.\nTomorrow, the opening ceremony of the railroad will take place.\nOn this railroad, for each integer i such that 1<=i<=N-1, there will be trains that run from Station i to Station i+1 in C_i seconds. No other trains will be operated.\nThe first train from Station i to Station i+1 will depart Station i S_i seconds after the ceremony begins. Thereafter, there will be a train that departs Station i every F_i seconds.\nHere, it is guaranteed that F_i divides S_i.\nThat is, for each Time t satisfying S_i<=t and t\uff05F_i=0, there will be a train that departs Station i t seconds after the ceremony begins and arrives at Station i+1 t+C_i seconds after the ceremony begins, where A\uff05B denotes A modulo B, and there will be no other trains.\nFor each i, find the earliest possible time we can reach Station N if we are at Station i when the ceremony begins, ignoring the time needed to change trains.\nTask Constraint: 1<=N<=500\n1<=C_i<=100\n1<=S_i<=10^5\n1<=F_i<=10\nS_i\uff05F_i=0\nAll input values are integers.\nTask Input: Input is given from Standard Input in the following format:\nN\nC_1 S_1 F_1\n:\nC_{N-1} S_{N-1} F_{N-1}\nTask Output: Print N lines. Assuming that we are at Station i (1<=i<=N) when the ceremony begins, if the earliest possible time we can reach Station N is x seconds after the ceremony begins, the i-th line should contain x.\nTask Samples: input: 3\n6 5 1\n1 10 1 output: 12\n11\n0\n\nWe will travel from Station 1 as follows:\n\n5 seconds after the beginning: take the train to Station 2.\n11 seconds: arrive at Station 2.\n11 seconds: take the train to Station 3.\n12 seconds: arrive at Station 3.\n\nWe will travel from Station 2 as follows:\n\n10 seconds: take the train to Station 3.\n11 seconds: arrive at Station 3.\n\nNote that we should print 0 for Station 3.\ninput: 4\n12 24 6\n52 16 4\n99 2 2 output: 187\n167\n101\n0\ninput: 4\n12 13 1\n44 17 17\n66 4096 64 output: 4162\n4162\n4162\n0\n\n## Constraints\n1<=N<=500\n1<=C_i<=100\n1<=S_i<=10^5\n1<=F_i<=10\nS_i\uff05F_i=0\nAll input values are integers.\n\n## Input\nInput is given from Standard Input in the following format:\nN\nC_1 S_1 F_1\n:\nC_{N-1} S_{N-1} F_{N-1}\n\n## Output\nPrint N lines. Assuming that we are at Station i (1<=i<=N) when the ceremony begins, if the earliest possible time we can reach Station N is x seconds after the ceremony begins, the i-th line should contain x.\n\n## Examples\n['input: 3\\n6 5 1\\n1 10 1 output: 12\\n11\\n0\\n\\nWe will travel from Station 1 as follows:\\n\\n5 seconds after the beginning: take the train to Station 2.\\n11 seconds: arrive at Station 2.\\n11 seconds: take the train to Station 3.\\n12 seconds: arrive at Station 3.\\n\\nWe will travel from Station 2 as follows:\\n\\n10 seconds: take the train to Station 3.\\n11 seconds: arrive at Station 3.\\n\\nNote that we should print 0 for Station 3.', 'input: 4\\n12 24 6\\n52 16 4\\n99 2 2 output: 187\\n167\\n101\\n0', 'input: 4\\n12 13 1\\n44 17 17\\n66 4096 64 output: 4162\\n4162\\n4162\\n0']",
+ "tests": [
+  {
+   "stdin": "3\n6 6 1\n1 10 1\n",
+   "expected": "13\n11\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 13 1\n44 17 17\n66 4096 64\n",
+   "expected": "4162\n4162\n4162\n0\n\n"
+  },
+  {
+   "stdin": "4\n11 24 6\n52 16 4\n99 2 2\n",
+   "expected": "187\n167\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 1 1\n1 10 2\n",
+   "expected": "11\n11\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 10 1\n1 10 1\n",
+   "expected": "17\n11\n0\n\n"
+  },
+  {
+   "stdin": "4\n15 24 6\n52 16 4\n99 2 2\n",
+   "expected": "191\n167\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 1\n2 10 1\n",
+   "expected": "14\n12\n0\n\n"
+  },
+  {
+   "stdin": "4\n11 23 6\n31 16 4\n99 2 2\n",
+   "expected": "167\n147\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n4 1 2\n2 10 2\n",
+   "expected": "12\n12\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 13 1\n44 17 22\n101 4096 64\n",
+   "expected": "4197\n4197\n4197\n0\n\n"
+  },
+  {
+   "stdin": "3\n1 4 1\n1 17 1\n",
+   "expected": "18\n18\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 1\n3 10 2\n",
+   "expected": "15\n13\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 2 1\n44 17 22\n001 4096 64\n",
+   "expected": "4097\n4097\n4097\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n16 16 4\n99 2 2\n",
+   "expected": "151\n131\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 1\n1 9 1\n",
+   "expected": "13\n10\n0\n\n"
+  },
+  {
+   "stdin": "4\n11 24 6\n52 8 4\n99 2 2\n",
+   "expected": "187\n159\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 1 1\n0 10 2\n",
+   "expected": "10\n10\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 20 1\n1 10 1\n",
+   "expected": "27\n11\n0\n\n"
+  },
+  {
+   "stdin": "3\n9 4 1\n1 10 1\n",
+   "expected": "14\n11\n0\n\n"
+  },
+  {
+   "stdin": "3\n1 4 1\n1 0 1\n",
+   "expected": "6\n1\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n9 16 4\n99 2 2\n",
+   "expected": "145\n125\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 1\n1 13 1\n",
+   "expected": "14\n14\n0\n\n"
+  },
+  {
+   "stdin": "3\n4 1 2\n-1 10 2\n",
+   "expected": "9\n9\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 20 1\n1 9 1\n",
+   "expected": "27\n10\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 24 6\n52 16 2\n99 2 2\n",
+   "expected": "201\n167\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n1 4 1\n0 0 1\n",
+   "expected": "5\n0\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n9 16 4\n99 0 2\n",
+   "expected": "145\n125\n99\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 5 6\n52 16 2\n99 2 2\n",
+   "expected": "183\n167\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n2 4 1\n0 0 1\n",
+   "expected": "6\n0\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 2\n4 10 2\n",
+   "expected": "16\n14\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n5 16 4\n99 0 2\n",
+   "expected": "141\n121\n99\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 0 1\n1 3 1\n",
+   "expected": "7\n4\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 13 2\n78 34 26\n13 4096 64\n",
+   "expected": "4109\n4109\n4109\n0\n\n"
+  },
+  {
+   "stdin": "3\n2 4 1\n1 0 1\n",
+   "expected": "7\n1\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 5 1\n2 10 1\n",
+   "expected": "13\n12\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 12 1\n1 10 1\n",
+   "expected": "19\n11\n0\n\n"
+  },
+  {
+   "stdin": "4\n11 23 6\n71 16 4\n99 2 2\n",
+   "expected": "207\n187\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 10 1\n1 13 1\n",
+   "expected": "17\n14\n0\n\n"
+  },
+  {
+   "stdin": "4\n15 24 6\n54 16 4\n99 2 2\n",
+   "expected": "193\n169\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 5 1\n1 16 1\n",
+   "expected": "17\n17\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 13 1\n44 17 22\n120 4096 64\n",
+   "expected": "4216\n4216\n4216\n0\n\n"
+  },
+  {
+   "stdin": "3\n10 6 1\n2 10 2\n",
+   "expected": "18\n12\n0\n\n"
+  },
+  {
+   "stdin": "4\n2 13 1\n42 17 26\n58 4096 64\n",
+   "expected": "4154\n4154\n4154\n0\n\n"
+  },
+  {
+   "stdin": "4\n17 24 6\n16 16 4\n99 2 2\n",
+   "expected": "159\n131\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 1\n0 9 1\n",
+   "expected": "12\n9\n0\n\n"
+  },
+  {
+   "stdin": "4\n11 0 6\n52 8 4\n99 2 2\n",
+   "expected": "163\n159\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n11 1 1\n0 10 2\n",
+   "expected": "12\n10\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 33 1\n1 10 1\n",
+   "expected": "40\n11\n0\n\n"
+  },
+  {
+   "stdin": "4\n15 24 6\n1 16 2\n99 2 2\n",
+   "expected": "141\n117\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n7 4 1\n1 10 1\n",
+   "expected": "12\n11\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 18 1\n44 17 22\n111 4096 64\n",
+   "expected": "4207\n4207\n4207\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n12 16 4\n99 2 2\n",
+   "expected": "147\n127\n101\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 24 6\n52 16 2\n99 4 2\n",
+   "expected": "201\n167\n103\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 13 1\n44 7 30\n100 4096 64\n",
+   "expected": "4196\n4196\n4196\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n9 20 4\n99 0 2\n",
+   "expected": "145\n129\n99\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 5 6\n52 5 2\n99 2 2\n",
+   "expected": "183\n157\n101\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 13 2\n78 34 26\n21 4096 64\n",
+   "expected": "4117\n4117\n4117\n0\n\n"
+  },
+  {
+   "stdin": "3\n3 4 1\n0 0 1\n",
+   "expected": "7\n0\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 12 2\n4 10 2\n",
+   "expected": "22\n14\n0\n\n"
+  },
+  {
+   "stdin": "3\n8 1 2\n-2 10 1\n",
+   "expected": "8\n8\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 0 1\n2 3 1\n",
+   "expected": "8\n5\n0\n\n"
+  },
+  {
+   "stdin": "3\n2 0 1\n1 0 1\n",
+   "expected": "3\n1\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 5 1\n3 10 1\n",
+   "expected": "14\n13\n0\n\n"
+  },
+  {
+   "stdin": "3\n2 12 1\n1 10 1\n",
+   "expected": "15\n11\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 10 1\n0 13 1\n",
+   "expected": "16\n13\n0\n\n"
+  },
+  {
+   "stdin": "4\n15 24 6\n54 24 4\n99 2 2\n",
+   "expected": "193\n177\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 5 1\n1 20 1\n",
+   "expected": "21\n21\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 6 1\n6 10 1\n",
+   "expected": "18\n16\n0\n\n"
+  },
+  {
+   "stdin": "3\n12 6 1\n0 9 1\n",
+   "expected": "18\n9\n0\n\n"
+  },
+  {
+   "stdin": "4\n11 0 6\n52 8 4\n99 4 2\n",
+   "expected": "163\n159\n103\n0\n\n"
+  },
+  {
+   "stdin": "3\n10 6 1\n1 3 1\n",
+   "expected": "17\n4\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 33 1\n2 10 1\n",
+   "expected": "41\n12\n0\n\n"
+  },
+  {
+   "stdin": "3\n3 6 1\n0 13 1\n",
+   "expected": "13\n13\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 24 6\n21 16 2\n99 4 2\n",
+   "expected": "171\n137\n103\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 5 6\n102 5 2\n99 2 2\n",
+   "expected": "233\n207\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n3 1 1\n0 0 1\n",
+   "expected": "4\n0\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 13 2\n4 10 2\n",
+   "expected": "24\n14\n0\n\n"
+  },
+  {
+   "stdin": "4\n12 24 3\n5 16 4\n121 0 2\n",
+   "expected": "163\n143\n121\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 1 1\n2 3 1\n",
+   "expected": "9\n5\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 7 1\n6 10 1\n",
+   "expected": "19\n16\n0\n\n"
+  },
+  {
+   "stdin": "3\n-1 1 1\n1 14 2\n",
+   "expected": "15\n15\n0\n\n"
+  },
+  {
+   "stdin": "3\n12 10 1\n0 9 1\n",
+   "expected": "22\n9\n0\n\n"
+  },
+  {
+   "stdin": "3\n10 6 1\n0 3 1\n",
+   "expected": "16\n3\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 33 1\n2 10 2\n",
+   "expected": "42\n12\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 16 2\n42 54 26\n36 4096 64\n",
+   "expected": "4132\n4132\n4132\n0\n\n"
+  },
+  {
+   "stdin": "4\n26 5 6\n130 5 2\n99 2 2\n",
+   "expected": "261\n235\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n3 1 1\n1 0 1\n",
+   "expected": "5\n1\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 26 2\n4 10 2\n",
+   "expected": "36\n14\n0\n\n"
+  },
+  {
+   "stdin": "4\n18 24 3\n5 16 4\n121 0 2\n",
+   "expected": "171\n143\n121\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 1 1\n264 27 17\n19 4096 64\n",
+   "expected": "4115\n4115\n4115\n0\n\n"
+  },
+  {
+   "stdin": "3\n11 1 1\n2 3 1\n",
+   "expected": "14\n5\n0\n\n"
+  },
+  {
+   "stdin": "3\n0 7 1\n6 10 1\n",
+   "expected": "16\n16\n0\n\n"
+  },
+  {
+   "stdin": "4\n19 24 3\n32 16 4\n99 2 2\n",
+   "expected": "175\n147\n101\n0\n\n"
+  },
+  {
+   "stdin": "3\n12 10 1\n0 17 1\n",
+   "expected": "22\n17\n0\n\n"
+  },
+  {
+   "stdin": "4\n1 0 7\n52 8 4\n99 4 2\n",
+   "expected": "159\n159\n103\n0\n\n"
+  },
+  {
+   "stdin": "4\n4 5 6\n130 5 2\n99 2 2\n",
+   "expected": "239\n235\n101\n0\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 1\n44 7 30\n45 4096 64\n",
+   "expected": "4141\n4141\n4141\n0\n\n"
+  },
+  {
+   "stdin": "3\n0 1 1\n1 0 1\n",
+   "expected": "2\n1\n0\n\n"
+  },
+  {
+   "stdin": "3\n12 26 2\n4 10 2\n",
+   "expected": "42\n14\n0\n\n"
+  },
+  {
+   "stdin": "3\n11 0 1\n2 3 1\n",
+   "expected": "13\n5\n0\n\n"
+  },
+  {
+   "stdin": "3\n6 5 1\n1 10 1\n",
+   "expected": "12\n11\n0\n"
+  },
+  {
+   "stdin": "4\n12 24 6\n52 16 4\n99 2 2\n",
+   "expected": "187\n167\n101\n0\n"
+  },
+  {
+   "stdin": "4\n12 13 1\n44 17 17\n66 4096 64\n",
+   "expected": "4162\n4162\n4162\n0\n"
+  }
+ ]
+}

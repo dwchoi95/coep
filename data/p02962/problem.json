@@ -1,0 +1,420 @@
+{
+ "pid": "p02962",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement Given are two strings s and t consisting of lowercase English letters. Determine if the number of non-negative integers i satisfying the following condition is finite, and find the maximum value of such i if the number is finite.\n\nThere exists a non-negative integer j such that the concatenation of i copies of t is a substring of the concatenation of j copies of s. note: Notes\n\nA string a is a substring of another string b if and only if there exists an integer x (0 <= x <= |b| - |a|) such that, for any y (1 <= y <= |a|), a_y = b_{x+y} holds.\nWe assume that the concatenation of zero copies of any string is the empty string. From the definition above, the empty string is a substring of any string. Thus, for any two strings s and t, i = 0 satisfies the condition in the problem statement.\nTask Constraint: 1 <= |s| <= 5 * 10^5\n1 <= |t| <= 5 * 10^5\ns and t consist of lowercase English letters.\nTask Input: Input is given from Standard Input in the following format:\ns\nt\nTask Output: If the number of non-negative integers i satisfying the following condition is finite, print the maximum value of such i; if the number is infinite, print -1.\nTask Samples: input: abcabab\nab output: 3\n\nThe concatenation of three copies of t, ababab, is a substring of the concatenation of two copies of s, abcabababcabab, so i = 3 satisfies the condition.\nOn the other hand, the concatenation of four copies of t, abababab, is not a substring of the concatenation of any number of copies of s, so i = 4 does not satisfy the condition.\nSimilarly, any integer greater than 4 does not satisfy the condition, either. Thus, the number of non-negative integers i satisfying the condition is finite, and the maximum value of such i is 3.\ninput: aa\naaaaaaa output: -1\n\nFor any non-negative integer i, the concatenation of i copies of t is a substring of the concatenation of 4i copies of s. Thus, there are infinitely many non-negative integers i that satisfy the condition.\ninput: aba\nbaaab output: 0\n\nAs stated in Notes, i = 0 always satisfies the condition.\n\n## Constraints\n1 <= |s| <= 5 * 10^5\n1 <= |t| <= 5 * 10^5\ns and t consist of lowercase English letters.\n\n## Input\nInput is given from Standard Input in the following format:\ns\nt\n\n## Output\nIf the number of non-negative integers i satisfying the following condition is finite, print the maximum value of such i; if the number is infinite, print -1.\n\n## Examples\n['input: abcabab\\nab output: 3\\n\\nThe concatenation of three copies of t, ababab, is a substring of the concatenation of two copies of s, abcabababcabab, so i = 3 satisfies the condition.\\nOn the other hand, the concatenation of four copies of t, abababab, is not a substring of the concatenation of any number of copies of s, so i = 4 does not satisfy the condition.\\nSimilarly, any integer greater than 4 does not satisfy the condition, either. Thus, the number of non-negative integers i satisfying the condition is finite, and the maximum value of such i is 3.', 'input: aa\\naaaaaaa output: -1\\n\\nFor any non-negative integer i, the concatenation of i copies of t is a substring of the concatenation of 4i copies of s. Thus, there are infinitely many non-negative integers i that satisfy the condition.', 'input: aba\\nbaaab output: 0\\n\\nAs stated in Notes, i = 0 always satisfies the condition.']",
+ "tests": [
+  {
+   "stdin": "aa\nabaaaaa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "abcaabb\nab\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "aba\naaaab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa\naaaaaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aba\naa`ab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "accaabb\nab\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "ab\naaaaaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`ba\naa`ab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "acdaabb\nab\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "ab\nabaaaaa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`ab\naa`ab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "acda`bb\nab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ab\nabaaaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ab`\naa`ab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "acda`bb\naa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ab\nab`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ab`\naa`ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "bb`adca\naa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ba\nab`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ac`\naa`ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "bb`adca\na`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ba\naa`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`ca\naa`ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "bb`adca\n`a\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "b`\naa`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`c`\naa`ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "ab`bdca\naa\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "b_\naa`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c``\naa`ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa`bdca\naa\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "_b\naa`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c``\na``ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa`bdcb\naa\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "`b\naa`aaba\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "``c\na``ac\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa_bdcb\naa\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "`b\nba`aaaa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c``\nca``a\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa_bdcb\na`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`b\nbaaa`aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c`_\nca``a\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa_bdcb\n``\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`b\nbaaa`a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c__\nca``a\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa_bdcb\n`_\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "b`\nbaaa`a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c__\nc``aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa_bdcb\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "b`\nbaaaaa`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "__c\nc``aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa_bdcb\n^_\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "b`\nbbaaaa`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^_c\nc``aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa`bdcb\n^_\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "b_\nbbaaaa`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^_c\nc`_aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa`bdca\n^_\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c_\nbbaaaa`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^^c\nc`_aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa`bdca\n_^\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c_\n`aaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^^b\nc`_aa\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa`bdca\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c^\n`aaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^^b\nc`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "a``bdca\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c]\n`aaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "b^^\nc`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "a``bdac\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "d]\n`aaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^^b\nb`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "```bdac\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "]d\n`aaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^^b\na`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "```bcac\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "]d\n`baaaab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "b^^\na`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "```bcac\n_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "]d\nabaaaab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "c^^\na`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "cacb```\n_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "d]\nabaaaab\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^c^\na`_a`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "```bcad\n_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "d]\nabaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^c^\n`a_`a\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`b``cad\n_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "]d\nabaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^c^\n`_a`a\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`b``cad\n`_\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^d\nabaaabb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^c^\na`a_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "`b``cad\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^d\naba`abb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^c_\na`a_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "dac``b`\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^d\naca`abb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "^c_\na`b_`\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "dbc``b`\n__\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "d^\naca`abb\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "aa\naaaaaaa\n",
+   "expected": "-1\n"
+  },
+  {
+   "stdin": "abcabab\nab\n",
+   "expected": "3\n"
+  },
+  {
+   "stdin": "aba\nbaaab\n",
+   "expected": "0\n"
+  }
+ ]
+}

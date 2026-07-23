@@ -1,0 +1,412 @@
+{
+ "pid": "p02854",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement\nTakahashi, who works at DISCO, is standing before an iron bar.\nThe bar has N-1 notches, which divide the bar into N sections. The i-th section from the left has a length of A_i millimeters.\nTakahashi wanted to choose a notch and cut the bar at that point into two parts with the same length.\nHowever, this may not be possible as is, so he will do the following operations some number of times before he does the cut:\n\nChoose one section and expand it, increasing its length by 1 millimeter. Doing this operation once costs 1 yen (the currency of Japan).\nChoose one section of length at least 2 millimeters and shrink it, decreasing its length by 1 millimeter. Doing this operation once costs 1 yen.\n\nFind the minimum amount of money needed before cutting the bar into two parts with the same length.\nTask Constraint: 2 <= N <= 200000\n1 <= A_i <= 2020202020\nAll values in input are integers.\nTask Input: Input is given from Standard Input in the following format:\nN\nA_1 A_2 A_3 . . . A_N\nTask Output: Print an integer representing the minimum amount of money needed before cutting the bar into two parts with the same length.\nTask Samples: input: 3\n2 4 3 output: 3\n\nThe initial lengths of the sections are [2,4,3] (in millimeters). Takahashi can cut the bar equally after doing the following operations for 3 yen:\n\nShrink the second section from the left. The lengths of the sections are now [2,3,3].\nShrink the first section from the left. The lengths of the sections are now [1,3,3].\nShrink the second section from the left. The lengths of the sections are now [1,2,3], and we can cut the bar at the second notch from the left into two parts of length 3 each.\ninput: 12\n100 104 102 105 103 103 101 105 104 102 104 101 output: 0\n\n## Constraints\n2 <= N <= 200000\n1 <= A_i <= 2020202020\nAll values in input are integers.\n\n## Input\nInput is given from Standard Input in the following format:\nN\nA_1 A_2 A_3 . . . A_N\n\n## Output\nPrint an integer representing the minimum amount of money needed before cutting the bar into two parts with the same length.\n\n## Examples\n['input: 3\\n2 4 3 output: 3\\n\\nThe initial lengths of the sections are [2,4,3] (in millimeters). Takahashi can cut the bar equally after doing the following operations for 3 yen:\\n\\nShrink the second section from the left. The lengths of the sections are now [2,3,3].\\nShrink the first section from the left. The lengths of the sections are now [1,3,3].\\nShrink the second section from the left. The lengths of the sections are now [1,2,3], and we can cut the bar at the second notch from the left into two parts of length 3 each.', 'input: 12\\n100 104 102 105 103 103 101 105 104 102 104 101 output: 0']",
+ "tests": [
+  {
+   "stdin": "3\n2 5 3\n",
+   "expected": "4\n\n"
+  },
+  {
+   "stdin": "12\n100 104 102 105 103 103 100 105 104 102 104 101\n",
+   "expected": "1\n\n"
+  },
+  {
+   "stdin": "3\n2 8 3\n",
+   "expected": "7\n\n"
+  },
+  {
+   "stdin": "12\n100 104 102 105 103 103 100 117 104 102 104 101\n",
+   "expected": "11\n\n"
+  },
+  {
+   "stdin": "3\n2 8 2\n",
+   "expected": "8\n\n"
+  },
+  {
+   "stdin": "12\n101 104 102 105 103 103 100 117 104 102 104 101\n",
+   "expected": "10\n\n"
+  },
+  {
+   "stdin": "12\n101 104 102 105 103 103 100 117 104 102 104 111\n",
+   "expected": "20\n\n"
+  },
+  {
+   "stdin": "12\n101 104 102 187 103 103 100 117 104 102 104 111\n",
+   "expected": "62\n\n"
+  },
+  {
+   "stdin": "12\n101 104 102 187 103 103 110 117 104 102 104 111\n",
+   "expected": "52\n\n"
+  },
+  {
+   "stdin": "3\n1 0 6\n",
+   "expected": "5\n\n"
+  },
+  {
+   "stdin": "12\n101 104 102 187 103 176 110 117 104 102 104 111\n",
+   "expected": "125\n\n"
+  },
+  {
+   "stdin": "12\n001 104 102 187 103 176 110 117 104 102 104 111\n",
+   "expected": "25\n\n"
+  },
+  {
+   "stdin": "3\n1 0 1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "12\n001 104 102 187 191 176 110 117 104 102 104 011\n",
+   "expected": "139\n\n"
+  },
+  {
+   "stdin": "12\n001 104 102 187 191 176 110 117 104 102 132 011\n",
+   "expected": "167\n\n"
+  },
+  {
+   "stdin": "12\n001 104 102 187 64 176 110 117 104 102 132 011\n",
+   "expected": "58\n\n"
+  },
+  {
+   "stdin": "12\n001 104 102 187 64 176 110 117 104 102 48 011\n",
+   "expected": "142\n\n"
+  },
+  {
+   "stdin": "12\n000 104 102 187 64 176 110 117 104 102 48 011\n",
+   "expected": "141\n\n"
+  },
+  {
+   "stdin": "12\n000 104 102 187 64 176 110 117 98 102 48 011\n",
+   "expected": "147\n\n"
+  },
+  {
+   "stdin": "12\n000 104 102 187 64 176 110 112 98 102 48 011\n",
+   "expected": "152\n\n"
+  },
+  {
+   "stdin": "12\n000 104 43 187 64 176 110 112 98 102 48 011\n",
+   "expected": "93\n\n"
+  },
+  {
+   "stdin": "12\n000 36 43 187 64 176 111 112 98 102 48 011\n",
+   "expected": "24\n\n"
+  },
+  {
+   "stdin": "12\n000 36 43 187 64 176 111 179 98 102 48 011\n",
+   "expected": "43\n\n"
+  },
+  {
+   "stdin": "12\n000 60 43 187 64 176 111 179 98 102 48 011\n",
+   "expected": "19\n\n"
+  },
+  {
+   "stdin": "12\n100 60 43 187 64 176 111 179 104 102 48 011\n",
+   "expected": "75\n\n"
+  },
+  {
+   "stdin": "12\n100 60 43 187 64 176 110 179 104 102 48 011\n",
+   "expected": "76\n\n"
+  },
+  {
+   "stdin": "12\n100 11 43 187 64 176 110 179 104 102 48 011\n",
+   "expected": "27\n\n"
+  },
+  {
+   "stdin": "12\n110 11 43 187 64 176 110 179 104 191 48 111\n",
+   "expected": "68\n\n"
+  },
+  {
+   "stdin": "12\n110 11 43 187 64 176 110 349 104 191 48 111\n",
+   "expected": "102\n\n"
+  },
+  {
+   "stdin": "12\n110 11 43 187 125 176 110 349 104 191 48 111\n",
+   "expected": "41\n\n"
+  },
+  {
+   "stdin": "12\n111 11 43 187 125 176 110 349 104 191 48 111\n",
+   "expected": "40\n\n"
+  },
+  {
+   "stdin": "12\n111 11 43 187 125 344 110 349 104 191 48 111\n",
+   "expected": "92\n\n"
+  },
+  {
+   "stdin": "12\n011 11 43 187 125 344 110 349 104 191 48 111\n",
+   "expected": "28\n\n"
+  },
+  {
+   "stdin": "12\n011 11 43 187 125 344 010 349 104 191 48 111\n",
+   "expected": "72\n\n"
+  },
+  {
+   "stdin": "12\n011 11 43 187 125 344 010 349 104 161 48 111\n",
+   "expected": "42\n\n"
+  },
+  {
+   "stdin": "12\n011 11 54 187 125 344 010 349 104 161 48 111\n",
+   "expected": "31\n\n"
+  },
+  {
+   "stdin": "12\n011 11 54 192 125 344 010 349 104 161 48 111\n",
+   "expected": "26\n\n"
+  },
+  {
+   "stdin": "12\n011 11 54 192 125 344 010 349 196 161 48 111\n",
+   "expected": "118\n\n"
+  },
+  {
+   "stdin": "12\n011 11 54 192 125 344 010 349 196 104 48 111\n",
+   "expected": "61\n\n"
+  },
+  {
+   "stdin": "12\n011 19 54 192 125 344 010 349 196 104 48 111\n",
+   "expected": "53\n\n"
+  },
+  {
+   "stdin": "12\n011 19 54 192 167 344 010 349 296 104 48 111\n",
+   "expected": "111\n\n"
+  },
+  {
+   "stdin": "12\n011 19 54 192 167 344 010 349 296 104 15 111\n",
+   "expected": "78\n\n"
+  },
+  {
+   "stdin": "12\n011 5 54 192 167 344 010 349 296 195 15 111\n",
+   "expected": "183\n\n"
+  },
+  {
+   "stdin": "12\n011 5 54 192 167 344 010 349 91 195 3 111\n",
+   "expected": "14\n\n"
+  },
+  {
+   "stdin": "12\n011 5 54 282 167 344 010 349 91 195 3 111\n",
+   "expected": "104\n\n"
+  },
+  {
+   "stdin": "12\n011 5 33 282 167 344 010 349 91 195 3 111\n",
+   "expected": "83\n\n"
+  },
+  {
+   "stdin": "12\n011 5 33 24 167 344 010 349 91 195 3 111\n",
+   "expected": "155\n\n"
+  },
+  {
+   "stdin": "12\n011 5 33 24 167 344 010 349 91 195 4 111\n",
+   "expected": "156\n\n"
+  },
+  {
+   "stdin": "12\n011 5 33 24 167 344 110 349 91 195 4 111\n",
+   "expected": "56\n\n"
+  },
+  {
+   "stdin": "12\n011 5 33 24 167 344 110 310 91 195 4 111\n",
+   "expected": "17\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 167 344 110 310 91 195 4 111\n",
+   "expected": "12\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 167 344 110 310 91 195 4 011\n",
+   "expected": "88\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 167 344 110 310 91 110 4 011\n",
+   "expected": "47\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 110 310 91 110 4 011\n",
+   "expected": "85\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 110 310 91 110 0 011\n",
+   "expected": "89\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 110 10 91 110 0 011\n",
+   "expected": "169\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 110 13 91 110 0 011\n",
+   "expected": "166\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 110 13 91 100 0 011\n",
+   "expected": "176\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 110 13 91 000 0 011\n",
+   "expected": "276\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 111 13 91 000 0 011\n",
+   "expected": "275\n\n"
+  },
+  {
+   "stdin": "12\n010 10 33 24 79 344 111 13 91 000 0 011\n",
+   "expected": "274\n\n"
+  },
+  {
+   "stdin": "12\n010 10 33 24 79 344 111 13 139 000 0 011\n",
+   "expected": "226\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 111 13 139 000 0 011\n",
+   "expected": "227\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 111 2 139 000 0 011\n",
+   "expected": "238\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 344 111 2 139 000 1 011\n",
+   "expected": "237\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 347 111 2 139 000 1 011\n",
+   "expected": "240\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 79 347 111 2 139 000 1 111\n",
+   "expected": "140\n\n"
+  },
+  {
+   "stdin": "12\n011 10 33 24 92 347 111 2 139 000 0 111\n",
+   "expected": "154\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 24 92 347 111 1 139 000 -1 111\n",
+   "expected": "163\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 24 92 347 111 1 139 000 -1 011\n",
+   "expected": "263\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 5 92 347 111 1 139 100 -1 011\n",
+   "expected": "144\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 5 92 477 111 1 139 100 -1 001\n",
+   "expected": "284\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 5 1 477 111 1 139 100 -1 001\n",
+   "expected": "193\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 5 1 477 011 1 139 100 -1 001\n",
+   "expected": "293\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 5 1 477 011 1 179 100 -1 001\n",
+   "expected": "253\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 5 1 477 011 0 179 100 -1 001\n",
+   "expected": "254\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 4 1 477 011 1 179 100 -1 001\n",
+   "expected": "252\n\n"
+  },
+  {
+   "stdin": "12\n010 18 33 4 1 477 001 1 179 100 -1 001\n",
+   "expected": "262\n\n"
+  },
+  {
+   "stdin": "12\n010 18 66 4 1 477 001 1 179 100 -1 001\n",
+   "expected": "295\n\n"
+  },
+  {
+   "stdin": "12\n010 18 66 4 1 477 001 1 179 100 -1 000\n",
+   "expected": "296\n\n"
+  },
+  {
+   "stdin": "12\n010 5 66 4 1 477 001 1 179 100 -1 000\n",
+   "expected": "283\n\n"
+  },
+  {
+   "stdin": "12\n010 3 66 4 1 477 001 1 179 100 -1 100\n",
+   "expected": "181\n\n"
+  },
+  {
+   "stdin": "12\n010 3 66 4 1 477 101 1 179 100 -1 100\n",
+   "expected": "81\n\n"
+  },
+  {
+   "stdin": "12\n010 3 66 5 1 477 101 1 179 100 -1 100\n",
+   "expected": "82\n\n"
+  },
+  {
+   "stdin": "12\n010 3 107 5 1 477 101 1 179 100 -1 100\n",
+   "expected": "123\n\n"
+  },
+  {
+   "stdin": "12\n010 3 107 5 1 477 111 1 179 100 -1 100\n",
+   "expected": "113\n\n"
+  },
+  {
+   "stdin": "12\n010 0 107 5 1 477 111 1 179 100 -1 100\n",
+   "expected": "110\n\n"
+  },
+  {
+   "stdin": "12\n010 0 107 5 1 127 111 1 179 100 -1 100\n",
+   "expected": "16\n\n"
+  },
+  {
+   "stdin": "12\n010 0 107 5 0 127 101 1 179 110 0 100\n",
+   "expected": "38\n\n"
+  },
+  {
+   "stdin": "12\n010 0 107 5 1 127 101 1 179 110 0 100\n",
+   "expected": "37\n\n"
+  },
+  {
+   "stdin": "12\n010 0 107 5 1 182 101 1 27 111 0 110\n",
+   "expected": "45\n\n"
+  },
+  {
+   "stdin": "12\n010 -1 107 5 1 196 101 1 27 111 0 110\n",
+   "expected": "32\n\n"
+  },
+  {
+   "stdin": "12\n010 -1 107 5 2 196 001 1 27 111 0 110\n",
+   "expected": "69\n\n"
+  },
+  {
+   "stdin": "12\n010 -1 107 5 0 196 001 1 27 111 0 110\n",
+   "expected": "67\n\n"
+  },
+  {
+   "stdin": "12\n011 -1 107 5 0 196 001 1 18 111 0 110\n",
+   "expected": "77\n\n"
+  },
+  {
+   "stdin": "12\n001 0 107 5 0 196 001 1 2 101 0 110\n",
+   "expected": "94\n\n"
+  },
+  {
+   "stdin": "12\n001 -1 107 5 -1 196 101 2 2 001 0 110\n",
+   "expected": "91\n\n"
+  },
+  {
+   "stdin": "12\n101 -1 107 5 -1 196 100 2 2 001 0 110\n",
+   "expected": "192\n\n"
+  },
+  {
+   "stdin": "12\n101 -2 107 6 -1 196 100 0 2 000 0 110\n",
+   "expected": "195\n\n"
+  },
+  {
+   "stdin": "3\n2 4 3\n",
+   "expected": "3\n"
+  },
+  {
+   "stdin": "12\n100 104 102 105 103 103 101 105 104 102 104 101\n",
+   "expected": "0\n"
+  }
+ ]
+}

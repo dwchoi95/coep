@@ -1,0 +1,420 @@
+{
+ "pid": "p02954",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement Given is a string S consisting of L and R.\nLet N be the length of S. There are N squares arranged from left to right, and the i-th character of S from the left is written on the i-th square from the left.\nThe character written on the leftmost square is always R, and the character written on the rightmost square is always L.\nInitially, one child is standing on each square.\nEach child will perform the move below 10^{100} times:\n\nMove one square in the direction specified by the character written in the square on which the child is standing. L denotes left, and R denotes right.\n\nFind the number of children standing on each square after the children performed the moves.\nTask Constraint: S is a string of length between 2 and 10^5 (inclusive).\nEach character of S is L or R.\nThe first and last characters of S are R and L, respectively.\nTask Input: Input is given from Standard Input in the following format:\nS\nTask Output: Print the number of children standing on each square after the children performed the moves, in order from left to right.\nTask Samples: input: RRLRL output: 0 1 2 1 1\nAfter each child performed one move, the number of children standing on each square is 0,2,1,1,1 from left to right.\nAfter each child performed two moves, the number of children standing on each square is 0,1,2,1,1 from left to right.\nAfter each child performed 10^{100} moves, the number of children standing on each square is 0,1,2,1,1 from left to right.\ninput: RRLLLLRLRRLL output: 0 3 3 0 0 0 1 1 0 2 2 0\ninput: RRRLLRLLRRRLLLLL output: 0 0 3 2 0 2 1 0 0 0 4 4 0 0 0 0\n\n## Constraints\nS is a string of length between 2 and 10^5 (inclusive).\nEach character of S is L or R.\nThe first and last characters of S are R and L, respectively.\n\n## Input\nInput is given from Standard Input in the following format:\nS\n\n## Output\nPrint the number of children standing on each square after the children performed the moves, in order from left to right.\n\n## Examples\n['input: RRLRL output: 0 1 2 1 1\\nAfter each child performed one move, the number of children standing on each square is 0,2,1,1,1 from left to right.\\nAfter each child performed two moves, the number of children standing on each square is 0,1,2,1,1 from left to right.\\nAfter each child performed 10^{100} moves, the number of children standing on each square is 0,1,2,1,1 from left to right.', 'input: RRLLLLRLRRLL output: 0 3 3 0 0 0 1 1 0 2 2 0', 'input: RRRLLRLLRRRLLLLL output: 0 0 3 2 0 2 1 0 0 0 4 4 0 0 0 0']",
+ "tests": [
+  {
+   "stdin": "RRLLRLRLLRLL\n",
+   "expected": "0 2 2 0 1 1 2 1 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLRLLRLRRRRLLLLL\n",
+   "expected": "1 1 2 1 0 1 1 0 0 0 4 5 0 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRLLLLRLRLRL\n",
+   "expected": "0 3 3 0 0 0 1 1 1 1 1 1\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRRLRLLLL\n",
+   "expected": "0 0 3 2 0 2 1 0 0 1 2 3 2 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRLRLLRLLLRL\n",
+   "expected": "0 1 2 2 1 0 2 2 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLRLLRLLRLL\n",
+   "expected": "0 1 2 2 1 0 2 1 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLLLLRRLRLL\n",
+   "expected": "0 3 3 0 0 0 0 1 2 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLLRRLLRLL\n",
+   "expected": "0 0 3 2 0 2 2 0 0 0 2 2 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLRRLLLLLRL\n",
+   "expected": "0 1 2 0 3 4 0 0 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRLRLLRLL\n",
+   "expected": "0 0 3 2 0 2 1 0 1 1 2 1 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLRLLLRLLRL\n",
+   "expected": "0 1 2 2 2 0 0 2 1 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLLRLLRRL\n",
+   "expected": "0 3 3 0 0 0 2 1 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLRRLLLLL\n",
+   "expected": "0 0 3 2 0 0 2 2 0 0 3 4 0 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRLLLLRRRLLL\n",
+   "expected": "0 3 3 0 0 0 0 0 3 3 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLLLLRRLRLRLL\n",
+   "expected": "0 0 4 4 0 0 0 0 0 1 2 1 1 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLRRLRLLLLL\n",
+   "expected": "0 1 2 0 1 2 3 3 0 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRLLRLLLLRRL\n",
+   "expected": "0 2 2 0 3 2 0 0 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLLLRLLRRLRLLL\n",
+   "expected": "0 0 3 3 0 0 2 1 0 0 1 2 2 2 0 0\n\n"
+  },
+  {
+   "stdin": "RRRRLRLLRRLLLLLL\n",
+   "expected": "0 0 0 2 3 2 1 0 0 4 4 0 0 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLLRLLRLL\n",
+   "expected": "0 0 3 2 0 0 2 3 0 0 2 1 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLRLRLLLL\n",
+   "expected": "0 0 3 2 0 0 2 2 0 1 1 3 2 0 0 0\n\n"
+  },
+  {
+   "stdin": "RLRLRLRLLRRLRLLL\n",
+   "expected": "1 1 1 1 1 1 2 1 0 0 1 2 2 2 0 0\n\n"
+  },
+  {
+   "stdin": "RLRLLLRRLRLL\n",
+   "expected": "1 1 2 2 0 0 0 1 2 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLLLLRRLRLRL\n",
+   "expected": "3 2 0 0 0 0 1 2 1 1 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLRRLLLRL\n",
+   "expected": "0 2 3 0 0 0 2 3 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLRRLLRRLLRLL\n",
+   "expected": "0 2 3 0 0 0 2 2 0 0 2 2 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLLRLRRLLLL\n",
+   "expected": "0 2 2 0 1 1 0 3 3 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLLLLRRLLRRLL\n",
+   "expected": "0 0 4 4 0 0 0 0 0 2 2 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RLLLRLRLRRRLRLLL\n",
+   "expected": "2 2 0 0 1 1 1 1 0 0 2 2 2 2 0 0\n\n"
+  },
+  {
+   "stdin": "RRLLLRLLLRRLLRRL\n",
+   "expected": "0 2 3 0 0 2 2 0 0 0 2 2 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RLRLLLLRRRLLRRLL\n",
+   "expected": "1 1 3 2 0 0 0 0 0 3 2 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRLLRLLRLLRL\n",
+   "expected": "0 2 2 0 2 1 0 2 1 0 1 1\n\n"
+  },
+  {
+   "stdin": "RLRLRLLRRLLLRRLL\n",
+   "expected": "1 1 1 1 2 1 0 0 2 3 0 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRLLLRLRLRRLLRLL\n",
+   "expected": "0 2 3 0 0 1 1 1 1 0 2 2 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRLRLLLRL\n",
+   "expected": "0 0 3 2 0 2 1 0 1 1 2 2 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRRLLLRLL\n",
+   "expected": "0 0 3 2 0 2 1 0 0 2 3 0 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLLLLLRLRRL\n",
+   "expected": "0 3 4 0 0 0 0 1 1 0 1 2\n\n"
+  },
+  {
+   "stdin": "RLLLLRLRLRRLLRRL\n",
+   "expected": "3 2 0 0 0 1 1 1 1 0 2 2 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLLRLRRLLLLLRL\n",
+   "expected": "0 0 3 2 0 1 1 0 3 4 0 0 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RLLLLLLRRRRL\n",
+   "expected": "4 3 0 0 0 0 0 0 0 0 2 3\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRLLRRLLL\n",
+   "expected": "0 0 3 2 0 2 1 0 2 1 0 0 2 3 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLRLLLRLL\n",
+   "expected": "0 0 3 2 0 0 2 2 0 2 2 0 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLLRLLRLRLL\n",
+   "expected": "0 2 2 0 2 1 0 1 1 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRRLLLLLRRLLRLL\n",
+   "expected": "0 0 0 4 5 0 0 0 0 0 2 2 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLLLRLRLLRRLLRRL\n",
+   "expected": "2 2 0 0 1 1 2 1 0 0 2 2 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLLLRLLRRLLRLL\n",
+   "expected": "0 0 3 3 0 0 2 1 0 0 2 2 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRLLLRLLRRRLLLL\n",
+   "expected": "0 0 3 3 0 0 2 1 0 0 0 4 3 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRLRLLRLLRRRLLLL\n",
+   "expected": "0 1 2 2 1 0 2 1 0 0 0 4 3 0 0 0\n\n"
+  },
+  {
+   "stdin": "RLLLLRRLLRRL\n",
+   "expected": "3 2 0 0 0 0 2 2 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRLLLLRLLRRLRRLL\n",
+   "expected": "0 3 3 0 0 0 2 1 0 0 1 2 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRRRLLLLRLLLRRLL\n",
+   "expected": "0 0 0 4 4 0 0 0 2 2 0 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RLLLLLRRRRRLRLLL\n",
+   "expected": "3 3 0 0 0 0 0 0 0 0 3 3 2 2 0 0\n\n"
+  },
+  {
+   "stdin": "RLLLLRLRLRRL\n",
+   "expected": "3 2 0 0 0 1 1 1 1 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRLRRLLLL\n",
+   "expected": "0 0 3 2 0 2 1 0 1 1 0 3 3 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLLRLLLRRL\n",
+   "expected": "0 0 3 2 0 2 2 0 0 2 2 0 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLRLLLLRLL\n",
+   "expected": "0 0 2 2 3 2 0 0 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLRRLLLLLRRLRRLL\n",
+   "expected": "1 1 0 3 4 0 0 0 0 0 1 2 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRLLLLRLLRRRLRLL\n",
+   "expected": "0 3 3 0 0 0 2 1 0 0 0 2 2 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLRRLRLLRLLLRRLL\n",
+   "expected": "1 1 0 1 2 2 1 0 2 2 0 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLLLLRLRRL\n",
+   "expected": "0 0 3 2 0 3 3 0 0 0 0 1 1 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRLLLLLLRRRL\n",
+   "expected": "0 4 4 0 0 0 0 0 0 0 2 2\n\n"
+  },
+  {
+   "stdin": "RLRLLLLRRRRLLLRL\n",
+   "expected": "1 1 3 2 0 0 0 0 0 0 3 4 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLLRRLLRL\n",
+   "expected": "0 3 3 0 0 0 0 2 2 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRRLLLLLLRRL\n",
+   "expected": "0 0 5 4 0 0 0 0 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RLRLRRLLLRRLRLLL\n",
+   "expected": "1 1 1 1 0 2 3 0 0 0 1 2 2 2 0 0\n\n"
+  },
+  {
+   "stdin": "RRLLRLLLRRLLRRLL\n",
+   "expected": "0 2 2 0 2 2 0 0 0 2 2 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLLLLLRRL\n",
+   "expected": "0 0 3 2 0 0 4 4 0 0 0 0 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLLRLRLLRL\n",
+   "expected": "0 0 3 2 0 2 2 0 0 1 1 2 1 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRRRLRRLLLLRLLLL\n",
+   "expected": "0 0 0 2 3 0 3 3 0 0 0 3 2 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLLLL\n",
+   "expected": "0 0 3 2 0 0 3 4 0 0 0 0\n\n"
+  },
+  {
+   "stdin": "RLLLLRRLLRRLLRRL\n",
+   "expected": "3 2 0 0 0 0 2 2 0 0 2 2 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RLRLLLRRRRLLLRLL\n",
+   "expected": "1 1 2 2 0 0 0 0 0 3 4 0 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLRLLRLRLL\n",
+   "expected": "0 0 3 2 0 2 1 0 2 1 0 1 1 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLLLRLRRLRLLLRL\n",
+   "expected": "0 2 3 0 0 1 1 0 1 2 2 2 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLRLLLLRLRLRRLL\n",
+   "expected": "0 1 2 3 2 0 0 0 1 1 1 1 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRLRLLLLLRRL\n",
+   "expected": "0 1 2 3 3 0 0 0 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRLLRLLLRRLLRLRL\n",
+   "expected": "0 2 2 0 2 2 0 0 0 2 2 0 1 1 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLRLLRLRRLRLL\n",
+   "expected": "0 2 3 0 0 2 1 0 1 1 0 1 2 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRLLRLLLRRLL\n",
+   "expected": "0 2 2 0 2 2 0 0 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRLLLRRLRLLL\n",
+   "expected": "0 2 3 0 0 0 1 2 2 2 0 0\n\n"
+  },
+  {
+   "stdin": "RRLLLLRRLRRLLRLL\n",
+   "expected": "0 3 3 0 0 0 0 1 2 0 2 2 0 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLRRLRLLLLLRRRLL\n",
+   "expected": "1 1 0 1 2 3 3 0 0 0 0 0 0 3 2 0\n\n"
+  },
+  {
+   "stdin": "RRLRLLRRLLLL\n",
+   "expected": "0 1 2 2 1 0 0 3 3 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLRLLLRRRLLLL\n",
+   "expected": "0 0 3 2 0 2 2 0 0 0 0 4 3 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLLRLLLRLRRLL\n",
+   "expected": "0 0 3 3 0 0 2 2 0 0 1 1 0 2 2 0\n\n"
+  },
+  {
+   "stdin": "RRLLLRLRLRRLLLRL\n",
+   "expected": "0 2 3 0 0 1 1 1 1 0 2 3 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRRLLLLRRLRLLLRL\n",
+   "expected": "0 0 4 3 0 0 0 0 1 2 2 2 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLLRRLRLRLRLL\n",
+   "expected": "0 3 3 0 0 0 0 1 2 1 1 1 1 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLRLLLLRRLRLRLRL\n",
+   "expected": "1 1 3 2 0 0 0 0 1 2 1 1 1 1 1 1\n\n"
+  },
+  {
+   "stdin": "RLLLLRRLLRRRLLRL\n",
+   "expected": "3 2 0 0 0 0 2 2 0 0 0 3 2 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLLLRRLRRLLRL\n",
+   "expected": "0 3 4 0 0 0 0 0 1 2 0 2 2 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLLLLRRLRRLRL\n",
+   "expected": "0 4 4 0 0 0 0 0 0 1 2 0 1 2 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLRLRRRRLLLLL\n",
+   "expected": "0 2 3 0 0 1 1 0 0 0 4 5 0 0 0 0\n\n"
+  },
+  {
+   "stdin": "RRRLLLLLRLRLRLRL\n",
+   "expected": "0 0 4 4 0 0 0 0 1 1 1 1 1 1 1 1\n\n"
+  },
+  {
+   "stdin": "RRLLLLLLRRLRLRRL\n",
+   "expected": "0 4 4 0 0 0 0 0 0 1 2 1 1 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRLLRLLLRLRLRLRL\n",
+   "expected": "0 2 2 0 2 2 0 0 1 1 1 1 1 1 1 1\n\n"
+  },
+  {
+   "stdin": "RLRLLRLLRLRRLRLL\n",
+   "expected": "1 1 2 1 0 2 1 0 1 1 0 1 2 2 1 0\n\n"
+  },
+  {
+   "stdin": "RRRLLLRLLRRLLLRL\n",
+   "expected": "0 0 3 3 0 0 2 1 0 0 2 3 0 0 1 1\n\n"
+  },
+  {
+   "stdin": "RRRLLRRLLLLRLRLL\n",
+   "expected": "0 0 3 2 0 0 3 3 0 0 0 1 1 2 1 0\n\n"
+  },
+  {
+   "stdin": "RLRLLLRLLRRL\n",
+   "expected": "1 1 2 2 0 0 2 1 0 0 1 2\n\n"
+  },
+  {
+   "stdin": "RRLLLLRLRRLL\n",
+   "expected": "0 3 3 0 0 0 1 1 0 2 2 0\n"
+  },
+  {
+   "stdin": "RRLRL\n",
+   "expected": "0 1 2 1 1\n"
+  },
+  {
+   "stdin": "RRRLLRLLRRRLLLLL\n",
+   "expected": "0 0 3 2 0 2 1 0 0 0 4 4 0 0 0 0\n"
+  }
+ ]
+}

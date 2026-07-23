@@ -1,0 +1,424 @@
+{
+ "pid": "p03959",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement Mountaineers Mr. Takahashi and Mr. Aoki recently trekked across a certain famous mountain range.\nThe mountain range consists of N mountains, extending from west to east in a straight line as Mt. 1, Mt. 2, . . . , Mt. N.\nMr. Takahashi traversed the range from the west and Mr. Aoki from the east.  \nThe height of Mt. i is h_i, but they have forgotten the value of each h_i.\nInstead, for each i (1 <= i <= N), they recorded the maximum height of the mountains climbed up to the time they reached the peak of Mt. i (including Mt. i).\nMr. Takahashi's record is T_i and Mr. Aoki's record is A_i.  \nWe know that the height of each mountain h_i is a positive integer.\nCompute the number of the possible sequences of the mountains' heights, modulo 10^9 + 7.\nNote that the records may be incorrect and thus there may be no possible sequence of the mountains' heights.\nIn such a case, output 0.\nTask Constraint: 1 <= N <= 10^5\n1 <= T_i <= 10^9\n1 <= A_i <= 10^9\nT_i <= T_{i+1} (1 <= i <= N - 1)\nA_i >= A_{i+1} (1 <= i <= N - 1)\nTask Input: Input The input is given from Standard Input in the following format:\nN\nT_1 T_2 . . . T_N\nA_1 A_2 . . . A_N\nTask Output: Print the number of possible sequences of the mountains' heights, modulo 10^9 + 7.\nTask Samples: input: 5\n1 3 3 3 3\n3 3 2 2 2 output: 4\n\nThe possible sequences of the mountains' heights are:\n\n1,3,2,2,2 \n1,3,2,1,2 \n1,3,1,2,2 \n1,3,1,1,2 \n\nfor a total of four sequences.\ninput: 5\n1 1 1 2 2\n3 2 1 1 1 output: 0\n\nThe records are contradictory, since Mr. Takahashi recorded 2 as the highest peak after climbing all the mountains but Mr. Aoki recorded 3.\ninput: 10\n1 3776 3776 8848 8848 8848 8848 8848 8848 8848\n8848 8848 8848 8848 8848 8848 8848 8848 3776 5 output: 884111967\n\nDon't forget to compute the number modulo 10^9 + 7.\ninput: 1\n17\n17 output: 1\n\nSome mountain ranges consist of only one mountain.\n\n## Constraints\n1 <= N <= 10^5\n1 <= T_i <= 10^9\n1 <= A_i <= 10^9\nT_i <= T_{i+1} (1 <= i <= N - 1)\nA_i >= A_{i+1} (1 <= i <= N - 1)\n\n## Input\nInput The input is given from Standard Input in the following format:\nN\nT_1 T_2 . . . T_N\nA_1 A_2 . . . A_N\n\n## Output\nPrint the number of possible sequences of the mountains' heights, modulo 10^9 + 7.\n\n## Examples\n[\"input: 5\\n1 3 3 3 3\\n3 3 2 2 2 output: 4\\n\\nThe possible sequences of the mountains' heights are:\\n\\n1,3,2,2,2 \\n1,3,2,1,2 \\n1,3,1,2,2 \\n1,3,1,1,2 \\n\\nfor a total of four sequences.\", 'input: 5\\n1 1 1 2 2\\n3 2 1 1 1 output: 0\\n\\nThe records are contradictory, since Mr. Takahashi recorded 2 as the highest peak after climbing all the mountains but Mr. Aoki recorded 3.', \"input: 10\\n1 3776 3776 8848 8848 8848 8848 8848 8848 8848\\n8848 8848 8848 8848 8848 8848 8848 8848 3776 5 output: 884111967\\n\\nDon't forget to compute the number modulo 10^9 + 7.\", 'input: 1\\n17\\n17 output: 1\\n\\nSome mountain ranges consist of only one mountain.']",
+ "tests": [
+  {
+   "stdin": "5\n2 3 3 3 3\n3 3 2 2 2\n",
+   "expected": "4\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 2 2\n6 2 1 1 1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 4 2\n6 2 1 1 1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 4 2\n6 2 1 1 0\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 4 2\n6 0 1 1 0\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 4 2\n6 1 1 1 0\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 4 2\n6 2 1 2 0\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 4 2\n9 2 1 2 0\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 1 2\n9 2 1 2 0\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 1 2\n9 2 1 2 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 1 2\n9 4 1 2 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 1 2\n11 4 1 2 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 1 2\n11 4 2 2 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 2 1 1 2\n11 4 2 2 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 2 1 1 2\n8 4 2 2 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 2 1 1 2\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 2 1 1 4\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 2 1 1 5\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 2 1 1 3\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 4 1 1 3\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n2 4 1 1 3\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n2 3 1 1 3\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n2 3 1 1 5\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n2 3 1 1 0\n8 4 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n2 3 1 1 0\n8 5 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n2 3 1 1 0\n8 6 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 3 1 1 0\n8 6 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 3 1 1 -1\n8 6 2 2 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 3 1 1 -1\n8 6 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 3 1 0 -1\n8 6 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 3 1 0 -1\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 5 1 0 -1\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 5 1 0 0\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 5 1 -1 0\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 -1 0\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 -2 0\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 -2 0\n8 5 2 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 -2 0\n8 5 0 2 -4\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 -2 0\n8 5 0 2 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 -2 1\n8 5 0 2 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 -2 2\n8 5 0 2 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 5 0 2 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 5 0 1 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 5 -1 1 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 5 -1 0 -8\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 5 -1 1 -12\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 5 -1 1 -21\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 1 1 0 2\n8 10 -1 1 -21\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n8 10 -1 1 -21\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n8 10 -1 0 -21\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n8 10 -2 0 -21\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n8 10 -2 0 -7\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n8 10 -3 0 -7\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n11 10 -3 0 -7\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 1 0 2\n11 10 -3 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n6 0 1 0 2\n11 10 -3 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n11 0 1 0 2\n11 10 -3 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n11 0 2 0 2\n11 10 -3 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n11 0 2 0 2\n11 10 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n11 0 2 0 2\n11 16 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n11 0 4 0 2\n11 16 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 4 0 2\n11 16 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 4 0 2\n11 24 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 4 0 2\n19 24 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 4 -1 2\n19 24 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 1 -1 2\n19 24 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 2 -1 2\n19 24 -3 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 2 -1 2\n19 24 -3 0 -14\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 1 -1 2\n19 24 -3 0 -14\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 1 -1 0\n19 24 -3 0 -14\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 1 -1 0\n19 24 -1 0 -14\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 0 -1 0\n19 24 -1 0 -14\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 0 -1 0\n19 24 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n16 0 0 -1 0\n20 24 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n5 0 0 -1 0\n20 24 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n5 0 0 -1 0\n20 5 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n5 0 0 -2 0\n20 5 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n5 0 0 0 0\n20 5 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n5 0 0 0 -1\n20 5 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 0 0 -1\n20 5 -1 0 -11\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n3 0 0 0 -1\n20 5 -1 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n4 0 0 0 -1\n20 5 -1 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n4 0 0 0 -2\n20 5 -1 0 -6\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n4 0 0 0 -2\n20 5 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n4 0 0 -1 -2\n20 5 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n4 0 0 -1 -2\n20 3 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n4 -1 0 -1 -2\n20 3 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n6 -1 0 -1 -2\n20 3 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n6 -1 1 -1 -2\n20 3 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -1 -2\n20 3 -1 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -1 -2\n20 3 -1 -1 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -2 -2\n20 3 -1 -1 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -2 -2\n20 3 -2 -1 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -2 -2\n20 3 -2 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -2 -2\n20 3 -4 0 -2\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -2 -2\n20 3 -4 0 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -2 -2\n20 3 -8 0 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -1 -2\n20 3 -8 0 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -1 -2\n38 3 -8 0 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n7 -1 1 -1 0\n38 3 -8 0 -1\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "5\n1 1 1 2 2\n3 2 1 1 1\n",
+   "expected": "0\n"
+  },
+  {
+   "stdin": "5\n1 3 3 3 3\n3 3 2 2 2\n",
+   "expected": "4\n"
+  },
+  {
+   "stdin": "1\n17\n17\n",
+   "expected": "1\n"
+  },
+  {
+   "stdin": "10\n1 3776 3776 8848 8848 8848 8848 8848 8848 8848\n8848 8848 8848 8848 8848 8848 8848 8848 3776 5\n",
+   "expected": "884111967\n"
+  }
+ ]
+}

@@ -77,16 +77,27 @@ results/v1/                # archive of the current (v1) experiments
 
 ## Phase 2 — Datasets
 
-1. **LSGen import** → `data/<pid>/{problem.json, buggy/, refs/}` (LSGen source)
-   - `problem.json`: description, **I/O-based tests** (stdin → expected stdout), time limit.
-   - `refs/`: the paired `code2` (same student's accepted submission) of *build-set* programs only, never of eval programs.
-2. **CodeNet harvest** for the same 110 problems (volume for the cost analysis):
-   pull additional rejected submissions per problem from the public CodeNet
-   release; target ≥200/problem where available.
-3. **Refactory import**: re-clone `dwchoi95/refactory`, reuse the existing
-   importer → `data/<pid>/` (Refactory source).
-4. **Split rule (per requirement)**: build = N clustered representatives;
-   **eval = every remaining buggy program** (no 40-cap).
+Import scripts live in `data/_import/` (one-off data preparation, deliberately
+outside `src/`, which holds methodology only).
+
+1. **LSGen import** → `data/<pid>/{problem.json, buggy/, fixed/}` (LSGen source)
+   - `problem.json`: description, **I/O tests** (stdin → expected stdout), `mode: stdio`.
+   - `buggy/`: the Wrong-Answer submission; `fixed/`: the *same student's* later
+     accepted submission. Reference selection is deferred to split time, so no
+     eval-set fix is ever exposed to a builder.
+2. **Refactory import** → `data/<pid>/` (`mode: call`), re-using the v1 importer's
+   test-suite parsing.
+3. **Split**: deferred. Build = N clustered representatives (Phase 3.2),
+   eval = every remaining buggy program (no cap). Not applied yet.
+
+*Deferred (optional)* — **CodeNet harvest.** Originally planned to give the
+break-even analysis real volume, since LSGen caps at 20 buggy per problem. It is
+not needed: Refactory already supplies 108–557 buggy programs per assignment
+against per-assignment break-evens of 38–704 (3 of 5 clear one offering), and v1
+already showed coverage does not decay with volume (47.5% on a 40-program
+subsample vs 50.7% on all 1,660). Marginal cost is linear with a measured slope,
+so volume changes precision, not the conclusion. Revisit only if LSGen shows
+coverage behaving differently on harder problems.
 
 ## Phase 3 — Methodology
 

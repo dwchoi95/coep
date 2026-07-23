@@ -1,0 +1,416 @@
+{
+ "pid": "p03998",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement Alice, Bob and Charlie are playing Card Game for Three, as below:\n\nAt first, each of the three players has a deck consisting of some number of cards. Each card has a letter a, b or c written on it. The orders of the cards in the decks cannot be rearranged.\nThe players take turns. Alice goes first.\nIf the current player's deck contains at least one card, discard the top card in the deck. Then, the player whose name begins with the letter on the discarded card, takes the next turn. (For example, if the card says a, Alice takes the next turn. )\nIf the current player's deck is empty, the game ends and the current player wins the game.\n\nYou are given the initial decks of the players.\nMore specifically, you are given three strings S_A, S_B and S_C. The i-th (1<=i<=|S_A|) letter in S_A is the letter on the i-th card in Alice's initial deck. S_B and S_C describes Bob's and Charlie's initial decks in the same way.\nDetermine the winner of the game.\nTask Constraint: 1<=|S_A|<=100\n1<=|S_B|<=100\n1<=|S_C|<=100\nEach letter in S_A, S_B, S_C is a, b or c.\nTask Input: Input The input is given from Standard Input in the following format:\nS_A\nS_B\nS_C\nTask Output: If Alice will win, print A. If Bob will win, print B. If Charlie will win, print C.\nTask Samples: input: aca\naccc\nca output: A\n\nThe game will progress as below:\n\nAlice discards the top card in her deck, a. Alice takes the next turn.\nAlice discards the top card in her deck, c. Charlie takes the next turn.\nCharlie discards the top card in his deck, c. Charlie takes the next turn.\nCharlie discards the top card in his deck, a. Alice takes the next turn.\nAlice discards the top card in her deck, a. Alice takes the next turn.\nAlice's deck is empty. The game ends and Alice wins the game.\ninput: abcb\naacb\nbccc output: C\n\n## Constraints\n1<=|S_A|<=100\n1<=|S_B|<=100\n1<=|S_C|<=100\nEach letter in S_A, S_B, S_C is a, b or c.\n\n## Input\nInput The input is given from Standard Input in the following format:\nS_A\nS_B\nS_C\n\n## Output\nIf Alice will win, print A. If Bob will win, print B. If Charlie will win, print C.\n\n## Examples\n[\"input: aca\\naccc\\nca output: A\\n\\nThe game will progress as below:\\n\\nAlice discards the top card in her deck, a. Alice takes the next turn.\\nAlice discards the top card in her deck, c. Charlie takes the next turn.\\nCharlie discards the top card in his deck, c. Charlie takes the next turn.\\nCharlie discards the top card in his deck, a. Alice takes the next turn.\\nAlice discards the top card in her deck, a. Alice takes the next turn.\\nAlice's deck is empty. The game ends and Alice wins the game.\", 'input: abcb\\naacb\\nbccc output: C']",
+ "tests": [
+  {
+   "stdin": "abcb\naabb\nbccc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "caa\naccc\nca\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\naabb\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "abcb\nbbaa\nbccc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aacb\nbbaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aacb\nbbaa\ncccb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nbbaa\ncccb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\naabb\ncccb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\naabb\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "acaa\nabab\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "acaa\nabab\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nabab\nbcdc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nabbb\nbcdc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nabbb\nbcdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nbbbb\nbcdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nbbbb\nbbdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nabbb\nbbdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcaa\nabbb\nbbdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aacb\nabbb\nbbdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aacb\nabbb\nabdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aacb\nabbb\nbbbd\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "abcb\nbcaa\nbccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "aac\naccc\nca\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cbab\naabb\nbccc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "caa\naccc\nac\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "abcb\nbaaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcaa\nbbaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nbaab\ncccb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nabbb\ncccb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nbbaa\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "acaa\nbbaa\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "acaa\nabaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nbbba\nbcdc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acba\nabbb\nbcdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nbbbb\ncbdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nabab\nbbdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aacb\nabbb\nbdbb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aacb\nabbc\nbbdb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aacb\nabbb\nbdba\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "abcb\naacc\nbccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "aac\naccb\nca\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cabb\naabb\nbccc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "abbb\nbaaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcaa\nbbaa\nbdcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nabbb\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nbbaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcaa\nabaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acba\nabbb\nbccb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nbaba\nbbdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "baca\nabbb\nbdbb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aacb\nabbb\nbcba\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "accb\naacc\nbccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "caa\naccb\nca\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cabb\naaba\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcba\nbaaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cbaa\nbbaa\nbdcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\naabb\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nbbaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcaa\nabaa\ncccb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acba\nbbba\nbccb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acab\nbaba\nbbdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aacb\nabab\nbcba\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "accb\nabcc\nbccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "caa\naccb\nba\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cabb\nabaa\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcba\nbaaa\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "cbaa\nbbaa\nbdbc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nabba\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aaca\nacbb\nbccc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "abca\nbbba\nbccb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acab\nbaba\nbbdc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "aacb\nbaba\nbcba\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "caa\nacbc\nba\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cabb\nabaa\nbcbc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcba\naaab\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "aaca\nabba\nbdcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "abca\nbbba\ncccb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acab\nbaba\nbbcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "caa\nacbc\naa\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "cabb\nabaa\ncbbc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "babc\naaab\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "aaca\nabab\nbdcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acca\nbbba\nbccb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acab\nbbba\nbbcc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aac\nacbc\naa\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nabab\nbdcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acab\nbbba\nccbb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nbaab\nbdcc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bbca\naabb\nbccc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aca\nccac\nca\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "abcb\nbbaa\nccbc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "caa\nacbc\nca\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "bcba\nbbaa\nbccc\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "aaca\nbbaa\nccbc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "ac`a\nabab\ncccc\n",
+   "expected": "C\n\n"
+  },
+  {
+   "stdin": "aaca\nabab\nbcdc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "caaa\nabbb\nbcdc\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\naabb\nbcdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "acaa\nbbbb\nbdbb\n",
+   "expected": "B\n\n"
+  },
+  {
+   "stdin": "acaa\nbbab\nbcdb\n",
+   "expected": "A\n\n"
+  },
+  {
+   "stdin": "abcb\naacb\nbccc\n",
+   "expected": "C\n"
+  },
+  {
+   "stdin": "aca\naccc\nca\n",
+   "expected": "A\n"
+  }
+ ]
+}

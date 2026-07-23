@@ -1,0 +1,412 @@
+{
+ "pid": "p01359",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# Problem A: Era Name\n\nTask Description: As many of you know, we have two major calendar systems used in Japan today. One of them\nis Gregorian calendar which is widely used across the world. It is also known as \u201cWestern\ncalendar\u201d in Japan.\n\nThe other calendar system is era-based calendar, or so-called \u201cJapanese calendar. \u201d This system\ncomes from ancient Chinese systems. Recently in Japan it has been a common way to associate\ndates with the Emperors. In the era-based system, we represent a year with an era name given\nat the time a new Emperor assumes the throne. If the era name is \u201cA\u201d, the first regnal year\nwill be \u201cA 1\u201d, the second year will be \u201cA 2\u201d, and so forth.\n\nSince we have two different calendar systems, it is often needed to convert the date in one\ncalendar system to the other. In this problem, you are asked to write a program that converts\nwestern year to era-based year, given a database that contains association between several\nwestern years and era-based years.\n\nFor the simplicity, you can assume the following:\n\n A new era always begins on January 1st of the corresponding Gregorian year.\n\n The first year of an era is described as 1.\n\n There is no year in which more than one era switch takes place.\nPlease note that, however, the database you will see may be incomplete. In other words, some\nera that existed in the history may be missing from your data. So you will also have to detect\nthe cases where you cannot determine exactly which era the given year belongs to.\nTask Input: The input contains multiple test cases. Each test case has the following format:\n\nN Q\nEra Name_1 Era Based Year_1 Western Year_1\n     . \n     . \n     . \nEra Name_N Era Based Year_N Western Year_N\nQuery_1\n. \n. \n. \nQuery_Q\n\nThe first line of the input contains two positive integers N and Q (1 <= N <= 1000,1 <= Q <= 1000).\nN is the number of database entries, and Q is the number of queries.\n\nEach of the following N lines has three components: era name, era-based year number and the\ncorresponding western year (1 <= Era Based Year_i <= Western Year_i <= 10^9 ). Each of era names\nconsist of at most 16 Roman alphabet characters. Then the last Q lines of the input specifies\nqueries (1 <= Query_i <= 10^9 ), each of which is a western year to compute era-based representation.\n\nThe end of input is indicated by a line containing two zeros. This line is not part of any dataset\nand hence should not be processed.\n\nYou can assume that all the western year in the input is positive integers, and that there is no\ntwo entries that share the same era name.\nTask Output: For each query, output in a line the era name and the era-based year number corresponding to\nthe western year given, separated with a single whitespace. In case you cannot determine the\nera, output \u201cUnknown\u201d without quotes.\nTask Samples: input: 4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n output: meiji 1\ntaisho 6\nUnknown\nUnknown\n\n## Input\nThe input contains multiple test cases. Each test case has the following format:\n\nN Q\nEra Name_1 Era Based Year_1 Western Year_1\n     . \n     . \n     . \nEra Name_N Era Based Year_N Western Year_N\nQuery_1\n. \n. \n. \nQuery_Q\n\nThe first line of the input contains two positive integers N and Q (1 <= N <= 1000,1 <= Q <= 1000).\nN is the number of database entries, and Q is the number of queries.\n\nEach of the following N lines has three components: era name, era-based year number and the\ncorresponding western year (1 <= Era Based Year_i <= Western Year_i <= 10^9 ). Each of era names\nconsist of at most 16 Roman alphabet characters. Then the last Q lines of the input specifies\nqueries (1 <= Query_i <= 10^9 ), each of which is a western year to compute era-based representation.\n\nThe end of input is indicated by a line containing two zeros. This line is not part of any dataset\nand hence should not be processed.\n\nYou can assume that all the western year in the input is positive integers, and that there is no\ntwo entries that share the same era name.\n\n## Output\nFor each query, output in a line the era name and the era-based year number corresponding to\nthe western year given, separated with a single whitespace. In case you cannot determine the\nera, output \u201cUnknown\u201d without quotes.\n\n## Examples\n['input: 4 3\\nmeiji 10 1877\\ntaisho 6 1917\\nshowa 62 1987\\nheisei 22 2010\\n1868\\n1917\\n1988\\n1 1\\nuniversalcentury 123 2168\\n2010\\n0 0\\n output: meiji 1\\ntaisho 6\\nUnknown\\nUnknown']",
+ "tests": [
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 22 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\ngeisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\ntaisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 25 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nsaowh 62 1987\nheisei 33 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1198\nsgowa 62 1987\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 1877\ntaisho 6 899\nshowa 62 1987\nheisei 25 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n681\n0 0\n",
+   "expected": "Unknown\nUnknown\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntahsho 6 1917\nshowa 62 1987\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\ntahsho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nsaowh 62 1987\nheisei 22 2010\n2046\n2671\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nsgowa 62 1987\nheisei 33 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\ntaisho 6\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\ngeisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "meiji 1\ntaisho 7\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 41 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisei 19\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntahsho 6 1917\nshowa 62 1987\nheisei 22 2010\n1868\n1944\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\nshowa 19\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmehji 10 1877\ntaisho 7 1917\nshowa 62 1987\ngeisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "mehji 1\ntaisho 7\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\nheisei 41 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 7\nheisei 19\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\nheisei 41 2010\n1126\n3675\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nheisei 19\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 15 1877\ntaisho 4 1917\nrhowa 62 1987\nheisei 22 2010\n2046\n1917\n1988\n1 1\nuniversalbentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 4\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmehji 10 3251\ntaisho 7 1917\nshowa 62 1987\ngdisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "Unknown\ntaisho 7\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaisho 9 1917\nsaowh 62 1987\nheisei 33 2010\n3949\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 9\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\nheisei 38 2010\n1126\n3675\n1988\n1 1\nuniversalcemtury 123 2168\n568\n0 0\n",
+   "expected": "Unknown\nUnknown\nheisei 16\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 11 1431\nshowa 62 1987\niesieg 27 2010\n1868\n340\n1988\n1 1\nyrutneclasrevinu 100 2168\n3042\n0 0\n",
+   "expected": "meiji 1\nUnknown\niesieg 5\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmejji 10 994\ntaisho 6 3313\nsaowh 62 2389\nheisei 33 2010\n930\n1917\n1137\n1 1\nyrutneclasrevinu 160 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nUnknown\nyrutneclasrevinu 2\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntbisho 6 1917\nshowa 62 1987\ngeisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\ntbisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\nohsiat 6 1917\nshowa 62 1987\nheisei 25 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nohsiat 6\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 3 1917\nsaowh 62 1987\nheisei 33 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 3\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 39 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisei 17\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 24 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n681\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisei 2\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\niatsho 6 1917\nshowa 62 1987\ngeisei 22 2010\n1868\n1917\n1988\n1 1\nyrutneclasrevinu 123 2168\n3042\n0 0\n",
+   "expected": "meiji 1\niatsho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmdiji 10 1877\ntaisho 10 1917\nshowa 62 1987\nheisei 25 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n3004\n0 0\n",
+   "expected": "Unknown\ntaisho 10\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmdhji 10 1877\ntaisho 7 1917\nshowa 62 1987\ngdisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "mdhji 1\ntaisho 7\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmehji 10 3251\ntaisho 8 1917\nshowa 62 1987\ngdisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "Unknown\ntaisho 8\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 33 2010\n2046\n2064\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\nohsiat 4 1917\nshowa 62 1987\nheisei 25 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nohsiat 4\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nrhowa 62 1987\nheisei 22 2010\n1976\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "rhowa 51\ntaisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nijiem 10 1487\ntaisho 11 1917\nsaowh 62 1987\nheisei 33 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 11\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nieisei 25 2010\n526\n2891\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nieisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 704\ntaishp 6 1917\nsaowh 62 1987\nheisei 33 2010\n1656\n1917\n1741\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaishp 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\niatsho 6 1917\nshowa 62 1987\ngeisei 22 2010\n1615\n1917\n1988\n1 1\nyrutneclasrevinu 123 2168\n3042\n0 0\n",
+   "expected": "Unknown\niatsho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmheji 10 1877\ntaisho 7 1917\nshoaw 62 1987\ngeisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "mheji 1\ntaisho 7\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\niesieh 41 2010\n1126\n920\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\niesieh 19\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaishp 6 1917\nsaowh 62 1987\nheisei 33 2010\n4620\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaishp 6\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaisho 9 1917\nsanwh 62 1987\nheisei 33 2010\n3949\n1917\n1373\n1 1\nuniveryalcenturs 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 9\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 3 3462\ntaisho 5 1917\nrhoaw 62 1987\nheisei 22 2010\n2046\n1917\n1988\n1 1\nuniversalbentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 5\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmjjei 10 704\ntaisho 6 3313\nsaowh 62 2389\nheisei 33 2010\n930\n1917\n1137\n1 1\nyrutneclasrevinu 201 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nUnknown\nyrutneclasrevinu 43\n\n"
+  },
+  {
+   "stdin": "4 3\nmejji 10 994\ntaisho 6 3313\nsaowh 62 2389\nheisei 29 2010\n930\n1917\n2254\n1 1\nyrutneclasrevinu 266 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nUnknown\nyrutneclasrevinu 108\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 4 3144\ntaisho 1 1917\nsgowa 62 1987\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 1\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 704\ntaisgo 6 1917\nasowh 85 3309\nheisei 33 2010\n2046\n1917\n1137\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisgo 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1198\nsgowa 62 1553\nheisei 22 2010\n1532\n1917\n1988\n1 1\nuniversalnedtury 123 2168\n2010\n0 0\n",
+   "expected": "sgowa 41\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 704\ntbisho 6 1917\nsaowh 62 1987\nheisei 33 2709\n2046\n1917\n1988\n1 1\nuniversalcentury 42 3534\n2010\n0 0\n",
+   "expected": "Unknown\ntbisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaishp 6 1917\nsaowh 62 1987\nheisei 61 2010\n4620\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaishp 6\nheisei 39\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmdiji 10 1877\nsaitho 6 1917\nshowa 62 3092\nheisei 25 3643\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2699\n0 0\n",
+   "expected": "Unknown\nsaitho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmfiji 10 1877\ntaisho 11 1431\nsiowa 62 1987\niesieg 22 2010\n1868\n340\n1988\n1 1\nyrutneclasrevinu 101 2168\n3042\n0 0\n",
+   "expected": "mfiji 1\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\niatsho 7 1917\nshowa 62 1677\ngeisei 27 1080\n1868\n1917\n2455\n1 1\nuniversalcentury 123 2168\n1317\n0 0\n",
+   "expected": "meiji 1\niatsho 7\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaishp 6 1917\nsaowh 62 1987\nheisej 61 2010\n4620\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaishp 6\nheisej 39\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nemiji 10 1877\ntaisho 6 1917\nshowa 42 1987\ngeisei 22 2010\n1868\n340\n1988\n1 1\nyrutneclasrevinu 100 2168\n4996\n0 0\n",
+   "expected": "emiji 1\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\nuaisho 11 1431\nawohs 62 1987\niesifg 27 2010\n1868\n304\n1988\n1 1\nyrutneclassevinu 100 2168\n3042\n0 0\n",
+   "expected": "meiji 1\nUnknown\niesifg 5\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\niesieh 33 2010\n2046\n1646\n1988\n1 1\nuniversalcentury 73 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\niesieh 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\niesieh 49 2010\n1126\n920\n1988\n1 1\nuniversalcemtury 123 2168\n805\n0 0\n",
+   "expected": "Unknown\nUnknown\niesieh 27\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nijiem 4 3144\nohsiat 1 1917\nsgowa 62 3026\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nohsiat 1\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 2254\ntaisho 6 1917\nshowa 62 1987\nheisei 37 2010\n1126\n1917\n1988\n1 1\nuoiversalcemtury 123 2168\n118\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisei 15\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 2265\nshowa 62 3185\ngeiseh 45 1724\n1868\n1917\n3139\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "meiji 1\nUnknown\nshowa 16\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\nuaisho 11 1431\nawohs 62 1987\niesifg 27 2010\n3227\n304\n1988\n1 1\nyrutnecnassevilu 100 2168\n3042\n0 0\n",
+   "expected": "Unknown\nUnknown\niesifg 5\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 2254\ntaisho 6 1917\nshowa 62 1987\nieiseh 37 2010\n1126\n1917\n1988\n1 1\nuoiversalcemtury 123 2168\n118\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nieiseh 15\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\nasisho 6 3102\nsiowa 62 1987\nieisei 25 2010\n526\n2891\n1988\n1 1\nuniversalcentury 226 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nieisei 3\nuniversalcentury 68\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\niesifh 49 2010\n1126\n920\n1988\n1 1\nuniversalcemtury 123 2192\n805\n0 0\n",
+   "expected": "Unknown\nUnknown\niesifh 27\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 6 1877\ntaisho 6 2265\nshowa 62 3185\ngeiseh 45 1724\n1868\n1917\n3139\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "Unknown\nUnknown\nshowa 16\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nijiem 6 578\ntaishn 6 1917\nshowa 62 3104\nheisfi 25 2431\n1126\n1917\n1988\n1 1\nuniwersalcemtury 170 2168\n3\n0 0\n",
+   "expected": "Unknown\ntaishn 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 4 18\ntaiohs 6 1917\nawohs 53 315\ngeisei 32 6266\n139\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "Unknown\ntaiohs 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1198\nsgowa 62 1987\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 217 2168\n2010\n0 0\n",
+   "expected": "meiji 1\nUnknown\nUnknown\nuniversalcentury 59\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 11 1877\ntaisho 6 1917\nshowa 62 1987\ngeisei 22 1080\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "meiji 2\ntaisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 2 1917\nshowa 62 1987\nheisei 25 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 2\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 704\ntaitho 6 1917\nasowh 62 1987\nheisei 33 2010\n2897\n1917\n1137\n1 1\nuniversalcentury 123 29\n1938\n0 0\n",
+   "expected": "Unknown\ntaitho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 9 1917\nshowa 62 1987\nheisei 25 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n3799\n0 0\n",
+   "expected": "Unknown\ntaisho 9\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1487\ntaisho 10 1917\nsaowh 62 1987\nheisei 33 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 10\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nrhowa 62 1987\nheisei 22 2010\n2046\n1917\n1988\n1 1\nuniversalbentury 218 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nUnknown\nuniversalbentury 60\n\n"
+  },
+  {
+   "stdin": "4 3\nmejii 10 1877\ntaisho 6 1917\nshowa 62 1987\ngeisei 22 2010\n1868\n340\n1988\n1 1\nyrutneclasrevinu 100 2168\n3042\n0 0\n",
+   "expected": "mejii 1\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 15 1877\ntaisho 4 1917\nrhoaw 62 1987\nheisei 32 2010\n2046\n1917\n1988\n1 1\nuniversalbentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 4\nheisei 10\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaisho 9 1917\nsaowh 62 1987\nheisei 50 2010\n3949\n1917\n1988\n1 1\nuniveryalcenturs 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 9\nheisei 28\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 11 1877\ntaisho 6 1917\nshowa 62 1987\nheirei 25 2010\n782\n2075\n1988\n1 1\nuniversalcenttry 123 2168\n2465\n0 0\n",
+   "expected": "Unknown\nUnknown\nheirei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 3 1917\nsaowh 62 1987\nheisei 33 2010\n2046\n1917\n1593\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 3\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 704\ntaisho 6 1917\nsaowh 62 1987\nheisei 33 2010\n696\n1917\n1988\n1 1\nyrutneclasrevinu 123 2168\n2010\n0 0\n",
+   "expected": "meiji 2\ntaisho 6\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 1877\ntaisho 6 3353\nshowa 62 1987\nheisei 39 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nheisei 17\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\nt`isho 6 1917\nrhowa 62 1987\nheisei 22 2010\n1752\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nt`isho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 704\ntaisho 6 1917\nsaowh 62 1987\nheisei 33 2052\n2046\n1917\n1988\n1 1\nuniversalcentury 123 3534\n2010\n0 0\n",
+   "expected": "heisei 27\ntaisho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nrhowa 62 1987\nheisei 22 2010\n2046\n1020\n1976\n1 1\nuniversalbentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nrhowa 51\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 7 1917\nshowa 62 1987\nheisei 29 2010\n1126\n920\n1988\n1 1\nuniversalcemtury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nheisei 7\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 6 1877\ntaisho 6 1917\nshowa 62 1987\nheisdi 25 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 170 2168\n169\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisdi 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nidmji 10 1877\ntaisho 6 1917\nshowa 62 73\nheisfi 25 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n3004\n0 0\n",
+   "expected": "Unknown\ntaisho 6\nheisfi 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiki 10 1877\ntaisho 6 1943\nshowa 62 1987\niesieg 22 2010\n1868\n340\n1988\n1 1\nyrutneclasrevinu 100 2168\n3042\n0 0\n",
+   "expected": "meiki 1\nUnknown\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 538\nohsiat 6 2423\nshowa 62 1706\ngeisei 27 193\n1868\n1917\n185\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "Unknown\nUnknown\ngeisei 19\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmejji 10 994\ntaisho 6 3313\nsaowh 82 2389\nheisei 33 2010\n930\n1917\n1137\n1 1\nyrutneclasrevinu 170 2168\n2010\n0 0\n",
+   "expected": "Unknown\nUnknown\nUnknown\nyrutneclasrevinu 12\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 10 1917\nshowa 62 1987\ngeisei 22 2010\n139\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2611\n0 0\n",
+   "expected": "Unknown\ntaisho 10\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 1877\ntaisoh 6 1917\nshowa 62 1987\nheisei 39 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 97 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisoh 6\nheisei 17\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nijiem 10 1487\nsaisho 11 1917\nsaowh 62 1987\nheisei 33 2010\n2046\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nsaisho 11\nheisei 11\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 6 1877\ntaisho 8 1917\nshowa 69 1987\nheisei 25 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n94\n0 0\n",
+   "expected": "Unknown\ntaisho 8\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 12 1928\ntaisho 6 1198\nsgowa 62 1553\nheisei 22 2010\n1868\n1917\n1461\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\nmeiji 1\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntsiaho 6 1917\nshowa 62 1677\ngeisei 27 1080\n1868\n1917\n2455\n1 1\nuniversalcentury 123 2168\n1317\n0 0\n",
+   "expected": "meiji 1\ntsiaho 6\nUnknown\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 6 1877\ntaisho 7 1917\nshowa 62 3104\nheisei 25 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 170 2168\n169\n0 0\n",
+   "expected": "Unknown\ntaisho 7\nheisei 3\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaishp 6 1917\nsaowh 62 1987\nheisei 33 2010\n4620\n1917\n1992\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaishp 6\nheisei 15\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeijh 10 1487\ntaisho 9 1917\nsanwh 62 1987\nheisei 33 2010\n3949\n1917\n1373\n1 1\nuniveryalcenturs 160 2168\n2010\n0 0\n",
+   "expected": "Unknown\ntaisho 9\nUnknown\nuniveryalcenturs 2\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 20 2254\nohsiat 6 1917\nshowa 62 1987\nheisei 24 2010\n1126\n1917\n1988\n1 1\nuniversalcemtury 123 2168\n141\n0 0\n",
+   "expected": "Unknown\nohsiat 6\nheisei 2\nUnknown\n\n"
+  },
+  {
+   "stdin": "4 3\nmeiji 10 1877\ntaisho 6 1917\nshowa 62 1987\nheisei 22 2010\n1868\n1917\n1988\n1 1\nuniversalcentury 123 2168\n2010\n0 0\n",
+   "expected": "meiji 1\ntaisho 6\nUnknown\nUnknown\n"
+  }
+ ]
+}

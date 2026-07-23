@@ -1,0 +1,8 @@
+H,W=map(int,input().split())
+if H==1 or W==1:
+    print(1)
+else:
+    if H%2==1 and W%2==1:
+        print((H*W)
+    else:
+        print(H*W

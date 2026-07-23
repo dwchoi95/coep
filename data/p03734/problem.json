@@ -1,0 +1,424 @@
+{
+ "pid": "p03734",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement You have N items and a bag of strength W.\nThe i-th item has a weight of w_i and a value of v_i.\nYou will select some of the items and put them in the bag.\nHere, the total weight of the selected items needs to be at most W.\nYour objective is to maximize the total value of the selected items.\nTask Constraint: 1 <= N <= 100\n1 <= W <= 10^9\n1 <= w_i <= 10^9\nFor each i = 2,3,...,N, w_1 <= w_i <= w_1 + 3.\n1 <= v_i <= 10^7\nW, each w_i and v_i are integers.\nTask Input: Input is given from Standard Input in the following format:\nN W\nw_1 v_1\nw_2 v_2\n:\nw_N v_N\nTask Output: Print the maximum possible total value of the selected items.\nTask Samples: input: 4 6\n2 1\n3 4\n4 10\n3 4 output: 11\n\nThe first and third items should be selected.\ninput: 4 6\n2 1\n3 7\n4 10\n3 6 output: 13\n\nThe second and fourth items should be selected.\ninput: 4 10\n1 100\n1 100\n1 100\n1 100 output: 400\n\nYou can take everything.\ninput: 4 1\n10 100\n10 100\n10 100\n10 100 output: 0\n\nYou can take nothing.\n\n## Constraints\n1 <= N <= 100\n1 <= W <= 10^9\n1 <= w_i <= 10^9\nFor each i = 2,3,...,N, w_1 <= w_i <= w_1 + 3.\n1 <= v_i <= 10^7\nW, each w_i and v_i are integers.\n\n## Input\nInput is given from Standard Input in the following format:\nN W\nw_1 v_1\nw_2 v_2\n:\nw_N v_N\n\n## Output\nPrint the maximum possible total value of the selected items.\n\n## Examples\n['input: 4 6\\n2 1\\n3 4\\n4 10\\n3 4 output: 11\\n\\nThe first and third items should be selected.', 'input: 4 6\\n2 1\\n3 7\\n4 10\\n3 6 output: 13\\n\\nThe second and fourth items should be selected.', 'input: 4 10\\n1 100\\n1 100\\n1 100\\n1 100 output: 400\\n\\nYou can take everything.', 'input: 4 1\\n10 100\\n10 100\\n10 100\\n10 100 output: 0\\n\\nYou can take nothing.']",
+ "tests": [
+  {
+   "stdin": "4 10\n1 100\n2 100\n1 100\n1 100\n",
+   "expected": "400\n\n"
+  },
+  {
+   "stdin": "4 1\n10 100\n10 100\n10 101\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 6\n4 10\n3 4\n",
+   "expected": "11\n\n"
+  },
+  {
+   "stdin": "4 10\n1 000\n1 100\n1 100\n1 100\n",
+   "expected": "300\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 7\n4 10\n3 9\n",
+   "expected": "16\n\n"
+  },
+  {
+   "stdin": "4 12\n2 1\n3 4\n4 10\n3 4\n",
+   "expected": "19\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 6\n4 8\n3 4\n",
+   "expected": "10\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 6\n4 10\n3 9\n",
+   "expected": "15\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 100\n1 101\n1 100\n",
+   "expected": "401\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 6\n2 8\n3 4\n",
+   "expected": "14\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 110\n1 101\n1 100\n",
+   "expected": "411\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 110\n1 111\n1 100\n",
+   "expected": "421\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 111\n1 111\n1 100\n",
+   "expected": "422\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 8\n2 8\n2 8\n",
+   "expected": "17\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 111\n1 111\n1 101\n",
+   "expected": "423\n\n"
+  },
+  {
+   "stdin": "4 2\n2 1\n3 8\n2 8\n2 8\n",
+   "expected": "8\n\n"
+  },
+  {
+   "stdin": "4 3\n2 1\n3 7\n4 10\n3 6\n",
+   "expected": "7\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 110\n1 100\n1 100\n",
+   "expected": "410\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 6\n4 8\n3 6\n",
+   "expected": "12\n\n"
+  },
+  {
+   "stdin": "4 9\n2 1\n3 4\n4 10\n2 4\n",
+   "expected": "18\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 1\n2 8\n3 1\n",
+   "expected": "9\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 12\n2 8\n3 4\n",
+   "expected": "20\n\n"
+  },
+  {
+   "stdin": "4 2\n1 100\n1 110\n1 111\n1 100\n",
+   "expected": "221\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 14\n2 6\n3 8\n",
+   "expected": "22\n\n"
+  },
+  {
+   "stdin": "4 3\n2 0\n3 13\n4 10\n3 6\n",
+   "expected": "13\n\n"
+  },
+  {
+   "stdin": "4 13\n0 000\n1 000\n1 100\n1 100\n",
+   "expected": "200\n\n"
+  },
+  {
+   "stdin": "4 17\n0 100\n2 001\n1 100\n2 100\n",
+   "expected": "301\n\n"
+  },
+  {
+   "stdin": "4 1\n1 100\n1 101\n1 111\n1 101\n",
+   "expected": "111\n\n"
+  },
+  {
+   "stdin": "4 15\n0 100\n2 110\n2 100\n1 110\n",
+   "expected": "420\n\n"
+  },
+  {
+   "stdin": "4 1\n1 100\n1 100\n1 110\n1 100\n",
+   "expected": "110\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 8\n2 13\n3 4\n",
+   "expected": "21\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 101\n1 111\n1 100\n",
+   "expected": "412\n\n"
+  },
+  {
+   "stdin": "4 10\n0 000\n1 100\n1 110\n1 100\n",
+   "expected": "310\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n1 110\n1 011\n1 100\n",
+   "expected": "321\n\n"
+  },
+  {
+   "stdin": "4 9\n2 1\n3 14\n2 6\n3 8\n",
+   "expected": "28\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 2\n2 2\n3 1\n",
+   "expected": "4\n\n"
+  },
+  {
+   "stdin": "4 13\n0 000\n1 000\n1 100\n1 110\n",
+   "expected": "210\n\n"
+  },
+  {
+   "stdin": "4 13\n0 000\n1 100\n1 101\n1 000\n",
+   "expected": "201\n\n"
+  },
+  {
+   "stdin": "4 1\n1 100\n1 101\n1 011\n1 101\n",
+   "expected": "101\n\n"
+  },
+  {
+   "stdin": "4 13\n0 101\n1 100\n1 101\n1 100\n",
+   "expected": "402\n\n"
+  },
+  {
+   "stdin": "4 1\n1 100\n1 100\n1 010\n1 100\n",
+   "expected": "100\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 16\n2 8\n4 2\n",
+   "expected": "24\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n1 110\n1 001\n1 100\n",
+   "expected": "311\n\n"
+  },
+  {
+   "stdin": "4 9\n2 1\n3 17\n2 6\n3 8\n",
+   "expected": "31\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 2\n2 4\n3 1\n",
+   "expected": "6\n\n"
+  },
+  {
+   "stdin": "4 13\n0 000\n1 100\n1 111\n1 000\n",
+   "expected": "211\n\n"
+  },
+  {
+   "stdin": "4 13\n0 101\n1 000\n1 101\n1 100\n",
+   "expected": "302\n\n"
+  },
+  {
+   "stdin": "4 15\n0 100\n0 110\n2 000\n2 110\n",
+   "expected": "320\n\n"
+  },
+  {
+   "stdin": "4 10\n0 111\n2 101\n1 100\n2 101\n",
+   "expected": "413\n\n"
+  },
+  {
+   "stdin": "4 1\n1 1\n3 6\n4 12\n3 4\n",
+   "expected": "1\n\n"
+  },
+  {
+   "stdin": "4 10\n0 111\n2 101\n1 100\n2 001\n",
+   "expected": "313\n\n"
+  },
+  {
+   "stdin": "4 28\n0 100\n2 011\n1 100\n2 111\n",
+   "expected": "322\n\n"
+  },
+  {
+   "stdin": "4 1\n0 001\n0 100\n1 111\n1 101\n",
+   "expected": "212\n\n"
+  },
+  {
+   "stdin": "4 9\n0 000\n0 101\n0 001\n0 100\n",
+   "expected": "202\n\n"
+  },
+  {
+   "stdin": "4 10\n0 111\n2 101\n1 100\n2 011\n",
+   "expected": "323\n\n"
+  },
+  {
+   "stdin": "4 3\n0 111\n2 101\n1 100\n2 011\n",
+   "expected": "312\n\n"
+  },
+  {
+   "stdin": "4 15\n0 011\n1 100\n0 001\n1 110\n",
+   "expected": "222\n\n"
+  },
+  {
+   "stdin": "4 15\n0 110\n1 101\n0 111\n1 110\n",
+   "expected": "432\n\n"
+  },
+  {
+   "stdin": "4 15\n0 100\n2 110\n2 110\n2 110\n",
+   "expected": "430\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 3\n2 2\n3 1\n",
+   "expected": "5\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 0\n2 9\n3 16\n",
+   "expected": "25\n\n"
+  },
+  {
+   "stdin": "4 13\n0 101\n1 001\n1 101\n0 000\n",
+   "expected": "203\n\n"
+  },
+  {
+   "stdin": "4 11\n2 -1\n5 6\n4 7\n3 22\n",
+   "expected": "29\n\n"
+  },
+  {
+   "stdin": "4 15\n0 011\n1 100\n0 110\n1 110\n",
+   "expected": "331\n\n"
+  },
+  {
+   "stdin": "4 13\n0 101\n1 101\n1 100\n0 101\n",
+   "expected": "403\n\n"
+  },
+  {
+   "stdin": "4 3\n0 111\n2 001\n1 101\n2 011\n",
+   "expected": "223\n\n"
+  },
+  {
+   "stdin": "4 15\n0 110\n1 100\n0 111\n1 110\n",
+   "expected": "431\n\n"
+  },
+  {
+   "stdin": "4 15\n0 000\n2 110\n2 110\n1 110\n",
+   "expected": "330\n\n"
+  },
+  {
+   "stdin": "4 2\n2 1\n3 3\n2 2\n3 1\n",
+   "expected": "2\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 0\n2 7\n3 16\n",
+   "expected": "23\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 100\n1 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 2\n10 100\n10 100\n10 100\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 100\n1 100\n1 100\n",
+   "expected": "400\n\n"
+  },
+  {
+   "stdin": "4 1\n10 100\n10 000\n10 101\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 110\n1 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 2\n10 110\n10 100\n10 100\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 1\n10 100\n10 000\n10 001\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 0\n3 6\n4 10\n3 9\n",
+   "expected": "15\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 111\n1 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 1\n10 100\n10 010\n10 001\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 8\n2 8\n3 4\n",
+   "expected": "16\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 101\n1 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 8\n2 8\n3 8\n",
+   "expected": "16\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 001\n1 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 10\n0 100\n1 100\n1 100\n1 100\n",
+   "expected": "400\n\n"
+  },
+  {
+   "stdin": "4 0\n10 100\n10 100\n10 100\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 9\n2 1\n3 4\n4 10\n3 4\n",
+   "expected": "15\n\n"
+  },
+  {
+   "stdin": "4 10\n0 100\n2 100\n1 100\n1 100\n",
+   "expected": "400\n\n"
+  },
+  {
+   "stdin": "4 10\n0 000\n1 100\n1 100\n1 100\n",
+   "expected": "300\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 7\n4 10\n3 4\n",
+   "expected": "11\n\n"
+  },
+  {
+   "stdin": "4 0\n10 100\n10 000\n10 101\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 6\n4 8\n3 9\n",
+   "expected": "15\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 010\n1 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 2\n10 110\n10 100\n10 101\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n4 100\n2 101\n1 100\n",
+   "expected": "401\n\n"
+  },
+  {
+   "stdin": "4 1\n10 100\n10 000\n10 011\n10 100\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 1\n2 8\n3 4\n",
+   "expected": "12\n\n"
+  },
+  {
+   "stdin": "4 6\n2 0\n5 6\n4 10\n3 9\n",
+   "expected": "10\n\n"
+  },
+  {
+   "stdin": "4 0\n1 100\n1 100\n1 111\n1 101\n",
+   "expected": "0\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 8\n2 8\n4 4\n",
+   "expected": "16\n\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 4\n4 10\n3 4\n",
+   "expected": "11\n"
+  },
+  {
+   "stdin": "4 10\n1 100\n1 100\n1 100\n1 100\n",
+   "expected": "400\n"
+  },
+  {
+   "stdin": "4 6\n2 1\n3 7\n4 10\n3 6\n",
+   "expected": "13\n"
+  },
+  {
+   "stdin": "4 1\n10 100\n10 100\n10 100\n10 100\n",
+   "expected": "0\n"
+  }
+ ]
+}

@@ -1,0 +1,412 @@
+{
+ "pid": "p02665",
+ "source": "lsgen",
+ "mode": "stdio",
+ "description": "# \n\nTask Description: Problem Statement Given is an integer sequence of length N+1: A_0, A_1, A_2, \\ldots, A_N. Is there a binary tree of depth N such that, for each d = 0,1, \\ldots, N, there are exactly A_d leaves at depth d? If such a tree exists, print the maximum possible number of vertices in such a tree; otherwise, print -1. note: Notes\nA binary tree is a rooted tree such that each vertex has at most two direct children.\nA leaf in a binary tree is a vertex with zero children.\nThe depth of a vertex v in a binary tree is the distance from the tree's root to v. (The root has the depth of 0. )\nThe depth of a binary tree is the maximum depth of a vertex in the tree.\nTask Constraint: 0 <= N <= 10^5\n0 <= A_i <= 10^{8} (0 <= i <= N)\nA_N >= 1\nAll values in input are integers.\nTask Input: Input is given from Standard Input in the following format:\nN\nA_0 A_1 A_2 \\cdots A_N\nTask Output: Print the answer as an integer.\nTask Samples: input: 3\n0 1 1 2 output: 7\n\nBelow is the tree with the maximum possible number of vertices. It has seven vertices, so we should print 7.\ninput: 4\n0 0 1 0 2 output: 10\ninput: 2\n0 3 1 output: -1\ninput: 1\n1 1 output: -1\ninput: 10\n0 0 1 1 2 3 5 8 13 21 34 output: 264\n\n## Constraints\n0 <= N <= 10^5\n0 <= A_i <= 10^{8} (0 <= i <= N)\nA_N >= 1\nAll values in input are integers.\n\n## Input\nInput is given from Standard Input in the following format:\nN\nA_0 A_1 A_2 \\cdots A_N\n\n## Output\nPrint the answer as an integer.\n\n## Examples\n['input: 3\\n0 1 1 2 output: 7\\n\\nBelow is the tree with the maximum possible number of vertices. It has seven vertices, so we should print 7.', 'input: 4\\n0 0 1 0 2 output: 10', 'input: 2\\n0 3 1 output: -1', 'input: 1\\n1 1 output: -1', 'input: 10\\n0 0 1 1 2 3 5 8 13 21 34 output: 264']",
+ "tests": [
+  {
+   "stdin": "4\n0 0 0 0 2\n",
+   "expected": "9\n\n"
+  },
+  {
+   "stdin": "3\n0 1 1 1\n",
+   "expected": "6\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 2 3 5 8 13 21 34\n",
+   "expected": "294\n\n"
+  },
+  {
+   "stdin": "2\n0 3 2\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 2 3 5 8 13 23 34\n",
+   "expected": "298\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 3 3 5 8 13 23 34\n",
+   "expected": "284\n\n"
+  },
+  {
+   "stdin": "2\n-1 3 2\n",
+   "expected": "7\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 1 3 3 5 8 13 23 34\n",
+   "expected": "236\n\n"
+  },
+  {
+   "stdin": "2\n-2 3 2\n",
+   "expected": "8\n\n"
+  },
+  {
+   "stdin": "4\n0 1 0 1 2\n",
+   "expected": "10\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 1 3 3 4 8 13 23 34\n",
+   "expected": "242\n\n"
+  },
+  {
+   "stdin": "4\n0 1 0 1 3\n",
+   "expected": "12\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 1 3 3 4 8 13 23 34\n",
+   "expected": "360\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -1 1 3\n",
+   "expected": "15\n\n"
+  },
+  {
+   "stdin": "2\n-3 3 5\n",
+   "expected": "14\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 1 5\n",
+   "expected": "21\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 2 5\n",
+   "expected": "23\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 2 10\n",
+   "expected": "35\n\n"
+  },
+  {
+   "stdin": "4\n0 0 -1 2 10\n",
+   "expected": "27\n\n"
+  },
+  {
+   "stdin": "4\n0 0 -1 3 11\n",
+   "expected": "28\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 3 11\n",
+   "expected": "38\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 3 22\n",
+   "expected": "53\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -3 2 14\n",
+   "expected": "41\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -3 4 14\n",
+   "expected": "43\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -3 1 14\n",
+   "expected": "40\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -3 1 28\n",
+   "expected": "57\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 0 1 28\n",
+   "expected": "65\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -1 1 12\n",
+   "expected": "36\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -1 1 17\n",
+   "expected": "42\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 1 17\n",
+   "expected": "48\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 1 2 4 5 8 13 21 34\n",
+   "expected": "250\n\n"
+  },
+  {
+   "stdin": "3\n0 1 0 1\n",
+   "expected": "5\n\n"
+  },
+  {
+   "stdin": "10\n-1 0 1 0 2 3 5 8 13 21 34\n",
+   "expected": "421\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 2 3 5 8 16 23 34\n",
+   "expected": "301\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 5 3 5 8 13 23 34\n",
+   "expected": "238\n\n"
+  },
+  {
+   "stdin": "2\n-3 6 2\n",
+   "expected": "11\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 1 3 4 4 8 13 23 34\n",
+   "expected": "358\n\n"
+  },
+  {
+   "stdin": "4\n0 1 -1 2 3\n",
+   "expected": "13\n\n"
+  },
+  {
+   "stdin": "2\n-3 3 9\n",
+   "expected": "18\n\n"
+  },
+  {
+   "stdin": "4\n-2 0 -1 1 5\n",
+   "expected": "22\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 3 5\n",
+   "expected": "25\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 2 16\n",
+   "expected": "47\n\n"
+  },
+  {
+   "stdin": "4\n0 0 -1 2 4\n",
+   "expected": "17\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -2 5 22\n",
+   "expected": "49\n\n"
+  },
+  {
+   "stdin": "4\n-2 2 -1 5 22\n",
+   "expected": "55\n\n"
+  },
+  {
+   "stdin": "4\n0 1 -3 2 14\n",
+   "expected": "29\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -3 1 17\n",
+   "expected": "46\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 -3 1 28\n",
+   "expected": "71\n\n"
+  },
+  {
+   "stdin": "4\n-4 1 0 1 28\n",
+   "expected": "86\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 -1 2 28\n",
+   "expected": "67\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 0 2 11\n",
+   "expected": "34\n\n"
+  },
+  {
+   "stdin": "4\n-2 0 -1 1 17\n",
+   "expected": "54\n\n"
+  },
+  {
+   "stdin": "4\n0 -1 -2 1 19\n",
+   "expected": "44\n\n"
+  },
+  {
+   "stdin": "3\n0 1 -1 1\n",
+   "expected": "3\n\n"
+  },
+  {
+   "stdin": "10\n-1 0 1 0 2 3 5 8 13 30 34\n",
+   "expected": "457\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 2 3 5 8 16 12 34\n",
+   "expected": "279\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 5 3 5 5 13 23 34\n",
+   "expected": "244\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 1 4 3 4 8 16 23 34\n",
+   "expected": "203\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 1 3 4 4 8 13 6 34\n",
+   "expected": "307\n\n"
+  },
+  {
+   "stdin": "4\n0 0 -1 2 16\n",
+   "expected": "33\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 -3 4 27\n",
+   "expected": "70\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 -5 1 28\n",
+   "expected": "74\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 0 1 29\n",
+   "expected": "58\n\n"
+  },
+  {
+   "stdin": "4\n-4 1 0 0 28\n",
+   "expected": "85\n\n"
+  },
+  {
+   "stdin": "4\n-2 -1 -1 1 17\n",
+   "expected": "56\n\n"
+  },
+  {
+   "stdin": "10\n-1 0 1 0 2 3 5 8 13 16 34\n",
+   "expected": "401\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 0 2 0 5 8 16 12 34\n",
+   "expected": "297\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 1 4 3 4 8 7 23 34\n",
+   "expected": "212\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 1 3 4 4 5 13 6 34\n",
+   "expected": "304\n\n"
+  },
+  {
+   "stdin": "4\n0 0 -1 2 5\n",
+   "expected": "19\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 8 5\n",
+   "expected": "31\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 2 19\n",
+   "expected": "50\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 -4 6 23\n",
+   "expected": "68\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -3 1 10\n",
+   "expected": "32\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -1 1 29\n",
+   "expected": "60\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -2 0 12\n",
+   "expected": "37\n\n"
+  },
+  {
+   "stdin": "4\n-4 -1 -1 1 17\n",
+   "expected": "63\n\n"
+  },
+  {
+   "stdin": "10\n-1 0 1 0 2 3 5 8 15 16 34\n",
+   "expected": "407\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 0 2 0 5 8 16 12 34\n",
+   "expected": "359\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 1 3 4 4 5 13 9 34\n",
+   "expected": "313\n\n"
+  },
+  {
+   "stdin": "4\n-2 1 -1 2 22\n",
+   "expected": "61\n\n"
+  },
+  {
+   "stdin": "4\n-2 0 0 5 36\n",
+   "expected": "79\n\n"
+  },
+  {
+   "stdin": "4\n-4 1 0 0 24\n",
+   "expected": "77\n\n"
+  },
+  {
+   "stdin": "4\n-1 1 -1 2 4\n",
+   "expected": "20\n\n"
+  },
+  {
+   "stdin": "4\n-1 0 -2 0 7\n",
+   "expected": "24\n\n"
+  },
+  {
+   "stdin": "4\n-4 -1 0 1 17\n",
+   "expected": "64\n\n"
+  },
+  {
+   "stdin": "10\n0 -1 1 0 2 0 5 8 16 16 34\n",
+   "expected": "371\n\n"
+  },
+  {
+   "stdin": "10\n0 0 1 -1 5 6 5 9 13 23 34\n",
+   "expected": "256\n\n"
+  },
+  {
+   "stdin": "4\n-2 0 -1 2 35\n",
+   "expected": "80\n\n"
+  },
+  {
+   "stdin": "4\n-2 0 -1 5 36\n",
+   "expected": "81\n\n"
+  },
+  {
+   "stdin": "4\n-6 1 0 0 24\n",
+   "expected": "87\n\n"
+  },
+  {
+   "stdin": "4\n0 1 0 0 2\n",
+   "expected": "9\n\n"
+  },
+  {
+   "stdin": "3\n1 1 1 1\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "2\n0 2 2\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "4\n1 1 0 0 2\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "3\n1 2 1 1\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "4\n1 1 0 1 2\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "3\n2 2 1 1\n",
+   "expected": "-1\n\n"
+  },
+  {
+   "stdin": "4\n0 0 1 0 2\n",
+   "expected": "10\n"
+  },
+  {
+   "stdin": "10\n0 0 1 1 2 3 5 8 13 21 34\n",
+   "expected": "264\n"
+  },
+  {
+   "stdin": "3\n0 1 1 2\n",
+   "expected": "7\n"
+  }
+ ]
+}

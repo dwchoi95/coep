@@ -8,6 +8,7 @@ import contextlib
 import copy
 import io
 import json
+import signal
 import sys
 
 
@@ -91,28 +92,59 @@ def _run_call(src, entry, tests, tol, stop_early):
     return (passed, failures), None
 
 
-def _run_stdio(src, tests, tol, stop_early):
+class _Timeout(Exception):
+    pass
+
+
+def _make_stdin(text):
+    """stdin that supports BOTH ``input()`` and ``sys.stdin.buffer.read()``.
+
+    Competitive submissions routinely use the binary fast-I/O idiom, so a plain
+    StringIO (no ``.buffer``) would mark correct programs as crashing.
+    """
+    return io.TextIOWrapper(io.BytesIO(text.encode()), encoding="utf-8",
+                            newline=None)
+
+
+def _run_stdio(src, tests, tol, stop_early, per_test):
     try:
         code = compile(src, "<candidate>", "exec")
     except BaseException as e:
         return None, f"{type(e).__name__}: {e}"
     failures, passed = [], 0
     real_stdin = sys.stdin
+
+    def _alarm(signum, frame):
+        raise _Timeout()
+
+    have_timer = hasattr(signal, "setitimer")
+    if have_timer:
+        signal.signal(signal.SIGALRM, _alarm)
+
     for i, t in enumerate(tests):
         buf = io.StringIO()
-        sys.stdin = io.StringIO(t.get("stdin", ""))
+        sys.stdin = _make_stdin(t.get("stdin", ""))
+        if have_timer:
+            signal.setitimer(signal.ITIMER_REAL, per_test)
         try:
             with contextlib.redirect_stdout(buf):
                 exec(code, {"__name__": "__main__"})
         except SystemExit:
             pass  # judge programs legitimately call exit()
+        except _Timeout:
+            failures.append({"index": i, "timeout": True})
+            if stop_early:
+                break
+            continue
         except BaseException as e:
-            sys.stdin = real_stdin
             failures.append({"index": i, "error": f"{type(e).__name__}: {e}"})
             if stop_early:
                 break
             continue
-        sys.stdin = real_stdin
+        finally:
+            if have_timer:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            sys.stdin = real_stdin
         got = buf.getvalue()
         if _stdout_eq(got, t.get("expected", ""), tol):
             passed += 1
@@ -129,8 +161,9 @@ def main():
     payload = json.load(open(sys.argv[1]))
     tests = payload["tests"]
     tol, stop_early = payload["tol"], payload["stop_early"]
+    per_test = payload.get("per_test", 2.0)
     if payload["mode"] == "stdio":
-        out, err = _run_stdio(payload["source"], tests, tol, stop_early)
+        out, err = _run_stdio(payload["source"], tests, tol, stop_early, per_test)
     else:
         out, err = _run_call(payload["source"], payload["entry"], tests, tol, stop_early)
     if err is not None:

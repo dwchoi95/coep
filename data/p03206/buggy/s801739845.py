@@ -1,0 +1,1 @@
+print("Christmas" + " ".join(["Eve"] * (25 - int(input()))))

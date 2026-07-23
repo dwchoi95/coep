@@ -29,7 +29,8 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-DEFAULT_TIMEOUT = 10.0
+PER_TEST_TIMEOUT = 2.0   # judge-style per-test wall clock
+TIMEOUT_OVERHEAD = 5.0   # interpreter start-up + I/O
 FLOAT_TOL = 1e-6
 
 _RUNNER = Path(__file__).with_name("_child.py")
@@ -78,8 +79,13 @@ def infer_mode(problem: dict) -> str:
     return "call"
 
 
-def run_tests(source: str, problem: dict, timeout: float = DEFAULT_TIMEOUT,
-              stop_early: bool = False) -> TestResult:
+def _budget(n_tests: int, per_test: float) -> float:
+    """Harness timeout scaled to the suite; one hung test cannot eat the rest."""
+    return min(per_test * max(1, n_tests) + TIMEOUT_OVERHEAD, 180.0)
+
+
+def run_tests(source: str, problem: dict, timeout: float | None = None,
+              stop_early: bool = False, per_test: float = PER_TEST_TIMEOUT) -> TestResult:
     """Run ``source`` against ``problem['tests']`` in a fresh subprocess.
 
     ``stop_early`` returns as soon as one test fails, which is what the
@@ -94,7 +100,10 @@ def run_tests(source: str, problem: dict, timeout: float = DEFAULT_TIMEOUT,
         "tests": problem.get("tests") or [],
         "stop_early": bool(stop_early),
         "tol": FLOAT_TOL,
+        "per_test": per_test,
     }
+    if timeout is None:
+        timeout = _budget(len(payload["tests"]), per_test)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
         json.dump(payload, fh)
         path = fh.name
@@ -125,7 +134,7 @@ def run_tests(source: str, problem: dict, timeout: float = DEFAULT_TIMEOUT,
     return res
 
 
-def passes(source: str, problem: dict, timeout: float = DEFAULT_TIMEOUT) -> bool:
+def passes(source: str, problem: dict, timeout: float | None = None) -> bool:
     """True iff ``source`` passes every test. Used by generated tools."""
     return run_tests(source, problem, timeout=timeout, stop_early=True).all_pass
 
