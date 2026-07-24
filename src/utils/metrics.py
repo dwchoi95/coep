@@ -132,9 +132,10 @@ def count_tokens(text: str) -> int:
 
 # ------------------------------------------------------------------ cost
 PRICES = {  # USD per million tokens, (input, output)
-    "claude-sonnet": (3.00, 15.00),
+    "claude-sonnet": (2.00, 10.00),      # Claude Sonnet 5 (introductory pricing through 2026-08-31)
     "claude-haiku": (1.00, 5.00),        # Claude Haiku 4.5
-    "gpt-nano": (0.05, 0.40),            # GPT-5.4-nano  (TODO: confirm vs pricing page)
+    "gpt-mini": (0.75, 4.50),            # GPT-5.4-mini (cached input $0.075 = 0.1x)
+    "gpt-nano": (0.05, 0.40),            # GPT-5.4-nano
     "gpt-4o": (2.50, 10.00),
     "gpt-4o-mini": (0.15, 0.60),
     "qwen2.5-coder-7b-local": (0.0, 0.0),  # self-hosted: measured separately

@@ -34,14 +34,15 @@ from src.experiments.results_io import (event_row, summarize_events,
                                         upsert_summary, write_events)
 from src.utils.metrics import rps
 
-MODEL_LABEL = {"claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
+MODEL_LABEL = {"claude-sonnet": "claude-sonnet-5", "gpt-mini": "gpt-5.4-mini",
+               "claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
 _RULE_NAME = re.compile(r"Rule\(\s*['\"]([^'\"]+)['\"]")
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py compare")
     ap.add_argument("--problem", required=True)
-    ap.add_argument("--model", default="claude-haiku")
+    ap.add_argument("--model", default="claude-sonnet")
     ap.add_argument("--limit", type=int, default=0, help="0 = all buggy programs")
     ap.add_argument("--no-llm", action="store_true",
                     help="skip fallback/absorption (CoEP_L only; no API key)")

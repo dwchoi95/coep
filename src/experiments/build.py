@@ -16,7 +16,7 @@ from src.experiments._common import load_env, load_pool, load_problem
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py build")
     ap.add_argument("--problem", required=True, help="problem id, e.g. refactory_q1")
-    ap.add_argument("--model", default=["claude-haiku", "gpt-nano"], nargs="+",
+    ap.add_argument("--model", default=["claude-sonnet", "gpt-mini"], nargs="+",
                     help="builder model(s)")
     ap.add_argument("--n-samples", type=int, default=8)
     ap.add_argument("--n-refs", type=int, default=2)

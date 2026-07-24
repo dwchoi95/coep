@@ -99,6 +99,7 @@ def complete(prompt: str, model: str = "claude-sonnet", *, system: str | None = 
 _MODEL_IDS = {
     "claude-sonnet": "claude-sonnet-5",
     "claude-haiku": "claude-haiku-4-5",
+    "gpt-mini": "gpt-5.4-mini",
     "gpt-nano": "gpt-5.4-nano-2026-03-17",
 }
 

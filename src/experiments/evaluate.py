@@ -21,7 +21,7 @@ from src.utils.metrics import rps
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py evaluate")
     ap.add_argument("--problem", required=True)
-    ap.add_argument("--model", default="claude-haiku")
+    ap.add_argument("--model", default="claude-sonnet")
     ap.add_argument("--limit", type=int, default=0, help="0 = all buggy programs")
     ap.add_argument("--fallback", action="store_true", help="escalate abstentions")
     ap.add_argument("--learn", action="store_true", help="absorb fallback fixes")

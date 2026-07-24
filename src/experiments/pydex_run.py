@@ -38,10 +38,13 @@ from src.experiments.results_io import (event_row, summarize_events,
 from src.runner.testing import run_tests
 from src.utils.metrics import PRICES, count_tokens, rps
 
-MODEL_LABEL = {"claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
-CACHE_MIN = {"claude-haiku": 4096, "gpt-nano": 1024}   # provider cacheable minimums
+MODEL_LABEL = {"claude-sonnet": "claude-sonnet-5", "gpt-mini": "gpt-5.4-mini",
+               "claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
+CACHE_MIN = {"claude-sonnet": 1024, "gpt-mini": 1024,   # provider cacheable minimums
+             "claude-haiku": 4096, "gpt-nano": 1024}
 CACHE_READ = 0.1
-CACHE_WRITE = {"claude-haiku": 1.25, "gpt-nano": 0.0}  # gpt-5.4: writes free
+CACHE_WRITE = {"claude-sonnet": 1.25, "claude-haiku": 1.25,
+               "gpt-mini": 0.0, "gpt-nano": 0.0}        # gpt-5.4 family: writes free
 
 
 def _shared_prefix_tokens(problem: dict) -> int:
@@ -57,7 +60,7 @@ def _shared_prefix_tokens(problem: dict) -> int:
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py pydex")
     ap.add_argument("--problem", required=True)
-    ap.add_argument("--model", default="claude-haiku")
+    ap.add_argument("--model", default="claude-sonnet")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--k", type=int, default=K_DEFAULT,
                     help="candidates per prompt (paper: 10)")
