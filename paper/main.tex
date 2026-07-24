@@ -129,15 +129,16 @@ The local path runs on a CPU in ${\sim}1$--$2$\,s per submission, deterministica
 
 \section{Experiments}
 
-\subsection{Setup}
+\subsubsection{Research Questions.}
+The primary research questions (RQs) addressed by our evaluation are as follows:
+\begin{itemize}
+\item \textbf{RQ1}: How do the three \textsc{CoEP} configurations and the baselines compare in repair rate and relative patch size, per problem and overall?
+\item \textbf{RQ2}: What does each approach cost in turnaround time, tokens, and dollars, and past what submission volume does \textsc{CoEP}'s one-off build amortize?
+\item \textbf{RQ3}: Which rules does the builder author and which does self-learning add, which rules recur and fire most across problems, and what does the LLM layer add over the shared symbolic substrate?
+\end{itemize}
+
+\subsubsection{Baselines.}
 \label{sec:setup}
-
-We compare six approaches: Refactory, PyDex, PyDex\textsubscript{PC}, and three \textsc{CoEP} configurations, all defined below. We ask three research questions.
-\textbf{RQ1 (Repair effectiveness):} how do the six approaches compare on per-problem and overall RR and RPS, and what do fallback and self-learning add on top of the local tool?
-\textbf{RQ2 (Cost):} what does each approach cost in turnaround time, tokens, and dollars, and when does \textsc{CoEP}'s one-off build amortize?
-\textbf{RQ3 (Rule analysis and attribution):} which rules does the builder author and which does self-learning add, which recur across problems and fire most, and what does the LLM layer add over the shared framework?
-
-\subsubsection{Baselines}
 \textbf{Refactory} \citep{refactory2019} is the classical symbolic per-assignment tool: it refactors the class's correct solutions to match each buggy program's structure and transplants the divergent blocks. On its own corpus we use its published results; on Codeforces we run the released tool in its strongest configuration. \textbf{PyDex} \citep{pydex2024} is per-submission LLM repair: each buggy submission is sent to the model together with the task description and tests, sampled candidates are filtered by the test oracle, and the surviving candidate closest to the student's program is returned. \textbf{PyDex\textsubscript{PC}} re-prices the same queries under provider prompt caching, as an upper bound that assumes a cache hit wherever the provider's rules allow one. \textbf{\textsc{CoEP}} is ours: a repairer synthesized once per assignment and model, evaluated in three configurations that form an ablation ladder. \textbf{\textsc{CoEP}\textsubscript{L}} runs the frozen local tool alone, with zero LLM use at deployment. \textbf{\textsc{CoEP}\textsubscript{LF}} adds a per-submission LLM fallback on abstentions. \textbf{\textsc{CoEP}\textsubscript{LFSL}} further absorbs successful fallback fixes into new rules.
 
 \begin{table}[h]
@@ -156,13 +157,13 @@ Total & 11 & 2{,}970 & 3{,}140 & 22.7 & 12.0 \\
 \label{tab:data}
 \end{table}
 
-\subsubsection{Datasets}
+\subsubsection{Datasets.}
 We evaluate on 11 problems and 2{,}970 buggy submissions drawn from two real-student corpora (Table~\ref{tab:data}). Refactory contributes five CS1-level assignments \citep{refactory2019}, the standard corpus of this literature \citep{verifix2022,pydex2024,orvalho2025}. Codeforces contributes six competitive-programming problems from the open-r1 release \citep{penedo2025codeforces}, built one per rating band across six difficulty levels from Newbie to Master \citep{cfratings}; we keep only problems whose complete official test suites are released, so the oracle is the judge's own. A label audit executes every submission against its full suite, and submissions labeled buggy that already pass are excluded from all repair targets, leaving 1{,}686 truly buggy Refactory programs. No train/test split is used: every arm sees the same pools, as prior per-assignment systems assume, and all results additionally hold with \textsc{CoEP}'s build samples excluded from the denominator.
 
-\subsubsection{LLM Configuration}
+\subsubsection{LLM Configuration.}
 Every LLM arm runs on two models, one per provider: \textbf{GPT-5.4-mini} (\$0.75/\$4.50 per Mtok) and \textbf{Claude Sonnet 5} (\$2/\$10 per Mtok). We select each provider's cheapest tier at which prompt caching is functional, for two reasons. First, fairness to the caching baseline: PyDex\textsubscript{PC} only competes if caching can engage, and the absolute cheapest tiers rule it out. We verified empirically that Claude Haiku 4.5 refuses to cache prompts below its 4{,}096-token minimum, above these repair prompts, and that GPT-5.4-nano's automatic caching did not engage even on identical 1{,}200-token prompts, whereas both selected models cache at their documented 1{,}024-token minimums. Second, cheap tiers keep every measured dollar gap a conservative floor, and the break-even $N^{*}$ is price-invariant regardless (RQ2).
 
-\subsubsection{Evaluation Metrics}
+\subsubsection{Evaluation Metrics.}
 Metrics are grouped by the research question they serve.
 
 \textbf{RQ1 (repair effectiveness).} \textbf{Repair rate (RR)}: percentage of buggy submissions for which the system produces a program passing the full test suite. \textbf{Relative patch size (RPS)}: tree-edit distance between buggy and repaired ASTs normalized by buggy program size, computed with the Refactory reference implementation \citep{refactory2019}; smaller patches preserve the student's approach and are pedagogically preferable, and RPS is \emph{reported}, never used to gate a repair. Repair rates carry 95\% Wilson intervals; paired comparisons use exact McNemar tests at the submission level, with per-assignment directions reported alongside pooled tests.
@@ -171,7 +172,7 @@ Metrics are grouped by the research question they serve.
 
 \textbf{RQ3 (rule analysis).} The \textbf{repair-source split} attributes every fix to the mechanism that produced it (synthesized rule, generic rule, reference transplant, or LLM fallback). \textbf{Rule provenance} counts the rules the builder authored, the rules self-learning added, and the rules that actually fired at deployment, and tracks which recur across problems. \textbf{Diagnosis coverage} is the fraction of repaired submissions whose patch carries a misconception label (rule-fired repairs), quantifying how much of the instructor-facing profile the tool actually delivers rather than leaving it implicit.
 
-\subsubsection{Implementation Details}
+\subsubsection{Setup.}
 All experiments run on a single Apple M1 Ultra workstation (64\,GB RAM, macOS) under Python\,3.13, CPU only for everything but the API calls. PyDex uses $K{=}10$ sampled candidates per submission, issued in parallel, with every call billed and timed. The three \textsc{CoEP} configurations are derived from a single pass over the submission stream with no duplicated LLM calls, so the reported local numbers are always the frozen tool's. Refactory runs with its original algorithm unchanged, ported to Python\,3. We release the code, prompts, raw model outputs, and per-submission logs.
 
 \subsection{Results}
