@@ -84,8 +84,15 @@ def complete(prompt: str, model: str = "claude-sonnet", *, system: str | None = 
 # ----------------------------------------------------------------- backends
 _MODEL_IDS = {
     "claude-sonnet": "claude-sonnet-5",
-    "claude-haiku": "claude-haiku-4-5-20251001",
+    "claude-haiku": "claude-haiku-4-5",
+    "gpt-nano": "gpt-5.4-nano-2026-03-17",
 }
+
+
+def _deprecates_temperature(model_id: str) -> bool:
+    """True for Claude models that reject the `temperature` parameter."""
+    return (model_id.startswith(("claude-sonnet-5", "claude-opus-4", "claude-fable"))
+            or model_id.startswith("claude-haiku-4"))
 
 
 def _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix):
@@ -97,15 +104,28 @@ def _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix):
                    {"type": "text", "text": prompt}]
     else:
         content = prompt
-    kwargs = {"model": _MODEL_IDS.get(model, model), "max_tokens": max_tokens,
+    model_id = _MODEL_IDS.get(model, model)
+    kwargs = {"model": model_id, "max_tokens": max_tokens,
               "messages": [{"role": "user", "content": content}]}
     if system:
         kwargs["system"] = system
-    if temperature is not None:
+    # Newer Claude models (sonnet-5, opus-4.x, haiku-4.5) deprecate `temperature`
+    # and reject it; only the older families still accept it.
+    if temperature is not None and not _deprecates_temperature(model_id):
         kwargs["temperature"] = temperature
-    resp = client.messages.create(**kwargs)
+    # Stream when the output budget is large: the SDK refuses a non-streaming
+    # call whose worst-case generation could exceed its request timeout.
+    if max_tokens > 8192:
+        with client.messages.stream(**kwargs) as s:
+            resp = s.get_final_message()
+    else:
+        resp = client.messages.create(**kwargs)
     u = resp.usage
-    return resp.content[0].text, {
+    # With extended thinking the first block is a ThinkingBlock; concatenate the
+    # text blocks and ignore the rest. Thinking tokens are billed as output and
+    # are already included in u.output_tokens, so cost stays accurate.
+    text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+    return text, {
         "in": u.input_tokens, "out": u.output_tokens,
         "cache_read": getattr(u, "cache_read_input_tokens", 0) or 0,
         "cache_write": getattr(u, "cache_creation_input_tokens", 0) or 0}
@@ -114,14 +134,22 @@ def _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix):
 def _openai(prompt, model, system, max_tokens, temperature):
     from openai import OpenAI
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    model_id = _MODEL_IDS.get(model, model)
     msgs = ([{"role": "system", "content": system}] if system else []) + \
            [{"role": "user", "content": prompt}]
-    kwargs = {"model": model, "messages": msgs, "max_tokens": max_tokens}
-    if temperature is not None:
+    # GPT-5 series (incl. nano) take `max_completion_tokens`, not `max_tokens`,
+    # and support only the default temperature.
+    is_gpt5 = model_id.startswith("gpt-5")
+    kwargs = {"model": model_id, "messages": msgs}
+    kwargs["max_completion_tokens" if is_gpt5 else "max_tokens"] = max_tokens
+    if temperature is not None and not is_gpt5:
         kwargs["temperature"] = temperature
     resp = client.chat.completions.create(**kwargs)
     u = resp.usage
-    return resp.choices[0].message.content, {"in": u.prompt_tokens, "out": u.completion_tokens}
+    return resp.choices[0].message.content, {
+        "in": u.prompt_tokens, "out": u.completion_tokens,
+        "cache_read": getattr(getattr(u, "prompt_tokens_details", None),
+                              "cached_tokens", 0) or 0}
 
 
 def _local(prompt, model, system, max_tokens, temperature):
