@@ -57,7 +57,11 @@ def main(argv=None) -> int:
     ap.add_argument("--ver", default="v2")
     args = ap.parse_args(argv)
     for pid in args.pids:
-        s = collect(pid, args.ver)
+        try:
+            s = collect(pid, args.ver)
+        except Exception as e:                     # noqa: BLE001
+            print(f"[{pid}] collect FAILED: {type(e).__name__}: {e}")
+            continue
         print(f"[{pid}] Refactory RR={s['RR']} RPS={s['RPS']} "
               f"ATT_cpu={s['ATT_cpu']}s -> results/{args.ver}/{pid}/")
     build_overall(args.ver)
