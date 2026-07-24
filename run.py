@@ -21,7 +21,8 @@ COMMANDS = {
     "build": ("build", "main"),        # synthesize tools/<p_id>/<model>/fixer.py
     "repair": ("repair", "main"),      # repair one submission (tool + fallback)
     "evaluate": ("evaluate", "main"),  # single-arm evaluation
-    "compare": ("compare", "main"),    # one pass, three CoEP variants (L/H/SL)
+    "compare": ("compare", "main"),    # one pass, three CoEP variants (L/LF/LFSL)
+    "pydex": ("pydex_run", "main"),    # PyDex + PyDex_PC baseline arms
 }
 
 

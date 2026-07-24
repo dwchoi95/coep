@@ -201,33 +201,36 @@ def export(pid: str, wrong_limit: int = 0, sim_tests: int = 3) -> None:
         (out / "ans" / f"input_{i:03d}.txt").write_text(_entry(t["stdin"]))
         (out / "ans" / f"output_{i:03d}.txt").write_text(repr(_norm(t["expected"])))
 
-    stats = {"correct_ok": 0, "correct_has_def": 0, "correct_unadaptable": 0,
-             "correct_sim_fail": 0, "wrong_ok": 0, "wrong_has_def": 0,
-             "wrong_unadaptable": 0}
+    stats = {"correct_ok": 0, "correct_unadaptable": 0,
+             "wrong_ok": 0, "wrong_unadaptable": 0}
     sample = tests[:sim_tests]
 
+    # correct pool: EVERY wrappable correct solution, identical to CoEP's pool
+    # (only unparseable sources cannot be wrapped at all).
     corr_dir = ROOT / "data" / pid / "correct"
+    ref_candidates = []
     for f in sorted(corr_dir.glob("*.py")):
         src = f.read_text()
         w = wrap(src)
         if w is None:
             stats["correct_unadaptable"] += 1
             continue
-        if has_def(src):
-            stats["correct_has_def"] += 1              # would fail their holes
-            continue
-        if not all(simulate(w, t["stdin"], t["expected"]) for t in sample):
-            stats["correct_sim_fail"] += 1
-            continue
         (out / "code" / "correct" / f.name).write_text(w)
         stats["correct_ok"] += 1
+        # the reference anchor must actually run under their executor
+        if not has_def(src) and all(simulate(w, t["stdin"], t["expected"])
+                                    for t in sample):
+            ref_candidates.append(f)
 
-    # reference = shortest exported correct (their pool always includes it)
     kept = sorted((out / "code" / "correct").glob("*.py"),
                   key=lambda p: len(p.read_text()))
     if not kept:
         raise SystemExit(f"{pid}: no adaptable correct solutions")
-    (out / "code" / "reference" / "reference.py").write_text(kept[0].read_text())
+    anchor = (sorted(ref_candidates, key=lambda p: len(p.read_text()))[0]
+              if ref_candidates else kept[0])
+    (out / "code" / "reference" / "reference.py").write_text(
+        (out / "code" / "correct" / anchor.name).read_text()
+        if ref_candidates else kept[0].read_text())
 
     wrong_dir = ROOT / "data" / pid / "buggy"
     files = sorted(wrong_dir.glob("*.py"))
@@ -239,12 +242,10 @@ def export(pid: str, wrong_limit: int = 0, sim_tests: int = 3) -> None:
         if w is None:
             stats["wrong_unadaptable"] += 1
             continue
-        if has_def(src):
-            stats["wrong_has_def"] += 1                # exported regardless:
-        (out / "code" / "wrong" / f.name).write_text(w)  # their executor decides
+        (out / "code" / "wrong" / f.name).write_text(w)
         stats["wrong_ok"] += 1
 
-    print(f"[{pid}] tests={len(tests)}  {stats}  reference={kept[0].name}")
+    print(f"[{pid}] tests={len(tests)}  {stats}  reference={anchor.name if ref_candidates else kept[0].name}")
 
 
 if __name__ == "__main__":

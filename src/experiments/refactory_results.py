@@ -1,91 +1,66 @@
-"""Collect the Refactory tool's CSVs into the unified results/v2 layout.
+"""Collect the Refactory tool's CSVs into the agreed unified format:
 
-Writes ``results/v2/baselines/refactory/<pid>/{events.jsonl, summary.json}``
-with the same field names as ``run.py compare``'s CoEP output, so every
-approach is tabulated from one directory tree:
+    results/<ver>/<p_id>/refactory.csv   one row per buggy submission
+    results/<ver>/<p_id>/summary.csv     upserted (Approach=Refactory, Model=none)
 
-* events.jsonl — one line per buggy submission: file, status (their Status
-  column; ``not_exported`` for programs the adapter could not hand them),
-  repaired, rps, t_cpu (their Total Time; their pipeline is pure CPU).
-* summary.json — RR over the full shared denominator (unexported = failure,
-  the tool cannot attempt them) plus RR_adapted over what it could attempt;
-  mean RPS over repairs; ATT_cpu/ATT_all; zeros for the LLM columns.
+Source is ``reference`` on success (Refactory's mechanism *is* reference
+reuse) and ``none`` otherwise; submissions the adapter could not export are
+rows with Fixed=False (shared full denominator). Refactory has no LLM columns
+(ATT_api/InT/OuT/$API/$Build = 0) and no rules.
 
 Usage: python3 -m src.experiments.refactory_results cf_125A [cf_110A ...]
 """
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 import pandas as pd
 
+from src.experiments.results_io import (build_overall, event_row,
+                                        summarize_events, upsert_summary,
+                                        write_events)
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def collect(pid: str, out_root: str = "results/v2") -> dict:
+def collect(pid: str, ver: str = "v2") -> dict:
     csv = ROOT / "baselines" / "refactory" / "data_cf" / pid / "refactory_online.csv"
-    df = pd.read_csv(csv)
-    exported = set(df["File Name"])
+    df = pd.read_csv(csv, keep_default_na=False)
+    by_name = {r["File Name"]: r for _, r in df.iterrows()}
     all_buggy = sorted(p.name for p in (ROOT / "data" / pid / "buggy").glob("*.py"))
 
-    out = ROOT / out_root / "baselines" / "refactory" / pid
-    out.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for name in all_buggy:
+        stem = name[:-3]
+        r = by_name.get(name)
+        if r is None:                          # adapter could not export it
+            rows.append(event_row(stem, "none", "none", False))
+            continue
+        ok = str(r["Status"]).startswith("success")
+        patch = str(r.get("Repair", "")) if ok else None
+        rps = None
+        if ok and str(r["RPS"]).strip() not in ("", "nan"):
+            rps = float(r["RPS"])
+        rows.append(event_row(stem, "none", "reference" if ok else "none", ok,
+                              patch, rps, att_cpu=float(r["Total Time"])))
 
-    n = len(all_buggy)
-    repaired = 0
-    rps_sum = 0.0
-    t_sum = 0.0
-    with (out / "events.jsonl").open("w") as ev:
-        rows = {r["File Name"]: r for _, r in df.iterrows()}
-        for name in all_buggy:
-            if name not in rows:
-                ev.write(json.dumps({"file": name, "status": "not_exported",
-                                     "repaired": False}) + "\n")
-                continue
-            r = rows[name]
-            ok = str(r["Status"]).startswith("success")
-            e = {"file": name, "status": r["Status"], "repaired": ok,
-                 "t_cpu": round(float(r["Total Time"]), 3)}
-            t_sum += float(r["Total Time"])
-            if ok:
-                repaired += 1
-                rps = float(r["RPS"]) if pd.notna(r["RPS"]) else None
-                if rps is not None:
-                    rps_sum += rps
-                    e["rps"] = round(rps, 3)
-            ev.write(json.dumps(e) + "\n")
-
-    n_att = len(exported)
-    summary = {
-        "pid": pid, "approach": "Refactory",
-        "n_programs": n, "n_attempted": n_att,
-        "arms": {"Refactory": {
-            "n": n, "repaired": repaired,
-            "RR": round(100 * repaired / max(1, n), 2),
-            "RR_adapted": round(100 * repaired / max(1, n_att), 2),
-            "RPS": round(rps_sum / max(1, repaired), 3),
-            "ATT_cpu": round(t_sum / max(1, n_att), 3),
-            "ATT_api": 0.0,
-            "ATT_all": round(t_sum / max(1, n_att), 3),
-            "InT": 0.0, "OuT": 0.0, "USD": 0.0,
-        }},
-    }
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
-    return summary
+    write_events(ver, pid, "refactory", rows)
+    summ = summarize_events("Refactory", "none", rows)
+    upsert_summary(ver, pid, summ)
+    return summ
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("pids", nargs="+")
+    ap.add_argument("--ver", default="v2")
     args = ap.parse_args(argv)
     for pid in args.pids:
-        s = collect(pid)
-        a = s["arms"]["Refactory"]
-        print(f"[{pid}] RR={a['RR']}% (adapted {a['RR_adapted']}%) "
-              f"RPS={a['RPS']} ATT={a['ATT_cpu']}s -> "
-              f"results/v2/baselines/refactory/{pid}/")
+        s = collect(pid, args.ver)
+        print(f"[{pid}] Refactory RR={s['RR']} RPS={s['RPS']} "
+              f"ATT_cpu={s['ATT_cpu']}s -> results/{args.ver}/{pid}/")
+    build_overall(args.ver)
     return 0
 
 

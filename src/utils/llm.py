@@ -61,14 +61,28 @@ def complete(prompt: str, model: str = "claude-sonnet", *, system: str | None = 
     accounted separately so cached and uncached arms stay comparable.
     """
     t0 = time.time()
-    if model.startswith("claude"):
-        text, usage = _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix)
-    elif model.startswith("gpt"):
-        text, usage = _openai(prompt, model, system, max_tokens, temperature)
-    elif model.startswith("local:"):
-        text, usage = _local(prompt, model.split(":", 1)[1], system, max_tokens, temperature)
-    else:
-        raise ValueError(f"unknown model backend: {model}")
+    last = None
+    for attempt in range(5):
+        try:
+            if model.startswith("claude"):
+                text, usage = _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix)
+            elif model.startswith("gpt"):
+                text, usage = _openai(prompt, model, system, max_tokens, temperature)
+            elif model.startswith("local:"):
+                text, usage = _local(prompt, model.split(":", 1)[1], system, max_tokens, temperature)
+            else:
+                raise ValueError(f"unknown model backend: {model}")
+            break
+        except Exception as e:                       # noqa: BLE001
+            name = type(e).__name__
+            transient = any(k in name for k in (
+                "RateLimit", "Overloaded", "InternalServer", "APIConnection",
+                "ServiceUnavailable", "Timeout", "APIStatus"))
+            if not transient or attempt == 4:
+                raise
+            last = e
+            time.sleep(2 ** (attempt + 1))           # 2,4,8,16s backoff
+    del last
     elapsed = time.time() - t0
     in_tok = usage.get("in", count_tokens(prompt) + (count_tokens(system) if system else 0))
     out_tok = usage.get("out", count_tokens(text))
