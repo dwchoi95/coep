@@ -207,6 +207,7 @@ class BuildResult:
     pid: str
     path: Path | None
     model: str = ""
+    seconds: float = 0.0             # build wall-clock (ATT_build, per assignment)
     rules: int = 0
     coverage: float = 0.0            # fraction of sample bugs repaired
     rounds: int = 0
@@ -224,7 +225,8 @@ class BuildResult:
                 "rounds": self.rounds, "n_samples": self.n_samples,
                 "sample_coverage": round(self.coverage, 4),
                 "in_tokens": self.in_tokens, "out_tokens": self.out_tokens,
-                "usd": round(self.usd, 6)}
+                "usd": round(self.usd, 6),
+                "build_seconds": round(self.seconds, 2)}
 
 
 def build(problem: dict, references: list[str], samples: list[str],
@@ -244,6 +246,8 @@ def build(problem: dict, references: list[str], samples: list[str],
            else _TOOLS / pid / backend_of(model) / "fixer.py")
     out.parent.mkdir(parents=True, exist_ok=True)
 
+    import time as _time
+    _t0 = _time.time()
     res = BuildResult(pid=pid, path=None, model=model, n_samples=len(samples))
     uncovered_srcs: list[str] = []
     load_error: str | None = None
@@ -299,6 +303,7 @@ def build(problem: dict, references: list[str], samples: list[str],
             break
         uncovered_srcs = [samples[i] for i in uncov_idx]
 
+    res.seconds = _time.time() - _t0
     # A later round can regress or emit an unloadable module; persist the BEST
     # round's code, never whatever happened to run last (which may not parse).
     if best_code is not None:

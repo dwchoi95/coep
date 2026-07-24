@@ -18,9 +18,10 @@ import sys
 
 # subcommand -> (module under src.experiments, entry function)
 COMMANDS = {
-    "build": ("build", "main"),        # synthesize tools/<p_id>/fixer.py
-    "repair": ("repair", "main"),      # run a tool (+ fallback) over a split
-    "evaluate": ("evaluate", "main"),  # score arms into results/
+    "build": ("build", "main"),        # synthesize tools/<p_id>/<model>/fixer.py
+    "repair": ("repair", "main"),      # repair one submission (tool + fallback)
+    "evaluate": ("evaluate", "main"),  # single-arm evaluation
+    "compare": ("compare", "main"),    # one pass, three CoEP variants (L/H/SL)
 }
 
 
