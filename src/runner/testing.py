@@ -71,7 +71,7 @@ class TestResult:
 
 def infer_mode(problem: dict) -> str:
     """Execution model for a problem; explicit field wins, else inferred."""
-    if problem.get("mode") in ("call", "stdio"):
+    if problem.get("mode") in ("call", "stdio", "file"):
         return problem["mode"]
     tests = problem.get("tests") or []
     if tests and "stdin" in tests[0]:

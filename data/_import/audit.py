@@ -67,6 +67,14 @@ def audit_problem(pid: str, sample: int, timeout: float) -> dict:
                 continue
             ref_checked += 1
             ref_pass += int(run_tests(f.read_text(), problem, timeout=timeout).all_pass)
+    else:
+        # no reference/fix pairing: sample the correct/ pool as the oracle
+        correct = sorted((pdir / "correct").glob("*.py"))
+        if correct:
+            samp = correct if len(correct) <= sample else rng.sample(correct, sample)
+            for c in samp:
+                ref_checked += 1
+                ref_pass += int(run_tests(c.read_text(), problem, timeout=timeout).all_pass)
     return {
         "pid": pid, "source": problem.get("source"), "mode": problem.get("mode"),
         "tests": len(problem.get("tests", [])), "buggy": len(bugs),

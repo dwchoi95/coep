@@ -1,8 +1,0 @@
-# compile-errors:success: Compilation Successful #
-# compile-result:1 #
-# save-event:compile #
-name = input()
-print('Hi', name)
-# write your code below. Do not change the code above.
-name = input(Hi AK Bye AK)
-print('Hi', name)

@@ -161,6 +161,65 @@ def _run_stdio(src, tests, tol, stop_early, per_test):
     return (passed, failures), None
 
 
+def _run_file(src, tests, tol, stop_early, per_test):
+    """Programs that read input.txt and write output.txt (Codeforces file mode).
+
+    Each test runs in a scratch cwd with input.txt seeded; output.txt is read
+    back and compared like stdout.
+    """
+    import os
+    import tempfile
+    try:
+        code = compile(src, "<candidate>", "exec")
+    except BaseException as e:
+        return None, f"{type(e).__name__}: {e}"
+    failures, passed = [], 0
+    have_timer = hasattr(signal, "setitimer")
+    if have_timer:
+        signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(_Timeout()))
+    cwd0 = os.getcwd()
+    for i, t in enumerate(tests):
+        d = tempfile.mkdtemp()
+        with open(os.path.join(d, "input.txt"), "w") as fh:
+            fh.write(t.get("stdin", ""))
+        os.chdir(d)
+        buf = io.StringIO()
+        if have_timer:
+            signal.setitimer(signal.ITIMER_REAL, per_test)
+        try:
+            with contextlib.redirect_stdout(buf):
+                exec(code, {"__name__": "__main__"})
+        except SystemExit:
+            pass
+        except _Timeout:
+            os.chdir(cwd0)
+            failures.append({"index": i, "timeout": True})
+            if stop_early:
+                break
+            continue
+        except BaseException as e:
+            os.chdir(cwd0)
+            failures.append({"index": i, "error": f"{type(e).__name__}: {e}"})
+            if stop_early:
+                break
+            continue
+        finally:
+            if have_timer:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+        outp = os.path.join(d, "output.txt")
+        got = open(outp).read() if os.path.exists(outp) else buf.getvalue()
+        os.chdir(cwd0)
+        if _stdout_eq(got, t.get("expected", ""), tol):
+            passed += 1
+        else:
+            failures.append({"index": i, "got": got[:400],
+                             "expected": str(t.get("expected", ""))[:400]})
+            if stop_early:
+                break
+    os.chdir(cwd0)
+    return (passed, failures), None
+
+
 def main():
     payload = json.load(open(sys.argv[1]))
     tests = payload["tests"]
@@ -168,6 +227,8 @@ def main():
     per_test = payload.get("per_test", 2.0)
     if payload["mode"] == "stdio":
         out, err = _run_stdio(payload["source"], tests, tol, stop_early, per_test)
+    elif payload["mode"] == "file":
+        out, err = _run_file(payload["source"], tests, tol, stop_early, per_test)
     else:
         out, err = _run_call(payload["source"], payload["entry"], tests, tol, stop_early)
     if err is not None:
