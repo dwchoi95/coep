@@ -8,8 +8,10 @@ Faithful mechanics (per the paper's Sec. 4.2 and Figs. 6-7):
 * **Prompt** — the multimodal zero-shot prompt of Fig. 6, laid out exactly as
   shown: the buggy program FIRST, then the natural-language description, then
   the instructor test cases, closing with ``### Correct Program ###``.
-* **K candidates** — each prompt yields up to ``K = 10`` candidates (one
-  sampled completion per call at the provider's default temperature).
+* **K candidates** — each prompt yields up to ``K = 10`` candidates, issued
+  as parallel sampled calls (the paper's Codex n=10 was a single request, so a
+  deployment's wall-clock is one round trip, not ten): ``seconds`` is the wall
+  time of the parallel batch, while tokens and dollars sum over ALL K calls.
 * **Semantic oracle** — every candidate is executed on the full test suite;
   candidates that raise or fail any test are discarded.
 * **Selection** — among the surviving candidates, return the one with the
@@ -189,12 +191,17 @@ def repair(buggy: str, problem: dict, model: str = "claude-haiku",
 
     res = PyDexResult(False, None, prompt=prompt)
     survivors: list[str] = []
-    for _ in range(k):
-        comp = call(prompt, model=model, temperature=None)   # provider default
+    import time as _time
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = _time.time()
+    with ThreadPoolExecutor(max_workers=k) as ex:
+        comps = list(ex.map(lambda _:
+                            call(prompt, model=model, temperature=None), range(k)))
+    res.seconds = _time.time() - t0            # parallel-batch wall (one round trip)
+    for comp in comps:
         res.calls += 1
         res.in_tokens += comp.in_tokens
         res.out_tokens += comp.out_tokens
-        res.seconds += comp.seconds
         res.usd += comp.usd
         code = comp.code
         if not code:
