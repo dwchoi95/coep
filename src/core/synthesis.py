@@ -247,6 +247,8 @@ def build(problem: dict, references: list[str], samples: list[str],
     res = BuildResult(pid=pid, path=None, model=model, n_samples=len(samples))
     uncovered_srcs: list[str] = []
     load_error: str | None = None
+    best_code: str | None = None
+    best_cov: float = -1.0
     call = llm_fn or llm_mod.complete
     # The builder emits a whole module; with extended thinking the response needs
     # generous headroom or it truncates before the code block. Only the real API
@@ -285,16 +287,22 @@ def build(problem: dict, references: list[str], samples: list[str],
 
         load_error = None
         results = _validate(rules, problem, samples, budget)
-        res.path = out
-        res.rules = len(rules)
-        res.coverage = (sum(r.repaired for r in results) / len(results)
-                        if results else 0.0)
-        res.provenance = [list(r.rules) for r in results]
+        cov = sum(r.repaired for r in results) / len(results) if results else 0.0
+        if cov > best_cov:                           # keep the best round's tool,
+            best_cov, best_code = cov, code          # not whichever ran last
+            res.path = out
+            res.rules = len(rules)
+            res.coverage = cov
+            res.provenance = [list(r.rules) for r in results]
         uncov_idx = [i for i, r in enumerate(results) if not r.repaired]
         if not uncov_idx:                            # all samples repaired
             break
         uncovered_srcs = [samples[i] for i in uncov_idx]
 
+    # A later round can regress or emit an unloadable module; persist the BEST
+    # round's code, never whatever happened to run last (which may not parse).
+    if best_code is not None:
+        out.write_text(best_code)
     # Persist the audited build cost next to the tool (even if it never loaded,
     # so a failed build's spend is still on the record).
     (out.parent / "cost.json").write_text(json.dumps(res.cost_record(), indent=2))

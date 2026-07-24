@@ -43,9 +43,11 @@ def main(argv: list[str]) -> int:
     rps_sum = seconds = usd = 0.0
     in_tok = out_tok = 0
 
+    rules = load_fixer(fpath)              # loaded once; reloaded only when learning
     for i, src in enumerate(buggy):
         n += 1
-        rules = load_fixer(fpath)          # reload: picks up newly-learned rules
+        if args.learn:
+            rules = load_fixer(fpath)      # pick up rules learned this run
         t = time.time()
         res = repair(src, prob, rules, budget)
         if res.repaired:
