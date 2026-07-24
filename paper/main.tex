@@ -130,10 +130,11 @@ The local path runs on a CPU in ${\sim}1$--$2$\,s per submission, deterministica
 \section{Experimental Setup}
 \label{sec:setup}
 
-We ask three research questions.
+We ask four research questions.
 \textbf{RQ1 (Effectiveness \& patch quality):} does the synthesized local tool repair as many submissions, with patches as small, as the strongest hand-built symbolic tool (Refactory) and as per-submission LLM repair at the same cheapest-tier models?
 \textbf{RQ2 (Cost structure):} what does each paradigm cost per submission and per assignment, and after how many submissions does \textsc{CoEP}'s one-off build amortize?
 \textbf{RQ3 (Mechanism attribution):} which mechanism produces which repairs --- LLM-authored rules, the generic library, reference transplant, or the fallback --- what does the LLM layer add over the framework alone (framework-only ablation), and how does builder capability across the two cheapest tiers change the tool?
+\textbf{RQ4 (Self-learning):} does absorbing fallback fixes into new rules improve the tool across a submission stream --- \textsc{CoEP-SL} vs.\ the frozen \textsc{CoEP} on repair rate, patch size, and LLM cost --- and how does local coverage grow with accumulated fallbacks?
 
 \subsection{Dataset}
 We evaluate on 11 problems from two real-student corpora (Table~\ref{tab:data}), 2{,}970 buggy submissions in all, covering the two execution models an assignment-repair harness must support. \textbf{Refactory} \citep{refactory2019} gives five CS1 assignments by 361 NUS students, the standard corpus of this literature \citep{verifix2022,pydex2024,orvalho2025}; their tests call named functions (one assignment needs three), so they run in \emph{function-entry} mode. \textbf{Codeforces} gives six competitive-programming problems from the open-r1 release \citep{penedo2025codeforces}, which read stdin/stdout (\emph{judge} mode) and reach beyond CS1. We select the latter by construction: from the \emph{verifiable} subset, we keep problems with $\ge$1 wrong and $\ge$1 accepted Python\,3 submission, \emph{complete} official tests (Codeforces truncates tests over 400 characters; we require none were dropped, so the oracle is the full judged suite), and no special-output checker; to span difficulty we take one representative per rating band \citep{cfratings}, the problem with the most wrong submissions.
@@ -185,7 +186,7 @@ Three derived quantities tie the metrics to the claims. The \textbf{repair-sourc
 \section{Results}
 \label{sec:results}
 
-We answer the three research questions stated in the Experimental Setup; together they cover the introduction's claims.
+We answer the four research questions stated in the Experimental Setup; together they cover the introduction's claims.
 
 \subsection{RQ1: Effectiveness and Patch Quality}
 
@@ -199,18 +200,20 @@ Model & Method & RR (\%) & RPS & ATT (s) & In/OuT & LLM Cost (\$) \\
 \midrule
 \emph{non-LLM} & Refactory & -- & -- & -- & -- & -- \\
 \midrule
-\multirow{3}{*}{\shortstack[l]{GPT-5.4\\-nano}}
+\multirow{4}{*}{\shortstack[l]{GPT-5.4\\-nano}}
  & PyDex        & -- & -- & -- & -- & -- \\
  & PyDex+cache  & -- & -- & -- & -- & -- \\
  & \textsc{CoEP} & -- & -- & -- & -- & -- \\
+ & \textsc{CoEP-SL} & -- & -- & -- & -- & -- \\
 \midrule
-\multirow{3}{*}{\shortstack[l]{Claude\\Haiku 4.5}}
+\multirow{4}{*}{\shortstack[l]{Claude\\Haiku 4.5}}
  & PyDex        & -- & -- & -- & -- & -- \\
  & PyDex+cache  & -- & -- & -- & -- & -- \\
  & \textsc{CoEP} & -- & -- & -- & -- & -- \\
+ & \textsc{CoEP-SL} & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
-\caption{Main comparison on \NumEval{} buggy submissions: repair rate, mean relative patch size over repaired submissions, average turnaround time, mean input/output tokens, and USD per repaired submission (with build cost amortized). Refactory is model-independent; PyDex, PyDex+cache, and \textsc{CoEP} are each run at the cheapest tier of both providers.}
+\caption{Main comparison on \NumEval{} buggy submissions: repair rate, mean relative patch size over repaired submissions, average turnaround time, mean input/output tokens, and USD per repaired submission (with build cost amortized). Refactory is model-independent; PyDex, PyDex+cache, \textsc{CoEP} (frozen), and \textsc{CoEP-SL} (self-learning absorption enabled, absorption calls priced) are each run at the cheapest tier of both providers.}
 \label{tab:main}
 \end{table}
 
@@ -242,6 +245,14 @@ Beyond dollars, the covered fraction is repaired in about a second on a CPU with
 
 \smallskip
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ3.} Named rules (RPS ${\approx}0.03$, with a misconception label) cover the common slips; reference-guided transplant supplies the structural edits that lift coverage from a rule-only ${\approx}18\%$ to Refactory-beating, and the rule provenance yields a per-class diagnosis a hosted API cannot.}}
+
+
+\subsection{RQ4: Self-Learning --- Does the Tool Improve?}
+
+\textsc{CoEP-SL} processes the submission stream in order: a local miss escalates to the fallback, a successful fallback fix is generalized into a new named rule and appended \emph{only if} the augmented tool then repairs that miss on its own (else rolled back), and every subsequent submission runs against the accumulated tool. The frozen \textsc{CoEP} runs the identical stream without absorption, so the two configurations differ in exactly one bit and every absorption call is priced into \textsc{CoEP-SL}'s LLM cost. We report final RR/RPS/LLM cost side by side (Table~\ref{tab:main}) and the trajectory that matters pedagogically: local coverage as a function of accumulated fallbacks. On the Refactory corpus the headroom is small by construction (the frozen tool already resolves \LocalRR\% locally, leaving 38 escalations, all on one assignment), so the informative test is the harder Codeforces half, where abstention is more frequent. \emph{[CoEP-SL cells and the coverage-vs-fallbacks curve from the full run.]}
+
+\smallskip
+\noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ4.} \emph{[Populated from the full run: whether absorption converts escalations into future local repairs at a cost below re-escalating them, i.e.\ whether the artifact compounds.]}}}
 
 \section{Related Work}
 \label{sec:related}
