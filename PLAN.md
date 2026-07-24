@@ -202,9 +202,14 @@ fallbacks (does the tool improve across a term?).
 
 ## Phase 6 — Experiments
 Build tools for the 11 problems (Refactory 5 + Codeforces 6), one per builder
-model → evaluate every arm on every buggy program (RR/RPS/ATT/InT/OuT/Cost) →
-cluster-selection ablation (random-`N` vs min-edit clustered-`N`) →
-self-learning curve → cost/break-even.
+model → evaluate every arm on every buggy program (RR/RPS/ATT/InT/OuT/LLM-cost)
+→ framework-only ablation (done on Refactory: RR/RPS delta ≈ 0; LLM layer =
+diagnosis + escalation) → cluster-selection ablation (random-`N` vs min-edit
+clustered-`N`) → **two CoEP configurations, reported separately**:
+`CoEP` (frozen tool, no rule additions — all headline numbers) and `CoEP-SL`
+(self-learning absorption enabled, absorption calls priced; the
+coverage-vs-accumulated-fallbacks curve) → cost/break-even + frontier-tier /
+judge-scale projection.
 
 ## Phase 7 — Paper
 Rewrite Setup/Results/Method around v2; keep the intro's three-generation
