@@ -1,9 +1,9 @@
 """`run.py compare` — one pass over a problem's submission stream, three
 \textsc{CoEP} variants recorded simultaneously (no duplicated LLM calls):
 
-* **CoEP-L**  — the frozen local tool alone (zero LLM at deployment).
-* **CoEP-H**  — CoEP-L plus per-submission LLM fallback on abstentions.
-* **CoEP-SL** — CoEP-H plus absorption of successful fallback fixes into new
+* **CoEP_L**    — the frozen local tool alone (zero LLM at deployment).
+* **CoEP_LF**   — CoEP_L plus per-submission LLM fallback on abstentions.
+* **CoEP_LFSL** — CoEP_LF plus absorption of successful fallback fixes into new
   rules; later submissions run against the accumulated tool.
 
 Derivation in a single pass: every submission first runs the *frozen* local
@@ -97,7 +97,7 @@ def main(argv: list[str]) -> int:
 
     out_dir = Path(args.out); out_dir.mkdir(parents=True, exist_ok=True)
     events = out_dir / f"{args.problem}_{backend_of(args.model)}.jsonl"
-    L, H, SL = _Arm("CoEP-L"), _Arm("CoEP-H"), _Arm("CoEP-SL")
+    L, H, SL = _Arm("CoEP_L"), _Arm("CoEP_LF"), _Arm("CoEP_LFSL")
     noop = absorbed = 0
 
     with events.open("w") as ev:
