@@ -12,11 +12,17 @@ min-token-edit-distance survivor. ALL K calls are billed and timed, including
 oracle-rejected candidates. ATT_api is the summed call latency; ATT_cpu is the
 remaining wall time (candidate executions, retrieval, selection).
 
-PyDex_PC: provider caching bills a *leading* shared prefix — but the paper's
-prompt layout places the buggy program first, so the only shared leading text
-is the section header, far below the 1,024-token cache minimum. PyDex_PC is
-therefore computed honestly (longest shared prefix, threshold applied) and, on
-this layout, degenerates to PyDex — which is itself a finding.
+PyDex_PC is a documented-rules UPPER BOUND on what provider caching could
+deliver for these exact queries (empirically, haiku-4-5 refuses prompts below
+its 4,096-token minimum and gpt-5.4-nano's automatic caching did not engage at
+all in our probes): cross-submission reuse is impossible (the buggy-first
+layout shares a ~13-token leading prefix), so the only cacheable structure is
+the K identical prompts *within* one submission — modeled as first call full
+price, the remaining K-1 prompts read at 0.1x (write 1.25x on Anthropic, free
+on pre-5.6 OpenAI), gated on each provider's cacheable minimum (4,096 tokens
+for claude-haiku-4-5; 1,024 for gpt-5.4-nano). The PyDex arm itself is billed
+from raw token counts at full rates, so no incidental provider cache hit can
+leak a discount into the uncached baseline.
 """
 from __future__ import annotations
 
@@ -33,8 +39,9 @@ from src.runner.testing import run_tests
 from src.utils.metrics import PRICES, count_tokens, rps
 
 MODEL_LABEL = {"claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
-CACHE_MIN_TOKENS = 1024
-CACHE_READ, CACHE_WRITE = 0.1, 1.25
+CACHE_MIN = {"claude-haiku": 4096, "gpt-nano": 1024}   # provider cacheable minimums
+CACHE_READ = 0.1
+CACHE_WRITE = {"claude-haiku": 1.25, "gpt-nano": 0.0}  # gpt-5.4: writes free
 
 
 def _shared_prefix_tokens(problem: dict) -> int:
@@ -65,13 +72,12 @@ def main(argv: list[str]) -> int:
     if args.limit:
         files = files[:args.limit]
     model_label = MODEL_LABEL.get(args.model, args.model)
-    in_rate = PRICES[args.model][0] / 1e6
 
     bank = ShotBank(prob, data_dir)
     mode = "few-shot" if bank.entries else "zero-shot"
-    prefix = _shared_prefix_tokens(prob)
-    cacheable = prefix >= CACHE_MIN_TOKENS
-    first_call_done = False
+    pin, pout = PRICES[args.model]
+    cache_min = CACHE_MIN.get(args.model, 1024)
+    w_mult = CACHE_WRITE.get(args.model, 1.25)
 
     rows, rows_pc = [], []
     noop = 0
@@ -86,20 +92,23 @@ def main(argv: list[str]) -> int:
         att_api = res.seconds
         att_cpu = max(0.0, wall - att_api)
         pr = rps(src, res.patch) if res.repaired else None
+        # PyDex billed from raw tokens at full rates: structurally uncached.
+        raw_usd = (res.in_tokens * pin + res.out_tokens * pout) / 1e6
         row = event_row(f.stem, model_label, "llm" if res.repaired else "none",
                         res.repaired, res.patch, pr, att_cpu=att_cpu,
                         att_api=att_api, in_tok=res.in_tokens,
-                        out_tok=res.out_tokens, api_usd=res.usd)
+                        out_tok=res.out_tokens, api_usd=raw_usd)
         rows.append(row)
 
+        # PC upper bound: the K identical prompts within this submission —
+        # first at full price (+write premium), the rest read at 0.1x.
         pc = dict(row)
-        if cacheable and res.calls:
-            writes = 0 if first_call_done else 1
-            reads = res.calls - writes
-            discount = prefix * in_rate * (
-                (writes + reads) - (writes * CACHE_WRITE + reads * CACHE_READ))
-            pc["$API"] = round(max(0.0, res.usd - discount), 6)
-            first_call_done = True
+        prompt_tok = res.in_tokens / max(1, res.calls)
+        if res.calls > 1 and prompt_tok >= cache_min:
+            reads = res.calls - 1
+            discount = prompt_tok * (pin / 1e6) * (
+                reads * (1 - CACHE_READ) - (w_mult - 1.0))
+            pc["$API"] = round(max(0.0, raw_usd - max(0.0, discount)), 6)
         rows_pc.append(pc)
 
     write_events(args.ver, args.problem, "pydex", rows)
@@ -116,7 +125,6 @@ def main(argv: list[str]) -> int:
     print(f"=== {args.problem} PyDex/{mode} [{model_label}] K={args.k} "
           f"{n} buggy ({noop} noop excluded) ===")
     print(f"RR={100*fixed/max(1,n):.2f}%  $API={usd:.4f}  PC $API={usd_pc:.4f} "
-          f"(leading shared prefix={prefix} tok, "
-          f"{'cacheable' if cacheable else 'below 1024-token minimum -> PC = PyDex'})")
+          f"(cache minimum {cache_min} tok for {model_label})")
     print(f"results -> results/{args.ver}/{args.problem}/")
     return 0

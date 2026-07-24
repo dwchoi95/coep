@@ -144,7 +144,14 @@ CACHE_READ_MULT, CACHE_WRITE_MULT = 0.1, 1.25
 
 def cost_usd(in_tokens: int, out_tokens: int, model: str = "claude-sonnet",
              cache_read: int = 0, cache_write: int = 0) -> float:
+    """Provider-aware billing. Anthropic reports input_tokens EXCLUDING cache
+    reads/writes (separate fields, write 1.25x / read 0.1x); OpenAI reports
+    prompt_tokens INCLUDING cached_tokens (reads 0.1x, writes free pre-5.6)."""
     pin, pout = PRICES[model]
+    if model.startswith("gpt"):
+        uncached = max(0, in_tokens - cache_read)
+        return ((uncached + cache_read * CACHE_READ_MULT) * pin
+                + out_tokens * pout) / 1e6
     return ((in_tokens + cache_read * CACHE_READ_MULT + cache_write * CACHE_WRITE_MULT) * pin
             + out_tokens * pout) / 1e6
 
