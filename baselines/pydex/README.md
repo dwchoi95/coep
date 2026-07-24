@@ -1,34 +1,21 @@
 # PyDex baseline (reproduction)
 
-Reproduces the **PyDex** repair pipeline as a per-submission LLM baseline, driven
-by our own model so model choice is not a confound and ATT/InT/OuT/Cost are
-measured identically to CoEP.
+Faithful reproduction of the **semantic phase** of PyDex (Zhang et al.,
+OOPSLA 2024), driven by our own models so ATT/InT/OuT/$API are measured
+identically to CoEP.
 
-> Zhang et al. *PyDex: Repairing Bugs in Introductory Python Assignments using
-> LLMs.* OOPSLA 2024.
+- **Prompt**: the multimodal zero-shot prompt of Fig. 6, laid out exactly as in
+  the paper (buggy program first, then description, then tests, then
+  `### Correct Program ###`); the few-shot prompt of Fig. 7 with
+  failure-vector (1 - normalized Hamming) retrieval of the 3 most similar
+  (p, p') pairs activates automatically when a `data/<pid>/pairs.json`
+  example bank exists (our corpora carry no per-student edit histories, so the
+  operative arm is zero-shot - the paper's own competitive ablation).
+- **K candidates**: each prompt yields K=10 sampled candidates (default
+  provider temperature), every call billed and timed regardless of outcome.
+- **Oracle + selection**: candidates run on the full suite; any failure
+  discards the candidate; the minimum token-edit-distance survivor is the
+  repair. No iterative refinement exists in the semantic phase.
 
-We reproduce the **algorithm**, not the original Codex sampling setup:
-
-- **Multi-modal prompt** (`repair.md`): problem description + buggy program +
-  execution feedback (failing-test input/expected/got, or the interpreter error).
-- **Multi-sample generation + test-based selection**: sample candidates, execute
-  all, take any that pass the full suite (ties → smallest edit / RPS), else carry
-  the best partial forward.
-- **Iterative refinement ("chaining")**: feed the surviving failures back and
-  re-query, up to a round budget.
-
-Our cheapest models (`claude-haiku-4-5`, `gpt-5.4-nano`) expose only the default
-temperature, so with `samples=1` diversity comes from the feedback loop rather
-than temperature sampling; `samples>1` issues independent calls.
-
-## Use
-
-```python
-from baselines.pydex.pydex import repair
-res = repair(buggy_src, problem, model="claude-haiku", rounds=4, samples=1)
-# res.repaired, res.patch, res.calls, res.in_tokens, res.out_tokens, res.usd, res.seconds
-```
-
-`problem` is the unified `data/<p_id>/problem.json` schema. Cost and latency are
-accumulated across every call so the arm is directly comparable to CoEP's
-fallback and to Refactory.
+Driver: `python3 run.py pydex --problem <pid> --model {claude-haiku,gpt-nano}`
+writes `results/<ver>/<pid>/{pydex,pydex_pc}.csv` + summary rows.
