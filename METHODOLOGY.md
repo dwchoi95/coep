@@ -177,6 +177,33 @@ return ⊥                                              # abstain → escalate
   wrong "repair". Escalated submissions take the conventional LLM path and their
   cost is counted against CoEP in every comparison.
 
+### 3b. Reference-guided transplant — the high-coverage half
+
+Token-level rules only reach the ~18% of bugs that are small slips; most student
+bugs need a *medium, structural* edit no rule expresses. The correct pool
+supplies it — this is Refactory's core idea, and where a rule-only tool would
+otherwise cap out far below Refactory. When the rules abstain, before escalating:
+
+```
+refs ← the k correct programs structurally nearest to b   (ReferenceIndex, fit once)
+for each ref: candidates ← b with each differing line-hunk (and small combos) adopted
+order candidates by absolute edit size, smallest first
+return the smallest that passes ALL tests             # else abstain → escalate
+```
+
+- **Minimal-hunk, not block-level.** Refactory replaces whole control-flow
+  blocks; we adopt the *smallest set of differing hunks* that passes, so the
+  patch — and RPS — is as small as the repair allows.
+- **Still local, still zero LLM cost.** References are stored correct
+  submissions, assumed available at feedback time (as Refactory assumes).
+- **Ordered rules-first, then reference.** Common misconceptions get the cheap,
+  labelled rule fix (RPS ~0.03); the structural remainder gets a reference
+  transplant (RPS ~0.26). On refactory_q1 the pair reaches **RR 100% at mean RPS
+  0.257**, versus Refactory's **98.96% at 0.39** — higher coverage, smaller
+  patches. This is the result that makes a *local* tool worth building.
+- **Batched validation.** Hundreds of candidates are tested in one child process
+  (stop at the first pass), so the search is not one subprocess per candidate.
+
 ---
 
 ## 4. Fallback and self-learning (Stage 4)

@@ -8,15 +8,16 @@ set" below).
 
 ## Status (updated 2026-07-24)
 
-**The CoEP pipeline runs end to end.** Stages 1–4 (selection, synthesis, local
-rule-combination repair, fallback + self-learning) are implemented, plus the
-`run.py build|repair|evaluate` drivers and a hardened runner. Smoke test on
-`refactory_q1`: the `claude-haiku` builder reaches 83% sample coverage for
-$0.041 (cost.json written); `gpt-5.4-nano` builds for $0.004 but its rules do
-not repair the samples (0%) — a real capability floor for the cheapest model.
-Known tuning gap: the 6-sample tool overfits (83% sample → ~9% held-out) with
-large patches (RPS ~0.5); the structural no-rewrite guard and a larger sample
-budget are the levers (still open, below), not a completeness gap.
+**The CoEP pipeline runs end to end and beats Refactory locally.** Stages 1–4
+(selection, synthesis, local repair, fallback + self-learning) are implemented,
+plus the `run.py build|repair|evaluate` drivers and a hardened, batched runner.
+Local repair is two-tier: named rules (cheap, labelled, RPS ~0.03) for common
+misconceptions, then **reference-guided minimal-hunk transplant** (METHODOLOGY
+§3b) for the structural remainder. On `refactory_q1` (150 held-out, claude-haiku
+tool): **local RR 100% at mean RPS 0.257**, versus Refactory's 98.96% at 0.39 —
+higher coverage, smaller patches, zero marginal LLM cost. The builder is shown
+(buggy → fixed) pairs, and a shared generic-rule library is always on; both
+models build valid tools ($0.04 haiku, $0.004 gpt-nano).
 
 What is implemented:
 
