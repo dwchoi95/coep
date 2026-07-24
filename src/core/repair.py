@@ -21,10 +21,36 @@ then longer combinations, under an explicit budget rather than a blind 2^|R|.
 from __future__ import annotations
 
 import itertools
+import signal
+import threading
 import time
 from dataclasses import dataclass, field
 
 from src.runner.testing import run_tests
+
+# A generated rule can contain an infinite loop; a rule's apply() runs in this
+# process, so no subprocess timeout bounds it. Cap it with a wall-clock alarm.
+RULE_APPLY_TIMEOUT = 2.0
+
+
+class _RuleTimeout(BaseException):
+    """Not an ``Exception`` on purpose: a generated rule's ``except Exception``
+    must not swallow its own runaway-loop timeout."""
+
+
+def _apply_bounded(fn, source, seconds):
+    """Run ``fn(source)`` under a wall-clock alarm (main thread + POSIX only)."""
+    can_alarm = (hasattr(signal, "setitimer")
+                 and threading.current_thread() is threading.main_thread())
+    if not can_alarm:
+        return fn(source)
+    old = signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(_RuleTimeout()))
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        return fn(source)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old)
 
 
 @dataclass
@@ -59,8 +85,8 @@ class Rule:
 
     def __call__(self, source: str):
         try:
-            out = self.apply(source)
-        except Exception:
+            out = _apply_bounded(self.apply, source, RULE_APPLY_TIMEOUT)
+        except (Exception, _RuleTimeout):     # bad rule (crash or runaway loop)
             return []
         if out is None:
             return []
@@ -72,6 +98,7 @@ class SearchBudget:
     max_candidates: int = 2000
     max_seconds: float = 20.0
     max_combo: int = 3                    # longest rule combination to compose
+    candidate_timeout: float = 3.0        # hard wall per candidate (subprocess kill)
 
 
 def _ordered(rules: list[Rule], signature: tuple[str, ...]) -> list[Rule]:
@@ -99,7 +126,7 @@ def repair(source: str, problem: dict, rules: list[Rule],
     budget = budget or SearchBudget()
     t0 = time.time()
 
-    base = run_tests(source, problem)
+    base = run_tests(source, problem, timeout=budget.candidate_timeout)
     if base.all_pass:                     # already correct: nothing to repair
         return RepairResult(True, source, (), 0, time.time() - t0, "noop",
                             base.signature())
@@ -118,7 +145,8 @@ def repair(source: str, problem: dict, rules: list[Rule],
                     continue
                 seen.add(cand)
                 tried += 1
-                if run_tests(cand, problem, stop_early=True).all_pass:
+                if run_tests(cand, problem, stop_early=True,
+                             timeout=budget.candidate_timeout).all_pass:
                     return RepairResult(True, cand, tuple(r.name for r in combo),
                                         tried, time.time() - t0, "local", signature)
                 if tried >= budget.max_candidates:

@@ -62,13 +62,19 @@ def _stdout_eq(got, want, tol):
 
 
 # ---------------------------------------------------------------- execution
-def _run_call(src, entry, tests, tol, stop_early):
+def _run_call(src, entry, tests, tol, stop_early, per_test):
     ns = {}
     try:
         exec(compile(src, "<candidate>", "exec"), ns)
     except BaseException as e:  # syntax errors, import errors, top-level crashes
         return None, f"{type(e).__name__}: {e}"
     failures, passed = [], 0
+    # Per-test wall clock: a buggy candidate can loop forever, so bound every
+    # call the same way the stdio/file modes do — without this, an infinite loop
+    # hangs the whole search until the outer subprocess timeout fires.
+    have_timer = hasattr(signal, "setitimer")
+    if have_timer:
+        signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(_Timeout()))
     for i, t in enumerate(tests):
         fn = ns.get(t.get("entry", entry))
         if not callable(fn):
@@ -78,14 +84,24 @@ def _run_call(src, entry, tests, tol, stop_early):
             continue
         args = copy.deepcopy(t.get("args", []))
         buf = io.StringIO()
+        if have_timer:
+            signal.setitimer(signal.ITIMER_REAL, per_test)
         try:
             with contextlib.redirect_stdout(buf):
                 got = fn(*args)
+        except _Timeout:
+            failures.append({"index": i, "timeout": True})
+            if stop_early:
+                break
+            continue
         except BaseException as e:
             failures.append({"index": i, "error": f"{type(e).__name__}: {e}"})
             if stop_early:
                 break
             continue
+        finally:
+            if have_timer:
+                signal.setitimer(signal.ITIMER_REAL, 0)
         if _eq(_jsonable(got), _jsonable(t.get("expected")), tol):
             passed += 1
         else:
@@ -230,7 +246,8 @@ def main():
     elif payload["mode"] == "file":
         out, err = _run_file(payload["source"], tests, tol, stop_early, per_test)
     else:
-        out, err = _run_call(payload["source"], payload["entry"], tests, tol, stop_early)
+        out, err = _run_call(payload["source"], payload["entry"], tests, tol,
+                             stop_early, per_test)
     if err is not None:
         print(json.dumps({"passed": 0, "total": len(tests), "failures": [], "error": err}))
         return
