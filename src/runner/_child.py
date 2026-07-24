@@ -250,10 +250,11 @@ def _all_pass(source, mode, entry, tests, tol, per_test) -> bool:
 
 
 def _main_batch(payload):
-    """Test many candidates; stop at the first that passes every test."""
+    """Test many candidates; stop after `max_pass` of them pass every test."""
     mode, entry, tests = payload["mode"], payload.get("entry"), payload["tests"]
     tol, per_test = payload["tol"], payload.get("per_test", 2.0)
-    flags = []
+    max_pass = payload.get("max_pass", 1)
+    flags, hits = [], 0
     for src in payload["sources"]:
         ok = False
         try:
@@ -262,7 +263,9 @@ def _main_batch(payload):
             ok = False
         flags.append(ok)
         if ok:
-            break                        # the search wants the first hit
+            hits += 1
+            if hits >= max_pass:         # enough passing candidates collected
+                break
     print(json.dumps({"pass": flags}))
 
 

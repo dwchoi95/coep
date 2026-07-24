@@ -62,6 +62,96 @@ class ReferenceIndex:
         return [self.correct[i] for i in d.argsort()[:k]]
 
 
+def _span(source: str, node) -> tuple[int, int]:
+    lines = source.splitlines(keepends=True)
+    starts = [0]
+    for ln in lines:
+        starts.append(starts[-1] + len(ln))
+    return (starts[node.lineno - 1] + node.col_offset,
+            starts[node.end_lineno - 1] + node.end_col_offset)
+
+
+def _target_names(node) -> list[str]:
+    import ast
+    out = []
+    for n in ast.walk(node):
+        if isinstance(n, ast.Name):
+            out.append(n.id)
+    return out
+
+
+def _func(source: str):
+    import ast
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            return node
+    return None
+
+
+def _locals_ordered(func) -> list[str]:
+    """Local variable names, parameters first then locals by first assignment."""
+    import ast
+    order, seen = [], set()
+    args = func.args
+    for a in (args.posonlyargs + args.args + args.kwonlyargs):
+        if a.arg not in seen:
+            seen.add(a.arg); order.append(a.arg)
+    assigns = []
+    for node in ast.walk(func):
+        tgt = None
+        if isinstance(node, ast.Assign):
+            tgt = node.targets
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign, ast.For)):
+            tgt = [node.target]
+        elif isinstance(node, ast.comprehension):
+            tgt = [node.target]
+        if tgt:
+            for t in tgt:
+                for nm in _target_names(t):
+                    assigns.append((getattr(t, "lineno", 0),
+                                    getattr(t, "col_offset", 0), nm))
+    for _l, _c, nm in sorted(assigns):
+        if nm not in seen:
+            seen.add(nm); order.append(nm)
+    return order
+
+
+def rename_reference(ref: str, buggy: str) -> str | None:
+    """Rewrite `ref` so its local variables use the *buggy* program's names.
+
+    Parameters map by position, other locals by first-appearance order. A
+    transplanted hunk then references the identifiers that already exist in the
+    buggy program instead of the reference's, so structurally-matching correct
+    code fits even when the two students named things differently. Problem-
+    agnostic; the function/entry name is never renamed. Returns None if it does
+    not apply (unparseable, or no distinct mapping).
+    """
+    import ast
+    bf, rf = _func(buggy), _func(ref)
+    if bf is None or rf is None:
+        return None
+    b_locals, r_locals = _locals_ordered(bf), _locals_ordered(rf)
+    mapping = {r: b for r, b in zip(r_locals, b_locals) if r != b}
+    if not mapping:
+        return None
+    edits: list[tuple[int, int, str]] = []
+    for node in ast.walk(rf):
+        if isinstance(node, ast.Name) and node.id in mapping:
+            s, e = _span(ref, node)
+            edits.append((s, e, mapping[node.id]))
+        elif isinstance(node, ast.arg) and node.arg in mapping:
+            s, _e = _span(ref, node)
+            edits.append((s, s + len(node.arg), mapping[node.arg]))
+    out = ref
+    for s, e, nm in sorted(edits, reverse=True):     # right-to-left splice
+        out = out[:s] + nm + out[e:]
+    return out
+
+
 def _transplant_candidates(buggy: str, ref: str, max_hunks: int = 3):
     """`buggy` with each differing line-hunk from `ref` adopted, alone and in
     small combinations. Yields (candidate_source, n_hunks)."""
@@ -73,21 +163,26 @@ def _transplant_candidates(buggy: str, ref: str, max_hunks: int = 3):
     if not diffs:
         return
 
-    def build(chosen: frozenset) -> str:
-        out = []
+    def build(chosen: frozenset) -> tuple[str, int]:
+        out, changed = [], 0
         for op in opcodes:
             tag, i1, i2, j1, j2 = op
-            out.extend(rl[j1:j2] if op in chosen else bl[i1:i2])
-        return "".join(out)
+            if op in chosen:
+                out.extend(rl[j1:j2])
+                changed += (i2 - i1) + (j2 - j1)   # lines removed + added
+            else:
+                out.extend(bl[i1:i2])
+        return "".join(out), changed
 
     import itertools
     for size in range(1, min(max_hunks, len(diffs)) + 1):
         for combo in itertools.combinations(diffs, size):
-            yield build(frozenset(combo)), size
+            src, changed = build(frozenset(combo))
+            yield src, size, changed
 
 
 def reference_repair(buggy: str, problem: dict, index: ReferenceIndex,
-                     k_refs: int = 8, max_candidates: int = 80,
+                     k_refs: int = 8, max_candidates: int = 300,
                      max_seconds: float = 12.0,
                      candidate_timeout: float = 3.0) -> ReferenceResult:
     """Repair `buggy` by adopting the minimal differing hunks from a nearby
@@ -98,27 +193,38 @@ def reference_repair(buggy: str, problem: dict, index: ReferenceIndex,
         return ReferenceResult(True, buggy, None, 0, 0, 0.0)
 
     seen = {buggy}
-    scored: list[tuple[float, str, str, int]] = []   # (edit, cand, ref, hunks)
-    bsize = max(1, ast_size(buggy))
+    scored: list[tuple[tuple, str, str, int]] = []   # (cheap-order-key, cand, ref, hunks)
     for ref in index.nearest(buggy, k_refs):
-        for cand, nh in _transplant_candidates(buggy, ref):
-            if cand in seen:
-                continue
-            seen.add(cand)
-            try:
-                edit = rps(buggy, cand) * bsize
-            except Exception:
-                edit = float(nh * 100)
-            scored.append((edit, cand, ref, nh))
+        # transplant from the reference AND from a variable-mapped copy of it,
+        # so a structurally-matching hunk fits even under different names.
+        variants = [ref]
+        renamed = rename_reference(ref, buggy)
+        if renamed and renamed != ref:
+            variants.append(renamed)
+        for variant in variants:
+            for cand, nh, changed in _transplant_candidates(buggy, variant):
+                if cand in seen:
+                    continue
+                seen.add(cand)
+                # cheap proxy for patch size: total lines the adopted hunks
+                # change, then hunk count. Correlates with tree-edit / RPS far
+                # better than a byte-length delta, without a per-candidate zss.
+                key = (changed, nh)
+                scored.append((key, cand, ref, nh))
 
-    scored.sort(key=lambda t: t[0])                  # smallest edit first
+    scored.sort(key=lambda t: t[0])                  # smallest edit first (cheap proxy)
     scored = scored[:max_candidates]
+    # Collect the first few passing candidates (already ordered small-first),
+    # then pick the true minimum-RPS one among them — an exact tree-edit score
+    # only on the handful that pass, not on every candidate.
     flags = run_batch([c for _e, c, _r, _n in scored], problem,
-                      per_candidate_timeout=candidate_timeout)
-    for (edit, cand, ref, nh), ok in zip(scored, flags):
-        if ok:                                       # first (smallest) that passes
-            return ReferenceResult(True, cand, ref, nh, len(flags), time.time() - t0)
-    return ReferenceResult(False, None, None, 0, len(scored), time.time() - t0)
+                      per_candidate_timeout=candidate_timeout, max_pass=5)
+    passing = [(cand, ref, nh) for (_e, cand, ref, nh), ok in zip(scored, flags) if ok]
+    if not passing:
+        return ReferenceResult(False, None, None, 0, len(scored), time.time() - t0)
+    best = min(passing, key=lambda p: rps(buggy, p[0]))
+    return ReferenceResult(True, best[0], best[1], best[2], len(scored),
+                           time.time() - t0)
 
 
 # --------------------------------------------------------------- orchestration

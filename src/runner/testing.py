@@ -136,14 +136,15 @@ def run_tests(source: str, problem: dict, timeout: float | None = None,
 
 def run_batch(sources: list[str], problem: dict,
               per_candidate_timeout: float = 3.0,
-              per_test: float = PER_TEST_TIMEOUT) -> list[bool]:
+              per_test: float = PER_TEST_TIMEOUT,
+              max_pass: int = 1) -> list[bool]:
     """Test many candidate programs in ONE child process; return all_pass each.
 
     Spawning a subprocess per candidate dominates repair time when a search
-    tries hundreds of candidates. The child stops at the first candidate that
-    passes every test (that is the one the search wants) and reports its index,
-    so a batch returns as soon as a repair is found. Order candidates
-    best-first (e.g. smallest edit) and the first True is the chosen patch.
+    tries hundreds of candidates. The child stops once ``max_pass`` candidates
+    have passed every test, so ``max_pass=1`` returns at the first hit (the
+    search wants one), while a larger value collects several passing candidates
+    (e.g. to pick the smallest-RPS among them). Order candidates best-first.
     """
     if not sources:
         return []
@@ -155,6 +156,7 @@ def run_batch(sources: list[str], problem: dict,
         "tests": problem.get("tests") or [],
         "tol": FLOAT_TOL,
         "per_test": per_test,
+        "max_pass": max_pass,
     }
     # whole-batch wall clock: at most one full candidate budget past the first
     # hit, bounded so a pathological batch cannot hang the search.
