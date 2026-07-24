@@ -155,8 +155,15 @@ return ⊥                                              # abstain → escalate
 
 Submissions the tool abstains on go to the LLM. Two things happen:
 
-1. **Escalation.** `LLM(d, T, b)` produces the patch, priced normally. This is
-   the tail the hybrid never sacrifices coverage on.
+1. **Escalation.** `LLM(d, T, b, r)` produces the patch, priced normally, where
+   `r` is one **reference program guided to the buggy submission**: cluster the
+   correct pool `R` on the structural view, and pick `r` at random from the
+   cluster whose medoid is closest (structurally) to `b`. This gives the LLM a
+   *strategy-matched* worked solution — a correct program that most likely
+   solves the problem the same way the student tried to — rather than an
+   arbitrary reference. Selection is local (no LLM cost) and reuses the Stage-1
+   structural featurizer. This is the tail the hybrid never sacrifices coverage
+   on.
 2. **Self-learning.** When the LLM repairs a program the tool missed, diff
    (buggy, fixed), and ask the LLM to *generalize that single repair into a new
    rule* (same `fixer.py` contract: AST-located, source-spliced, named,
