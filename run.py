@@ -5,9 +5,9 @@ Dispatch only: every subcommand forwards to a driver in ``src/experiments/``.
 No experiment logic lives here, so drivers stay independently runnable and
 testable.
 
-    python run.py build    --dataset lsgen [--problem p02580]
-    python run.py repair   --dataset lsgen --problem p02580
-    python run.py evaluate --dataset lsgen --arm coep
+    python run.py build    --problem refactory_q1 [--model claude-haiku gpt-nano]
+    python run.py repair   --problem refactory_q1 --model claude-haiku --file bug.py
+    python run.py evaluate --problem refactory_q1 --model claude-haiku [--fallback --learn]
     python run.py --list
 """
 from __future__ import annotations

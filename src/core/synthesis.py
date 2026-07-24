@@ -14,6 +14,7 @@ an API key in tests.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -75,27 +76,35 @@ def backend_of(model: str) -> str:
 
 
 # --------------------------------------------------------------- loading a tool
+def _exec_module(path: Path, tag: str):
+    """Import a standalone tool file with ``Rule`` provided in its namespace."""
+    name = f"_{tag}_{path.parent.name}"
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    mod.__dict__.setdefault("Rule", Rule)
+    sys.modules[name] = mod
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.modules.pop(name, None)
+    return mod
+
+
 def load_fixer(path: str | Path) -> list[Rule]:
-    """Import a generated ``fixer.py`` and return its rules.
+    """Import a generated ``fixer.py`` and return its rules, plus any
+    self-learned rules in a sibling ``learned.py`` (Stage-4 absorption).
 
     Raised exceptions (syntax error, bad import, ``rules()`` blowing up) are the
     caller's signal that this build round failed and needs refinement.
     """
     path = Path(path)
-    name = f"_fixer_{path.parent.name}"
-    spec = importlib.util.spec_from_file_location(name, path)
-    mod = importlib.util.module_from_spec(spec)
-    # ``Rule`` is the tool's one required symbol; provide it in the namespace so a
-    # generated module works whether or not it remembers the import line.
-    mod.__dict__.setdefault("Rule", Rule)
-    sys.modules[name] = mod                      # so dataclasses/typing resolve
-    try:
-        spec.loader.exec_module(mod)
-        rules = mod.Fixer().rules()
-    finally:
-        sys.modules.pop(name, None)
+    rules = _exec_module(path, "fixer").Fixer().rules()
     if not isinstance(rules, list) or not all(isinstance(r, Rule) for r in rules):
         raise TypeError("Fixer().rules() must return a list[Rule]")
+    learned_path = path.parent / "learned.py"
+    if learned_path.exists():
+        learned = getattr(_exec_module(learned_path, "learned"), "LEARNED", [])
+        rules = rules + [r for r in learned if isinstance(r, Rule)]
     return rules
 
 
@@ -142,14 +151,25 @@ def _feedback(uncovered: list[str], load_error: str | None) -> str:
 class BuildResult:
     pid: str
     path: Path | None
+    model: str = ""
     rules: int = 0
     coverage: float = 0.0            # fraction of sample bugs repaired
     rounds: int = 0
     in_tokens: int = 0
     out_tokens: int = 0
     usd: float = 0.0
+    n_samples: int = 0
     last_error: str | None = None
     provenance: list[list[str]] = field(default_factory=list)  # rules per sample
+
+    def cost_record(self) -> dict:
+        """What gets written to ``cost.json`` next to the tool — the audited
+        build cost of this (problem, model) tool."""
+        return {"pid": self.pid, "model": self.model, "rules": self.rules,
+                "rounds": self.rounds, "n_samples": self.n_samples,
+                "sample_coverage": round(self.coverage, 4),
+                "in_tokens": self.in_tokens, "out_tokens": self.out_tokens,
+                "usd": round(self.usd, 6)}
 
 
 def build(problem: dict, references: list[str], samples: list[str],
@@ -163,7 +183,7 @@ def build(problem: dict, references: list[str], samples: list[str],
            else _TOOLS / pid / backend_of(model) / "fixer.py")
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    res = BuildResult(pid=pid, path=None)
+    res = BuildResult(pid=pid, path=None, model=model, n_samples=len(samples))
     uncovered_srcs: list[str] = []
     load_error: str | None = None
     call = llm_fn or llm_mod.complete
@@ -212,4 +232,7 @@ def build(problem: dict, references: list[str], samples: list[str],
             break
         uncovered_srcs = [samples[i] for i in uncov_idx]
 
+    # Persist the audited build cost next to the tool (even if it never loaded,
+    # so a failed build's spend is still on the record).
+    (out.parent / "cost.json").write_text(json.dumps(res.cost_record(), indent=2))
     return res
