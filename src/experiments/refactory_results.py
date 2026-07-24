@@ -39,11 +39,16 @@ def collect(pid: str, ver: str = "v2") -> dict:
             continue
         ok = str(r["Status"]).startswith("success")
         patch = str(r.get("Repair", "")) if ok else None
-        rps = None
-        if ok and str(r["RPS"]).strip() not in ("", "nan"):
-            rps = float(r["RPS"])
+
+        def num(v):                        # their CSV writes 'N/A' on some fails
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        rps = num(r["RPS"]) if ok else None
         rows.append(event_row(stem, "none", "reference" if ok else "none", ok,
-                              patch, rps, att_cpu=float(r["Total Time"])))
+                              patch, rps, att_cpu=num(r["Total Time"]) or 0.0))
 
     write_events(ver, pid, "refactory", rows)
     summ = summarize_events("Refactory", "none", rows)
