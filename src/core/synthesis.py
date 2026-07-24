@@ -29,41 +29,84 @@ _TOOLS = Path(__file__).resolve().parents[2] / "tools"
 
 
 # --------------------------------------------------------------- Stage-1 samples
-def select_samples(buggy: list[str], correct: list[str], n_samples: int = 6,
-                   k_per_cluster: int = 5) -> list[str]:
-    """Choose build-time sample bugs: diverse *and* learnable.
+def select_samples(buggy: list[str], correct: list[str], n_samples: int = 8,
+                   k_per_cluster: int = 6, max_sample_edit: int = 12) -> list[str]:
+    """Just the buggy sources from :func:`select_sample_pairs` (compat)."""
+    return [b for b, _f in select_sample_pairs(
+        buggy, correct, n_samples, k_per_cluster, max_sample_edit)]
 
-    Cluster the buggy pool structurally (one misconception per cluster), then
-    within each of the largest clusters take the member with the **smallest
-    edit distance (RPS) to its nearest correct program**. The medoid is the most
-    *typical* shape, but often a tangled multi-issue program; the min-edit member
-    is a clean single-misconception exemplar the builder can actually learn a
-    targeted rule from. Diversity comes from the clustering, learnability from
-    the per-cluster min-edit pick.
+
+def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8,
+                        k_per_cluster: int = 6,
+                        max_sample_edit: int = 12) -> list[tuple[str, str]]:
+    """Choose build-time (buggy, fixed) pairs: frequent, learnable, and diverse.
+
+    Three forces, learned from watching the builder waste effort on rare tangled
+    programs while the common misconceptions went uncovered:
+
+    * **Frequency** — walk clusters largest-first, so the common misconceptions
+      (big clusters) are represented before the rare ones.
+    * **Learnability** — each cluster contributes the member with the smallest
+      **absolute** tree-edit distance to its nearest correct program: a clean,
+      single-misconception exemplar a targeted rule can be learned from, not the
+      medoid (the most *typical* shape, often a multi-issue mess). Absolute edit,
+      not RPS: RPS is normalized by program size, so a 25-line tangle looks
+      "close" to a 25-line correct program even when dozens of nodes differ.
+    * **Fixability filter** — skip a cluster whose cleanest member still needs
+      more than ``max_sample_edit`` node edits: no small-edit rule exists for it,
+      so showing it to the builder only invites a wholesale rewrite. Let those
+      escalate to the fallback instead.
+
+    Each sample is paired with its **minimum-edit correct program** (the correct
+    solution nearest to it by *actual* tree-edit distance, over a shortlist of
+    the structurally-closest ``n_targets``). Showing the builder the pair —
+    buggy AND its targeted fix — turns "infer the fix, then generalize it" into
+    just "generalize this shown repair", which a weak model does far better. No
+    LLM call: the fix is a real correct submission, picked locally.
+
+    Returns up to ``n_samples`` ``(buggy, fixed)`` pairs, cleanest first.
     """
     from sklearn.metrics import pairwise_distances
 
-    clusters, _ = cluster(buggy)
-    clusters = clusters[:n_samples]
+    from src.utils.metrics import ast_size
+
     if not correct:
-        return [buggy[c.medoid] for c in clusters]
+        clusters, _ = cluster(buggy)
+        return [(buggy[c.medoid], "") for c in clusters[:n_samples]]
 
     matrix, vec = structural_features(buggy + correct)   # shared vocabulary
     if vec is None:
-        return [buggy[c.medoid] for c in clusters]
+        clusters, _ = cluster(buggy)
+        return [(buggy[c.medoid], "") for c in clusters[:n_samples]]
     X = matrix.toarray() if hasattr(matrix, "toarray") else matrix
     B, C = X[:len(buggy)], X[len(buggy):]
     dist = pairwise_distances(B, C, metric="cosine")     # buggy x correct
-    nearest_c = dist.argmin(axis=1)
+    nearest_c = dist.argmin(axis=1)                       # structural nearest fix
 
-    samples = []
+    _edit: dict[int, float] = {}
+    def edit_to(bi: int) -> float:                        # abs tree edits, cached
+        if bi not in _edit:
+            ci = int(nearest_c[bi])
+            _edit[bi] = rps(buggy[bi], correct[ci]) * ast_size(buggy[bi])
+        return _edit[bi]
+
+    csizes = sorted(ast_size(c) for c in correct)
+    size_cap = 3 * csizes[len(csizes) // 2]              # 3x median correct size
+    clusters, _ = cluster(buggy)                         # largest-first
+
+    picked: list[tuple[float, str, str]] = []
     for cl in clusters:
         # cheap prefilter: members structurally closest to some correct, then
-        # pick the true min tree-edit-distance one among them.
+        # pick the true min absolute-edit one among them.
         cands = sorted(cl.members, key=lambda i: dist[i, nearest_c[i]])[:k_per_cluster]
-        best = min(cands, key=lambda i: rps(buggy[i], correct[nearest_c[i]]))
-        samples.append(buggy[best])
-    return samples
+        best = min(cands, key=edit_to)
+        e = edit_to(best)
+        if e <= max_sample_edit and ast_size(buggy[best]) <= size_cap:
+            picked.append((e, buggy[best], correct[int(nearest_c[best])]))
+        if len(picked) >= n_samples:
+            break
+    picked.sort(key=lambda t: t[0])                      # cleanest first
+    return [(b, f) for _e, b, f in picked[:n_samples]]
 
 
 def backend_of(model: str) -> str:
@@ -97,6 +140,8 @@ def load_fixer(path: str | Path) -> list[Rule]:
     Raised exceptions (syntax error, bad import, ``rules()`` blowing up) are the
     caller's signal that this build round failed and needs refinement.
     """
+    from src.core.generic_rules import generic_rules
+
     path = Path(path)
     rules = _exec_module(path, "fixer").Fixer().rules()
     if not isinstance(rules, list) or not all(isinstance(r, Rule) for r in rules):
@@ -105,7 +150,8 @@ def load_fixer(path: str | Path) -> list[Rule]:
     if learned_path.exists():
         learned = getattr(_exec_module(learned_path, "learned"), "LEARNED", [])
         rules = rules + [r for r in learned if isinstance(r, Rule)]
-    return rules
+    # every tool also carries the shared small-edit operators (METHODOLOGY §2.1)
+    return rules + generic_rules()
 
 
 # --------------------------------------------------------------- validation
@@ -130,6 +176,15 @@ def _render_tests(problem: dict, limit: int = 8) -> str:
 
 def _render_block(sources: list[str]) -> str:
     return "\n\n".join(f"```python\n{s.strip()}\n```" for s in sources)
+
+
+def _render_pairs(samples: list[str], fixes: list[str]) -> str:
+    """buggy → fixed pairs for the builder to generalize."""
+    out = []
+    for i, (b, f) in enumerate(zip(samples, fixes), 1):
+        out.append(f"### Repair {i}\nBuggy:\n```python\n{b.strip()}\n```\n"
+                   f"Fixed:\n```python\n{f.strip()}\n```")
+    return "\n\n".join(out)
 
 
 def _feedback(uncovered: list[str], load_error: str | None) -> str:
@@ -175,8 +230,14 @@ class BuildResult:
 def build(problem: dict, references: list[str], samples: list[str],
           model: str = "claude-sonnet", r_max: int = 3, llm_fn=None,
           out_path: str | Path | None = None,
-          budget: SearchBudget | None = None) -> BuildResult:
-    """Generate–validate–refine a ``fixer.py`` for one problem."""
+          budget: SearchBudget | None = None,
+          sample_fixes: list[str] | None = None) -> BuildResult:
+    """Generate–validate–refine a ``fixer.py`` for one problem.
+
+    ``sample_fixes[i]`` is a correct fix for ``samples[i]``; when given, the
+    builder is shown (buggy → fixed) pairs to generalize, which a weak model
+    handles far better than inferring the fix itself.
+    """
     pid = problem["pid"]
     budget = budget or SearchBudget()
     out = (Path(out_path) if out_path
@@ -192,12 +253,14 @@ def build(problem: dict, references: list[str], samples: list[str],
     # takes this kwarg (test stubs keep their (prompt, model) signature).
     extra = {} if llm_fn else {"max_tokens": 32000}
 
+    sample_block = (_render_pairs(samples, sample_fixes) if sample_fixes
+                    else _render_block(samples))
     for rnd in range(r_max):
         prompt = render("build_fixer",
                         description=problem.get("description", ""),
                         tests=_render_tests(problem),
                         references=_render_block(references) or "(none provided)",
-                        samples=_render_block(samples),
+                        samples=sample_block,
                         feedback=_feedback(uncovered_srcs, load_error))
         comp = call(prompt, model=model, **extra)
         res.in_tokens += comp.in_tokens

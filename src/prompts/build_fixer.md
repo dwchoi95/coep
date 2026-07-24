@@ -13,7 +13,11 @@ further help from you at run time.
 ## Correct reference solution(s) — the intended logic
 {references}
 
-## Sample buggy submissions (representatives of the misconceptions to cover)
+## Worked repairs to generalize (buggy → a correct fix)
+Each pair is one student misconception and a correct program close to it. Write a
+rule that reproduces the *transformation* from buggy to fixed, and that also
+fires on OTHER submissions with the same misconception. Do not hard-code these
+exact programs.
 {samples}
 
 ## What to write

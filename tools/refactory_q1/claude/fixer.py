@@ -18,217 +18,144 @@ def _splice(source, node, new_text):
 class Fixer:
     def rules(self):
         return [
-            Rule(name="early_return_in_loop", apply=_early_return_in_loop, symptoms=("wrong",)),
-            Rule(name="return_none_to_int", apply=_return_none_to_int, symptoms=("wrong",)),
-            Rule(name="off_by_one_range", apply=_off_by_one_range, symptoms=("err:IndexError",)),
-            Rule(name="missing_return_value", apply=_missing_return_value, symptoms=("wrong",)),
-            Rule(name="strip_insertion_logic", apply=_strip_insertion_logic, symptoms=("wrong",)),
-            Rule(name="strip_index_logic", apply=_strip_index_logic, symptoms=("wrong",)),
+            Rule(name="return_statement_indentation", apply=self._fix_return_indentation, symptoms=("wrong",)),
+            Rule(name="strict_lt_to_le", apply=self._fix_lt_to_le, symptoms=("wrong",)),
+            Rule(name="none_to_zero", apply=self._fix_none_to_zero, symptoms=("wrong",)),
+            Rule(name="return_missing_value", apply=self._fix_return_missing_value, symptoms=("wrong",)),
+            Rule(name="break_instead_of_return", apply=self._fix_break_instead_of_return, symptoms=("wrong",)),
+            Rule(name="comparison_operators_mixed", apply=self._fix_comparison_operators, symptoms=("wrong",)),
+            Rule(name="index_instead_of_position", apply=self._fix_index_instead_of_position, symptoms=("wrong",)),
         ]
 
-def _early_return_in_loop(source):
-    """Detect return statement directly in for loop body that should be outside."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.For):
-            if len(node.body) >= 2:
-                last_stmt = node.body[-1]
-                if isinstance(last_stmt, ast.Return):
-                    second_last = node.body[-2]
-                    if isinstance(second_last, ast.If):
+    def _fix_return_indentation(self, source):
+        """Move return statement outside loop body when it's indented inside."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For):
+                if node.body and isinstance(node.body[-1], ast.Return):
+                    last_stmt = node.body[-1]
+                    # Check if there's a return at the same level as the for loop
+                    parent = None
+                    for p in ast.walk(tree):
+                        if isinstance(p, (ast.FunctionDef, ast.If, ast.For)):
+                            if hasattr(p, 'body') and node in p.body:
+                                parent = p
+                    if parent and isinstance(parent, ast.FunctionDef):
+                        # Move the return outside
                         lines = source.splitlines(keepends=True)
-                        starts = [0]
-                        for ln in lines:
-                            starts.append(starts[-1] + len(ln))
-                        loop_start = starts[node.lineno - 1]
-                        loop_end = starts[node.end_lineno - 1] + node.end_col_offset
-                        
-                        ret_start = starts[last_stmt.lineno - 1]
-                        ret_end = starts[last_stmt.end_lineno - 1] + last_stmt.end_col_offset
-                        
-                        indent_match = source[loop_start:].split('\n')[0]
-                        indent_level = len(indent_match) - len(indent_match.lstrip())
-                        base_indent = ' ' * indent_level
-                        
-                        before_ret = source[:ret_start]
-                        after_ret = source[ret_end:]
-                        ret_text = source[ret_start:ret_end].lstrip()
-                        
-                        new_source = before_ret + after_ret + '\n' + base_indent + ret_text
-                        out.append(new_source)
-            elif len(node.body) == 1 and isinstance(node.body[0], ast.Return):
-                lines = source.splitlines(keepends=True)
-                starts = [0]
-                for ln in lines:
-                    starts.append(starts[-1] + len(ln))
-                loop_start = starts[node.lineno - 1]
-                loop_end = starts[node.end_lineno - 1] + node.end_col_offset
-                
-                ret_stmt = node.body[0]
-                ret_start = starts[ret_stmt.lineno - 1]
-                ret_end = starts[ret_stmt.end_lineno - 1] + ret_stmt.end_col_offset
-                
-                indent_match = source[loop_start:].split('\n')[0]
-                indent_level = len(indent_match) - len(indent_match.lstrip())
-                base_indent = ' ' * indent_level
-                
-                before_ret = source[:ret_start]
-                after_ret = source[ret_end:]
-                ret_text = source[ret_start:ret_end].lstrip()
-                
-                new_source = before_ret + after_ret + '\n' + base_indent + ret_text
-                out.append(new_source)
-    
-    return out
+                        for_line = node.lineno - 1
+                        return_line = last_stmt.lineno - 1
+                        if for_line < return_line < len(lines):
+                            # Remove indentation from return and place after loop
+                            return_src = lines[return_line].lstrip()
+                            # Build new source by dedenting the return
+                            new_lines = lines[:return_line] + lines[return_line + 1:]
+                            for_end = node.end_lineno
+                            insert_pos = for_end
+                            new_lines.insert(insert_pos, "    " + return_src)
+                            out.append("".join(new_lines))
+        return out
 
-def _return_none_to_int(source):
-    """Replace return None with return 0."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Return) and node.value is not None:
-            if isinstance(node.value, ast.Constant) and node.value.value is None:
+    def _fix_lt_to_le(self, source):
+        """Replace < with <= in comparisons."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Lt):
+                left, right = node.left, node.comparators[0]
+                ls, le = _span(source, left)
+                rs, re = _span(source, right)
+                new_cmp = source[ls:le] + " <= " + source[rs:re]
+                out.append(_splice(source, node, new_cmp))
+        return out
+
+    def _fix_none_to_zero(self, source):
+        """Replace None return with 0."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return) and node.value and isinstance(node.value, ast.Constant) and node.value.value is None:
                 out.append(_splice(source, node.value, "0"))
-    
-    return out
+        return out
 
-def _off_by_one_range(source):
-    """Fix range(0, len(seq) + 1) to range(len(seq))."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "range":
-            if len(node.args) == 2:
-                start_arg = node.args[0]
-                end_arg = node.args[1]
-                if isinstance(start_arg, ast.Constant) and start_arg.value == 0:
-                    if isinstance(end_arg, ast.BinOp) and isinstance(end_arg.op, ast.Add):
-                        if isinstance(end_arg.right, ast.Constant) and end_arg.right.value == 1:
-                            s, e = _span(source, node)
-                            left_s, left_e = _span(source, end_arg.left)
-                            new_text = "range(" + source[left_s:left_e] + ")"
-                            out.append(_splice(source, node, new_text))
-    
-    return out
+    def _fix_return_missing_value(self, source):
+        """Add missing value to bare return statement."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return) and node.value is None:
+                # Check context - if in a loop, likely should return something
+                s, e = _span(source, node)
+                # Replace bare return with return 0
+                out.append(_splice(source, node, "return 0"))
+        return out
 
-def _missing_return_value(source):
-    """Fix bare return statement (should return result or value)."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Return) and node.value is None:
-            lines = source.splitlines(keepends=True)
-            starts = [0]
-            for ln in lines:
-                starts.append(starts[-1] + len(ln))
-            
-            ret_line = lines[node.lineno - 1] if node.lineno <= len(lines) else ""
-            ret_text = ret_line.strip()
-            
-            if ret_text.startswith("return"):
-                before_return = ret_text.replace("return", "").strip()
-                if not before_return or before_return == "":
-                    for prev_node in ast.walk(tree):
-                        if isinstance(prev_node, ast.Assign):
-                            for target in prev_node.targets:
-                                if isinstance(target, ast.Name) and target.id == "result":
-                                    out.append(_splice(source, node, "return result"))
-    
-    return out
+    def _fix_break_instead_of_return(self, source):
+        """Replace break with return statement when needed."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Break):
+                # Check if this is in a for loop that should return
+                out.append(_splice(source, node, "return result"))
+        return out
 
-def _strip_insertion_logic(source):
-    """Remove logic that builds a new list/tuple; use simple search."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "search":
-            has_list_append = any(
-                isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) 
-                and n.func.attr == "append"
-                for n in ast.walk(node)
-            )
-            has_list_extend = any(
-                isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) 
-                and n.func.attr == "extend"
-                for n in ast.walk(node)
-            )
-            has_index_call = any(
-                isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) 
-                and n.func.attr == "index"
-                for n in ast.walk(node)
-            )
-            
-            if (has_list_append or has_list_extend) and has_index_call:
-                lines = source.splitlines(keepends=True)
-                starts = [0]
-                for ln in lines:
-                    starts.append(starts[-1] + len(ln))
-                
-                func_start = starts[node.lineno - 1]
-                func_end = starts[node.end_lineno - 1] + node.end_col_offset
-                func_text = source[func_start:func_end]
-                
-                replacement = """def search(x, seq):
-    for i, elem in enumerate(seq):
-        if x <= elem:
-            return i
-    return len(seq)"""
-                
-                out.append(source[:func_start] + replacement + source[func_end:])
-    
-    return out
+    def _fix_comparison_operators(self, source):
+        """Fix >= to > and <= to <= in boundary conditions."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1:
+                if isinstance(node.ops[0], ast.GtE):
+                    left, right = node.left, node.comparators[0]
+                    ls, le = _span(source, left)
+                    rs, re = _span(source, right)
+                    new_cmp = source[ls:le] + " > " + source[rs:re]
+                    out.append(_splice(source, node, new_cmp))
+        return out
 
-def _strip_index_logic(source):
-    """Remove complex insertion/index logic and use straightforward comparison."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "search":
-            has_seq_copy = any(
-                isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) 
-                and n.func.attr == "copy"
-                for n in ast.walk(node)
-            )
-            if has_seq_copy:
-                lines = source.splitlines(keepends=True)
-                starts = [0]
-                for ln in lines:
-                    starts.append(starts[-1] + len(ln))
-                
-                func_start = starts[node.lineno - 1]
-                func_end = starts[node.end_lineno - 1] + node.end_col_offset
-                
-                replacement = """def search(x, seq):
-    for i, elem in enumerate(seq):
-        if x <= elem:
-            return i
-    return len(seq)"""
-                
-                out.append(source[:func_start] + replacement + source[func_end:])
-    
-    return out
+    def _fix_index_instead_of_position(self, source):
+        """Replace .index() calls with direct position i when iterating."""
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For):
+                for stmt in ast.walk(node):
+                    if isinstance(stmt, ast.Return):
+                        if isinstance(stmt.value, ast.Call):
+                            call = stmt.value
+                            if isinstance(call.func, ast.Attribute) and call.func.attr == "index":
+                                # Check if we're in a range(len(seq)) loop
+                                if isinstance(node.target, ast.Name):
+                                    # Replace with just i
+                                    out.append(_splice(source, stmt.value, node.target.id))
+        return out

@@ -9,7 +9,7 @@ import argparse
 
 from src.core.cluster import cluster
 from src.core.repair import SearchBudget
-from src.core.synthesis import build, select_samples
+from src.core.synthesis import build, select_sample_pairs
 from src.experiments._common import load_env, load_pool, load_problem
 
 
@@ -18,7 +18,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--problem", required=True, help="problem id, e.g. refactory_q1")
     ap.add_argument("--model", default=["claude-haiku", "gpt-nano"], nargs="+",
                     help="builder model(s)")
-    ap.add_argument("--n-samples", type=int, default=6)
+    ap.add_argument("--n-samples", type=int, default=8)
     ap.add_argument("--n-refs", type=int, default=2)
     ap.add_argument("--r-max", type=int, default=3)
     ap.add_argument("--data-root", default="data")
@@ -29,15 +29,18 @@ def main(argv: list[str]) -> int:
     buggy = load_pool(args.problem, "buggy", args.data_root)
     correct = load_pool(args.problem, "correct", args.data_root)
 
-    samples = select_samples(buggy, correct, n_samples=args.n_samples)
+    pairs = select_sample_pairs(buggy, correct, n_samples=args.n_samples)
+    samples = [b for b, _f in pairs]
+    fixes = [f for _b, f in pairs]
     refs = [correct[c.medoid] for c in cluster(correct)[0][:args.n_refs]]
     print(f"{args.problem}: {len(buggy)} buggy, {len(correct)} correct → "
-          f"{len(samples)} samples, {len(refs)} refs")
+          f"{len(samples)} (buggy→fixed) pairs, {len(refs)} refs")
 
     budget = SearchBudget(max_candidates=400, max_seconds=10, max_combo=2,
                           candidate_timeout=3)
     for model in args.model:
-        res = build(prob, refs, samples, model=model, r_max=args.r_max, budget=budget)
+        res = build(prob, refs, samples, model=model, r_max=args.r_max,
+                    budget=budget, sample_fixes=fixes)
         print(f"  [{model}] rules={res.rules} coverage={res.coverage:.0%} "
               f"rounds={res.rounds} cost=${res.usd:.4f} → {res.path}")
     return 0
