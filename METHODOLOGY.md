@@ -33,33 +33,41 @@ The builder does **not** see the whole pool. It sees a small, *chosen* sample.
 How that sample is chosen is a contribution, not a detail: a random `N` bugs
 waste the LLM's attention on near-duplicates and miss rare misconceptions.
 
-**Cluster the buggy pool, take one representative per cluster.**
+**Cluster the buggy pool for diversity, take the most *learnable* member of
+each cluster.** Two forces: clustering gives one representative per
+misconception; the per-cluster pick makes that representative one the builder
+can actually turn into a small, targeted rule.
 
 Only build-time-available information is used (buggy programs are unlabeled; we
-never look at held-out submissions):
+never look at held-out submissions). The implemented pipeline
+(`src/core/synthesis.select_samples`, `src/core/cluster`):
 
-- **Behavioral view** `φ_beh(b)` — the per-test outcome signature already
-  produced by one harness run: for each test, one of `pass / wrong /
-  timeout / err:<Type>`. Captures *what symptom the bug shows*. (Our runner's
-  `TestResult.signature()` returns exactly this.)
 - **Structural view** `φ_str(b)` — TF-IDF over normalized-AST path n-grams
-  (identifiers/literals folded, as in the RPS labeler). Captures *what shape
-  the program has*.
+  (identifiers/literals folded, as in the RPS labeler); captures *what shape a
+  program has*. Cluster with average-linkage agglomerative clustering under a
+  cosine-distance threshold (no `k` needed; count derived from the data).
+- **Representative = the min-edit member, not the medoid.** For each of the
+  largest clusters, pick the member with the **smallest tree-edit distance (RPS)
+  to its nearest correct program**. The medoid is the most *typical* shape but
+  is often a tangled, multi-issue program; the min-edit member is a clean
+  single-misconception exemplar a targeted rule can be learned from. (We saw
+  this directly: medoid samples left both cheap builders at 0% sample coverage;
+  min-edit samples are learnable.) Nearest correct is found on the same
+  structural view; RPS is computed only for a small structurally-closest
+  shortlist per cluster, so selection stays cheap.
+- `N` = number of clusters kept (a small budget, e.g. 6 in the smoke tests).
 
-Concatenate the two L2-normalized views, weight `α` (behavioral) vs `1−α`.
+**References** are chosen on the structural view too, but as **medoids** (a
+*typical* correct solution per strategy is what we want to show the builder, not
+an edge case): cluster `R_pool`, take medoids → a strategy-diverse reference set
+rather than `k` arbitrary solutions. The same structural featurizer also drives
+the fallback's strategy-matched reference (§4).
 
-- **Cluster count is data-driven**, not fixed: HDBSCAN (density-based, no `k`,
-  labels outliers explicitly).
-- **Outliers are kept.** A singleton cluster is a rare misconception — precisely
-  what a rule set otherwise misses. Include the top-`m` outliers as extra
-  representatives.
-- **Representative = medoid** of each cluster (the most typical instance).
-- `N` = (#clusters) + (#kept outliers), *derived from the data*.
-
-**References** are chosen the same way but on the structural view alone (correct
-programs are behaviorally identical, so only shape distinguishes their
-strategies): cluster `R_pool`, take medoids → a strategy-diverse reference set
-rather than `k` arbitrary solutions.
+**Deferred, not discarded.** A richer selector — adding the behavioral view
+(per-test outcome signature from `TestResult.signature()`), a density clusterer
+that labels and keeps outliers, and an `α` weight between the two views — is a
+natural extension left as an open knob (§7); the structural + min-edit selector
+is what is implemented and evaluated now.
 
 **Why this earns its keep (ablation):** random-`N` vs clustered-`N` at *matched*
 `N`, held-out RR. Secondary result: the cluster count is itself a cheap,
@@ -71,9 +79,18 @@ signal for spending a larger build budget where it pays.
 ## 2. Tool synthesis (Stage 2) — generate–validate–refine
 
 The builder LLM receives: `d`, `T`, the chosen references, and the chosen sample
-bugs, plus the documentation of a small **repair-operator library** it builds
-on. It emits `tools/<p_id>/fixer.py`, a single file exposing
-`class Fixer(ast.NodeTransformer)` whose rules are *candidate generators*.
+bugs, plus a span-splice helper and a worked example (`src/prompts/build_fixer.md`).
+It emits a single module exposing `class Fixer` whose `rules()` returns a list of
+`Rule` objects — the *candidate generators* consumed by `src/core/repair.py`.
+The generated file is a standalone artifact (the one required import,
+`from src.core.repair import Rule`, is ensured on disk).
+
+**One tool per (problem, model).** We build with the two cheapest models —
+`claude-haiku-4-5` and `gpt-5.4-nano` — writing `tools/<p_id>/claude/fixer.py`
+and `tools/<p_id>/gpt/fixer.py` from the *same* Stage-1 selection, so the only
+variable between them is the builder LLM. Every builder call is priced through
+`src/utils/llm` (official SDK usage, not `litellm`), and the build cost is
+recorded next to the tool (§5).
 
 ### 2.1 What a rule is
 A rule maps a source string to zero or more edited source strings, and carries:
@@ -81,6 +98,17 @@ A rule maps a source string to zero or more edited source strings, and carries:
   `wrong_return_reversed`), and
 - declared **symptoms** (failure classes it addresses), used only for search
   ordering, never for correctness.
+
+**No wholesale rewrites.** A rule must make a *small, local* edit — a changed
+operator, one rewritten expression, an inserted/removed statement. A rule that
+replaces an entire function or module with a fixed "canonical" solution is
+forbidden even though it passes tests: it inflates RPS to that of a full rewrite
+and collapses the misconception profile to a single meaningless label (an early
+builder did exactly this — 99.5% RR at mean RPS 0.64, every repair attributed to
+one "canonical rewrite" rule). If no targeted edit fits, the tool abstains and
+the submission escalates (§4). The builder prompt states this, and the intended
+final guard is structural (reject a candidate whose edit span covers a whole
+`FunctionDef` body or the module).
 
 Two kinds compose in every tool:
 - **Problem-specific rules** — the builder's creative work: rewrites that
@@ -180,11 +208,17 @@ few-shot examples) we already showed does not help.
 
 | Stage | LLM cost | When |
 |---|---|---|
-| 1. Selection | none (local clustering) | once per problem |
-| 2. Synthesis | ≤ `2·R_max` builder calls | once per problem |
+| 1. Selection | none (local clustering + RPS) | once per problem |
+| 2. Synthesis | ≤ `R_max` builder calls | once per (problem, model) |
 | 3. Local repair | **zero** | every covered submission |
 | 4. Fallback | one per-submission call | only on abstention |
 | 4. Self-learning | one call per absorbed miss | amortized into future coverage |
+
+Stage-2 cost is measured exactly (official-SDK token usage, extended-thinking
+tokens included) and **written alongside each tool** as `tools/<p_id>/<model>/
+cost.json` — build tokens, USD, rounds, and sample coverage — so `C_build` is an
+audited number, not an estimate. As an illustration, `refactory_q1` built for
+about **$0.04** with `claude-haiku-4-5` and **$0.004** with `gpt-5.4-nano`.
 
 Break-even against per-submission repair: `N* = C_build / (Δ·(1−f))`, where
 `C_build` is Stage-2 cost, `Δ` the per-submission saving, `f` the abstention
@@ -217,12 +251,22 @@ consequence, not the whole thesis.
 
 ---
 
-## 7. Open design points (to settle during Phase 3)
+## 7. Open design points
 
-- `α` (behavioral vs structural weight) and HDBSCAN `min_cluster_size`: set on
-  Refactory (where v1 gives a reference RR) before scaling to Codeforces.
-- `m` (outliers kept): trades build cost for tail coverage; priced by `N*`.
-- `max_combo` and the candidate budget in Stage 3.
+Settled:
+- **Sample selection** = structural clustering + per-cluster min-edit-to-nearest-
+  correct member (§1). References = structural medoids.
+- **Builder models** = the two cheapest, `claude-haiku-4-5` and `gpt-5.4-nano`,
+  one tool each.
+- **No RPS gate; no wholesale rewrites** (§2.1, §3).
+
+Still open:
+- Adding the **behavioral view** and an `α` weight, and a density clusterer that
+  keeps outliers (`m`): the richer selector deferred in §1; priced by `N*`.
+- `N` (clusters kept / sample budget), `max_combo`, and the Stage-3 candidate
+  budget.
+- The **structural guard** that hard-rejects whole-`FunctionDef`/module rewrites
+  (prompt-level today).
 - Whether self-learning rules are kept per-term or reset (report both).
 - Gate check (from PLAN): if clustered-`N` does not beat random-`N` at matched
   `N` on Refactory, revisit before spending the Codeforces build budget.

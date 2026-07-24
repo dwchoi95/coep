@@ -1,33 +1,47 @@
 # CoEP v2 — Rebuild Plan
 
-Confirmed decisions (2026-07-23): **SFT deferred**; datasets are
-**Refactory + PyDex**; **no train/test split** (see "Evaluation set" below).
+Confirmed decisions: **SFT deferred**; **no train/test split** (see "Evaluation
+set" below).
 
-Baselines for v2: `Refactory`, `PyDex`, `PyDex + prompt caching`, `CoEP`.
-(`SFT (Qwen2.5-Coder-7B)` is a later phase.)
+- **Dataset**: Refactory + Codeforces.
+- **Baselines**: `Refactory`, `PyDex`, `PyDex + prompt caching`, `CoEP`.
 
-**Why not LSGen.** Its evaluation set and retrieval database are not released:
-the repository publishes an unfiltered pool (1,668 pairs / 110 problems) while
-the paper evaluates on 407 programs / 65 problems after a filter whose final
-stage (LLM-repair success) is unreleased; re-deriving it from the released
-parameters reaches 536/72, not 407/65. The retrieval database (274,349
-submissions, 110 problems) is absent entirely - only the code that builds it
-ships. LSGen is therefore discussed in Related Work as the retrieval-based
-design point, and the reason is stated, rather than reproduced from a
-reconstruction we cannot verify.
+## Status (updated 2026-07-24)
+
+What is implemented so far:
+
+- **Dataset: Refactory + Codeforces, 11 problems** (Refactory 5 + Codeforces 6,
+  one per rating band), **2,970 buggy**. The Codeforces subset is verifiable ∩
+  Python3 ∩ WA≥1 & AC≥1 ∩ `official_tests_complete` ∩ no special-checker,
+  verified by executing every submission against the full official suites
+  (0.16% oracle false-positive).
+- **Two builder models, the two cheapest**: `claude-haiku-4-5` and
+  `gpt-5.4-nano`. CoEP builds one tool per model:
+  `tools/<p_id>/{claude,gpt}/fixer.py`, each with a `cost.json` recording build
+  tokens/USD.
+- **Stage-1 selection is implemented** (`src/core/synthesis.select_samples`):
+  structural clustering + per-cluster **min-edit-to-nearest-correct** sample
+  (not medoid), references = structural medoids. See METHODOLOGY §1.
+- **Stage-2 synthesis is implemented** (`src/core/synthesis.build`):
+  generate–validate–refine, harness re-validation, `class Fixer.rules() ->
+  list[Rule]` contract, **wholesale rewrites forbidden**.
+- **Fallback** uses `LLM(d, T, b, r)` with a strategy-matched reference
+  (`src/core/fallback`, `src/core/cluster.nearest_reference`).
+- Cost is tracked via official SDKs; `src/utils/llm` handles the newer-model API
+  contract (no `temperature`; GPT-5 `max_completion_tokens`; stream on large
+  `max_tokens`; text past extended-thinking blocks).
 
 **Evaluation set.** No held-out split. Prior work in this setting (CLARA,
-Refactory, LSGen) assumes the whole submission pool exists at feedback time -
-Refactory consumes *all* correct solutions before repairing - so building a
-tool from buggy programs drawn from that same pool is temporally sound, and our
-resource ask (N representatives) is strictly smaller than Refactory's
-(thousands of correct solutions). What this argument does *not* cover is
-builder memorization: v1 builders demonstrably hard-coded corrected sources for
-build-set programs (four repairers contain verbatim fixes keyed by normalized
-source). We therefore evaluate on **every** buggy program and additionally
-report the figure with the N build programs excluded. Same run, two
-aggregations, zero extra cost; the gap matters where N/|eval| is large
-(~26% on PyDex, ~0.9% on Refactory).
+Refactory) assumes the whole submission pool exists at feedback time — Refactory
+consumes *all* correct solutions before repairing — so building a tool from
+buggy programs drawn from that same pool is temporally sound, and our resource
+ask (N representatives) is strictly smaller than Refactory's (thousands of
+correct solutions). What this argument does *not* cover is builder memorization:
+v1 builders demonstrably hard-coded corrected sources for build-set programs
+(four repairers contain verbatim fixes keyed by normalized source). We therefore
+evaluate on **every** buggy program and additionally report the figure with the
+N build programs excluded. Same run, two aggregations, zero extra cost; the gap
+matters where N/|eval| is large.
 
 ---
 
@@ -35,20 +49,17 @@ aggregations, zero extra cost; the gap matters where N/|eval| is large
 
 | Item | Finding |
 |---|---|
-| LSGen data | `PandaAB/LSGen` ships **only `test.json`**: 110 problems, **1,668 (WA→Accepted) pairs**, Python, CodeNet (AIZU/AtCoder). Capped at **20 buggy per problem** (59 problems have exactly 20; 83 have ≥10). Mean 19.8 lines. |
-| LSGen tests | `dataset/repairDataset/merged_test_cases/<pid>/input.N.txt` + outputs — 60–200+ cases per problem. Descriptions in `English_Program_Question_StringVersion.json` (10 MB). |
-| **Execution model** | **99% of LSGen programs read stdin and print stdout** (1,653/1,668). Our harness is function-entry only. **This is the single largest engineering item.** |
-| RPS formula | Not extractable from the ASE'19 PDF (text layer corrupted). Take it from the **reference implementation** in `dwchoi95/refactory` (authoritative over prose). |
+| RPS formula | Take it from the **reference implementation** in `dwchoi95/refactory` (authoritative over prose); cross-validated node-for-node against our `src/utils/metrics.rps`. |
+| Execution model | Two modes needed: **function-entry** (Refactory) and **stdin/stdout judge** (Codeforces). `src/runner/testing.py` supports both, per-test SIGALRM. |
 | Hardware | Apple M1 Ultra, 64 GB, **no CUDA**; torch/mlx not installed. (Why SFT is deferred.) |
-| Lost asset | `/workspace/refactory` gone with the old container → re-clone `dwchoi95/refactory`. |
 
 ### Scientific risk to state up front
-LSGen problems are competitive-programming tasks, not CS1. Rule-based local
-repair will very likely cover a **much smaller fraction** than the 47–51% we
-measured on Refactory. That is a real possibility, not a setback to hide: the
-paper's claim becomes *where* per-problem amortization pays off and where it
-does not, with the self-learning loop and fallback carrying the tail. We
-measure it and report it either way.
+Codeforces problems are competitive-programming tasks, not CS1. Rule-based local
+repair will likely cover a **smaller fraction** on the harder rating bands than
+on Refactory. That is a real possibility, not a setback to hide: the paper's
+claim becomes *where* per-problem amortization pays off and where it does not,
+with the self-learning loop and fallback carrying the tail. We measure it and
+report it either way.
 
 ---
 
@@ -69,12 +80,12 @@ src/                       # all CoEP methodology
     repair.py              # rule-combination search driver + RULE PROVENANCE
     fallback.py            # LLM fallback + self-learning rule induction
 run.py                     # entrypoint: build | repair | evaluate (dispatch only)
-tools/<p_id>/
-  fixer.py                 # synthesized rules + tool entrypoint; class Fixer(ast.NodeTransformer);
-                           # imports src.runner.testing for validation
-data/<p_id>/               # unified schema (problem.json, buggy/, refs/)
+tools/<p_id>/<model>/      # one tool per builder model (claude / gpt)
+  fixer.py                 # synthesized rules; class Fixer.rules() -> list[Rule]
+  cost.json                # build tokens / USD / rounds / sample coverage
+data/<p_id>/               # unified schema (problem.json, buggy/, correct/)
 baselines/
-  refactory/  lsgen/       (sft/ later)
+  refactory/  pydex/       (sft/ later)
 results/v1/                # archive of the current (v1) experiments
 ```
 
@@ -82,10 +93,12 @@ results/v1/                # archive of the current (v1) experiments
   `src/experiments/*`** and `run.py` only dispatches to them (no logic in `run.py`).
 - Prompts stop being Python string literals: each becomes a `.md` file under
   `src/prompts/` and is rendered with explicit parameters.
-- `src/runner/testing.py` is importable by `tools/<p_id>/fixer.py` (requirement 4).
+- `src/runner/testing.py` is importable by `tools/<p_id>/<model>/fixer.py`.
 
-### `tools/<p_id>/fixer.py` contract
-- One file per problem, exposing `class Fixer(ast.NodeTransformer)`.
+### `tools/<p_id>/<model>/fixer.py` contract
+- One file per (problem, model), a standalone artifact exposing `class Fixer`
+  whose `rules()` returns `list[Rule]` (candidate generators consumed by
+  `src/core/repair.py`). The one required import is ensured on disk.
 - **Rule provenance is mandatory**: every applied rule records its identifier, so
   each repair carries the list of rules that produced it. `src/core/repair.py`
   logs this alongside the outcome (v1 discarded it: results only held
@@ -101,26 +114,18 @@ results/v1/                # archive of the current (v1) experiments
 ## Phase 2 — Datasets
 
 Import scripts live in `data/_import/` (one-off data preparation, deliberately
-outside `src/`, which holds methodology only).
+outside `src/`, which holds methodology only). Unified schema per problem:
+`data/<p_id>/{problem.json, buggy/, correct/}`.
 
-1. **LSGen import** → `data/<pid>/{problem.json, buggy/, fixed/}` (LSGen source)
-   - `problem.json`: description, **I/O tests** (stdin → expected stdout), `mode: stdio`.
-   - `buggy/`: the Wrong-Answer submission; `fixed/`: the *same student's* later
-     accepted submission. Reference selection is deferred to split time, so no
-     eval-set fix is ever exposed to a builder.
-2. **Refactory import** → `data/<pid>/` (`mode: call`), re-using the v1 importer's
-   test-suite parsing.
-3. **Split**: deferred. Build = N clustered representatives (Phase 3.2),
-   eval = every remaining buggy program (no cap). Not applied yet.
-
-*Deferred (optional)* — **CodeNet harvest.** Originally planned to give the
-break-even analysis real volume, since LSGen caps at 20 buggy per problem. It is
-not needed: Refactory already supplies 108–557 buggy programs per assignment
-against per-assignment break-evens of 38–704 (3 of 5 clear one offering), and v1
-already showed coverage does not decay with volume (47.5% on a 40-program
-subsample vs 50.7% on all 1,660). Marginal cost is linear with a measured slope,
-so volume changes precision, not the conclusion. Revisit only if LSGen shows
-coverage behaving differently on harder problems.
+1. **Refactory import** → `mode: call`, re-using the v1 importer's test-suite
+   parsing. 5 problems.
+2. **Codeforces import** (open-r1/codeforces) → `mode: stdio` (or `file` where
+   the reference uses `input.txt`/`output.txt`), official tests only. One
+   representative per rating band by most WA submissions → 6 problems. Every AC
+   submission is executed against the full official suite to bound the oracle
+   false-positive rate.
+3. **Split**: none. Build = N clustered representatives (Phase 3.2), eval = every
+   buggy program (no cap), also reported with the N build programs excluded.
 
 ## Phase 3 — Methodology
 
@@ -133,23 +138,24 @@ retires the τ-provenance objection raised in earlier reviews.)
 Only build-time-available information is used: buggy programs (unlabeled), the
 test suite, and correct programs.
 
-Two views per buggy program `b`:
-- **Behavioral** `φ_beh(b)`: failing-test bit-vector over the suite + outcome
-  class per test (wrong-output / exception type / timeout). One test run per
-  program — already needed. Captures *what symptom the bug produces*.
-- **Structural** `φ_str(b)`: TF-IDF over normalized-AST paths/n-grams (+ CFG
-  shape descriptor). Captures *what shape the program is*.
+**Implemented** (`src/core/synthesis.select_samples`, `src/core/cluster`):
+- **Structural view** `φ_str(b)`: TF-IDF over normalized-AST path n-grams
+  (identifiers/literals folded, as in the RPS labeler). Cluster with
+  average-linkage agglomerative clustering under a cosine-distance threshold
+  (count derived from the data, no `k`).
+- **Representative = min-edit member, not medoid**: for each of the largest
+  clusters, take the member with the smallest tree-edit distance (RPS) to its
+  nearest correct program — a clean, learnable single-misconception exemplar.
+  (Medoid samples left both cheap builders at 0% sample coverage; min-edit
+  samples are learnable.)
+- **References**: cluster *correct* programs on the structural view (they are
+  behaviorally identical), take **medoids** → strategy-diverse, typical
+  references. The same featurizer drives the fallback's reference pick.
 
-Combine as `[α·φ̂_beh ; (1−α)·φ̂_str]` (L2-normalized per view).
-
-- **Cluster count is decided dynamically** with HDBSCAN (density-based, no `k`,
-  and it labels outliers). **Outliers are kept, not discarded**: a rare
-  misconception is exactly what a rule set would otherwise miss — include the
-  top-`m` outliers as extra representatives.
-- **Representative = cluster medoid** (most typical instance of that class).
-- `N` is therefore *derived from the data*, not fixed at 5.
-- **References**: cluster *correct* programs on the structural view alone (they
-  are behaviorally identical), take medoids → strategy-diverse references.
+**Deferred (open knob)**: the richer selector — add the behavioral view
+`φ_beh(b)` (failing-test outcome signature, one run per program), an `α` weight
+`[α·φ̂_beh ; (1−α)·φ̂_str]`, and a density clusterer (HDBSCAN) that labels and
+**keeps outliers** (top-`m` rare misconceptions) as extra representatives.
 
 **Ablation that proves the contribution**: random-`N` vs clustered-`N` at
 *matched* `N`, measured by held-out RR. Secondary: cluster count as a
@@ -163,31 +169,31 @@ candidate, until all tests pass or the combination space is exhausted.
 
 ### 3.4 Self-learning fallback
 When the LLM fallback repairs a program the local tool failed on, diff
-(buggy, fixed) → generalize into a new rule → append to `tools/<p_id>/fixer.py`.
-Measure RR as a function of accumulated fallbacks (does the tool improve
-across a term?).
+(buggy, fixed) → generalize into a new rule → append to
+`tools/<p_id>/<model>/fixer.py`. Measure RR as a function of accumulated
+fallbacks (does the tool improve across a term?).
 
 ## Phase 4 — Baselines
-- **Refactory**: re-clone, re-run excluding the N build programs (requirement 3-1).
-- **LSGen**: reproduce the pipeline (UniXcoder embeddings → vector retrieval →
-  solution-guided repair → iterative enhancement) driven by **our own model**,
-  so model choice is not a confound and ATT/InT/OuT/Cost are measurable.
-- **LSGen + prompt caching**: same runs re-priced with cache read/write.
+- **Refactory**: re-clone, re-run excluding the N build programs.
+- **PyDex**: run the per-submission LLM repair pipeline driven by **our own
+  model**, so model choice is not a confound and ATT/InT/OuT/Cost are measurable.
+- **PyDex + prompt caching**: same runs re-priced with cache read/write.
 - **CoEP**: this work.
 
 ## Phase 5 — Metrics (replacing v1)
 | Metric | Definition |
 |---|---|
 | **RR (%)** | fraction of eval programs repaired (all tests pass). Replaces "test-pass rate"; **quality repair rate is retired**. |
-| **RPS** | per the Refactory reference implementation (read from source, then documented in the paper). Reported, not gated. |
+| **RPS** | per the Refactory reference implementation. Reported, not gated. |
 | **ATT** | average time to repair one buggy program, **end to end** (local search + any LLM API latency), seconds. |
 | **InT / OuT** | mean prompt input / output tokens per repaired program. |
 | **Cost** | USD per repaired program (and per problem, with build cost). |
 
 ## Phase 6 — Experiments
-Build tools for 110 (LSGen) + 5 (Refactory) problems → evaluate all four arms
-on every held-out buggy program → cluster-selection ablation → self-learning
-curve → cost/break-even with CodeNet volumes.
+Build tools for the 11 problems (Refactory 5 + Codeforces 6), one per builder
+model → evaluate every arm on every buggy program (RR/RPS/ATT/InT/OuT/Cost) →
+cluster-selection ablation (random-`N` vs min-edit clustered-`N`) →
+self-learning curve → cost/break-even.
 
 ## Phase 7 — Paper
 Rewrite Setup/Results/Method around v2; keep the intro's three-generation
@@ -197,11 +203,11 @@ framing and the scale/cost argument; fresh reviewer rounds.
 
 ## Order of work and gating
 
-1. **Phase 1 + `src/runner/testing.py` stdin/stdout support** — everything blocks on this.
-2. **Phase 2.1 LSGen import** → smoke-test 3 problems end to end.
-3. **Phase 3.2 clustering** → validate on Refactory (where v1 numbers give a
-   reference point) *before* scaling to 110 problems.
-4. Then Phase 3.3/3.4, Phase 4, Phase 6.
+1. **Phase 1 + `src/runner/testing.py` dual-mode support** — everything blocks on this. *(done)*
+2. **Phase 2 Refactory + Codeforces import** → smoke-test end to end. *(done)*
+3. **Phase 3.2 selection + 3.3 synthesis** → validate on Refactory (where v1
+   numbers give a reference point) *before* scaling to all problems.
+4. Then Phase 3.4, Phase 4, Phase 6.
 
 Checkpoint after step 3: if clustered selection does not beat random at matched
-N on Refactory, revisit the design before spending the 110-problem build budget.
+N on Refactory, revisit the design before spending the full build budget.

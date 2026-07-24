@@ -18,11 +18,51 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from src.core.cluster import cluster, structural_features
 from src.core.repair import Rule, SearchBudget, repair
 from src.prompts import render
 from src.utils import llm as llm_mod
+from src.utils.metrics import rps
 
 _TOOLS = Path(__file__).resolve().parents[2] / "tools"
+
+
+# --------------------------------------------------------------- Stage-1 samples
+def select_samples(buggy: list[str], correct: list[str], n_samples: int = 6,
+                   k_per_cluster: int = 5) -> list[str]:
+    """Choose build-time sample bugs: diverse *and* learnable.
+
+    Cluster the buggy pool structurally (one misconception per cluster), then
+    within each of the largest clusters take the member with the **smallest
+    edit distance (RPS) to its nearest correct program**. The medoid is the most
+    *typical* shape, but often a tangled multi-issue program; the min-edit member
+    is a clean single-misconception exemplar the builder can actually learn a
+    targeted rule from. Diversity comes from the clustering, learnability from
+    the per-cluster min-edit pick.
+    """
+    from sklearn.metrics import pairwise_distances
+
+    clusters, _ = cluster(buggy)
+    clusters = clusters[:n_samples]
+    if not correct:
+        return [buggy[c.medoid] for c in clusters]
+
+    matrix, vec = structural_features(buggy + correct)   # shared vocabulary
+    if vec is None:
+        return [buggy[c.medoid] for c in clusters]
+    X = matrix.toarray() if hasattr(matrix, "toarray") else matrix
+    B, C = X[:len(buggy)], X[len(buggy):]
+    dist = pairwise_distances(B, C, metric="cosine")     # buggy x correct
+    nearest_c = dist.argmin(axis=1)
+
+    samples = []
+    for cl in clusters:
+        # cheap prefilter: members structurally closest to some correct, then
+        # pick the true min tree-edit-distance one among them.
+        cands = sorted(cl.members, key=lambda i: dist[i, nearest_c[i]])[:k_per_cluster]
+        best = min(cands, key=lambda i: rps(buggy[i], correct[nearest_c[i]]))
+        samples.append(buggy[best])
+    return samples
 
 
 def backend_of(model: str) -> str:
