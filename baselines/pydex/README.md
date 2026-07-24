@@ -6,11 +6,11 @@ identically to CoEP.
 
 - **Prompt**: the multimodal zero-shot prompt of Fig. 6, laid out exactly as in
   the paper (buggy program first, then description, then tests, then
-  `### Correct Program ###`); the few-shot prompt of Fig. 7 with
-  failure-vector (1 - normalized Hamming) retrieval of the 3 most similar
-  (p, p') pairs activates automatically when a `data/<pid>/pairs.json`
-  example bank exists (our corpora carry no per-student edit histories, so the
-  operative arm is zero-shot - the paper's own competitive ablation).
+  `### Correct Program ###`); the operative arm is the few-shot prompt of
+  Fig. 7: the bank pairs each pool buggy program with its structurally nearest
+  correct solution from the reference pool, and the 3 most similar shots by
+  failure-vector (1 - normalized Hamming) similarity precede each query (the
+  target is never its own shot).
 - **K candidates**: each prompt yields K=10 sampled candidates (default
   provider temperature), every call billed and timed regardless of outcome.
 - **Oracle + selection**: candidates run on the full suite; any failure

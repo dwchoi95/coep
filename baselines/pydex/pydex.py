@@ -14,14 +14,13 @@ Faithful mechanics (per the paper's Sec. 4.2 and Figs. 6-7):
   candidates that raise or fail any test are discarded.
 * **Selection** — among the surviving candidates, return the one with the
   smallest token-based edit distance to the student's submission.
-* **Few-shot** (Sec. 4.2.2, Fig. 7) — when an example bank of (p, p') pairs is
-  available (p buggy, p' the same student's later accepted version), the three
-  most similar p — by 1 − normalized Hamming distance between test-failure
-  vectors — are laid out as shots before the target program. Our corpora carry
-  no per-student edit histories (the open-r1 submission dump has no author
-  field), so the operative arm is zero-shot, which the paper itself evaluates
-  as a competitive ablation; the few-shot path activates automatically when a
-  ``pairs.json`` bank exists.
+* **Few-shot** (Sec. 4.2.2, Fig. 7) — the example bank pairs each pool buggy
+  program p with its structurally nearest correct solution p' from the
+  reference pool (the corpus has no per-student edit histories, so the correct
+  side of each shot is drawn from the class's correct pool — the same pool
+  every per-assignment system consumes). The three most similar p — by
+  1 − normalized Hamming distance between test-failure vectors — are laid out
+  as shots before the target program; the target itself is never its own shot.
 
 Accounting: ALL K calls are summed into in/out tokens, $ and API seconds —
 including candidates that fail the oracle — exactly as a real deployment pays.
@@ -30,7 +29,6 @@ There is no iterative refinement in the semantic phase.
 from __future__ import annotations
 
 import io
-import json
 import tokenize
 from dataclasses import dataclass
 from pathlib import Path
@@ -116,32 +114,43 @@ def token_edit_distance(a: str, b: str) -> int:
 class ShotBank:
     """(p, p') example bank with failure-vector retrieval (Sec. 4.2.2).
 
-    ``pairs.json`` maps buggy file names to the same student's later accepted
-    file names: {"wrong_1_004.py": "correct_1_004.py", ...}. Failure vectors
-    are computed once per bank program on the full suite.
+    Bank construction: every pool buggy program p is paired with its
+    structurally nearest correct solution p' from the reference pool (TF-IDF
+    over normalized-AST paths, cosine). Failure vectors are computed once per
+    bank program on the full suite; ``bank_cap`` bounds that one-time cost on
+    very large pools.
     """
 
-    def __init__(self, problem: dict, data_dir: Path):
+    def __init__(self, problem: dict, data_dir: Path, bank_cap: int = 150):
         self.problem = problem
         self.entries: list[tuple[tuple, str, str]] = []
-        pairs_file = data_dir / "pairs.json"
-        if not pairs_file.exists():
+        buggy_files = sorted((data_dir / "buggy").glob("*.py"))[:bank_cap]
+        correct = [f.read_text()
+                   for f in sorted((data_dir / "correct").glob("*.py"))]
+        if not buggy_files or not correct:
             return
-        pairs = json.loads(pairs_file.read_text())
-        for wrong_name, correct_name in pairs.items():
-            wp, cp = data_dir / "buggy" / wrong_name, data_dir / "correct" / correct_name
-            if not (wp.exists() and cp.exists()):
-                continue
-            p_src = wp.read_text()
-            vec = self._vector(p_src)
-            self.entries.append((vec, p_src, cp.read_text()))
+        from sklearn.metrics import pairwise_distances
+
+        from src.core.cluster import structural_features
+        buggy_srcs = [f.read_text() for f in buggy_files]
+        matrix, vec = structural_features(buggy_srcs + correct)
+        if vec is None:
+            return
+        X = matrix.toarray() if hasattr(matrix, "toarray") else matrix
+        B, C = X[:len(buggy_srcs)], X[len(buggy_srcs):]
+        nearest = pairwise_distances(B, C, metric="cosine").argmin(axis=1)
+        for i, p_src in enumerate(buggy_srcs):
+            self.entries.append((self._vector(p_src), p_src,
+                                 correct[int(nearest[i])]))
 
     def _vector(self, source: str) -> tuple:
         res = run_tests(source, self.problem)
         return res.signature()
 
     def retrieve(self, buggy: str, k: int = SHOTS) -> list[tuple[str, str]]:
-        if not self.entries:
+        """Top-k most similar bank entries; the target is never its own shot."""
+        pool = [e for e in self.entries if e[1] != buggy]
+        if not pool:
             return []
         tv = self._vector(buggy)
 
@@ -151,7 +160,7 @@ class ShotBank:
             ham += abs(len(vec) - len(tv))
             return 1 - ham / n
 
-        ranked = sorted(self.entries, key=lambda e: -sim(e[0]))
+        ranked = sorted(pool, key=lambda e: -sim(e[0]))
         return [(p, pf) for _v, p, pf in ranked[:k]]
 
 
