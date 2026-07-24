@@ -48,6 +48,13 @@ import sys as _sys
 import sys
 import math, re, string, itertools, functools, operator, heapq, bisect, array
 from collections import Counter, defaultdict, deque, OrderedDict
+from math import gcd, sqrt, ceil, floor, factorial, log, log2, inf, pi, isqrt, comb
+from itertools import permutations, combinations, product, accumulate, groupby, chain
+from functools import reduce, lru_cache, cmp_to_key
+from heapq import heappush, heappop, heapify, heappushpop, nlargest, nsmallest
+from bisect import bisect, bisect_left, bisect_right, insort
+import collections, copy, os, io, random
+from operator import itemgetter
 _OUT = []
 _IN = iter([])
 print = lambda *a, **k: _OUT.append(str(k.get("sep", " ")).join(map(str, a)))
@@ -77,12 +84,51 @@ REWRITES = [
 def _rewrite_body(src: str) -> str:
     for a, b in REWRITES:
         src = src.replace(a, b)
+    # bare names left behind by `from sys import stdin, stdout`
+    src = re.sub(r"(?<![\w.])stdin\.buffer\.read\(\)", "_ALLDATA", src)
+    src = re.sub(r"(?<![\w.])stdin\.readline", "input", src)
+    src = re.sub(r"(?<![\w.])stdin\.read\(\)", "_ALLDATA", src)
+    src = re.sub(r"(?<![\w.])stdin(?![\w])", "_LINES", src)
+    src = re.sub(r"(?<![\w.])stdout\.write", "_wout", src)
+    src = re.sub(r"(?<![\w.])stdout\.flush\(\)", "None", src)
     # bare exit()/quit() calls (word boundary), incl. exit(0)
     src = re.sub(r"(?<![\w.])exit\s*\(", "_exit(", src)
     src = re.sub(r"(?<![\w.])quit\s*\(", "_exit(", src)
     # __main__ guards -> always true
     src = re.sub(r"__name__\s*==\s*['\"]__main__['\"]", "True", src)
     return src
+
+
+def _assigned_names(nodes) -> list[str]:
+    """Names bound by top-level script statements (not inside defs/classes)."""
+    out = set()
+
+    def targets(t):
+        if isinstance(t, ast.Name):
+            out.add(t.id)
+        elif isinstance(t, (ast.Tuple, ast.List)):
+            for e in t.elts:
+                targets(e)
+        elif isinstance(t, ast.Starred):
+            targets(t.value)
+
+    for node in nodes:
+        for sub in ast.walk(node):
+            if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            if isinstance(sub, ast.Assign):
+                for tg in sub.targets:
+                    targets(tg)
+            elif isinstance(sub, (ast.AugAssign, ast.AnnAssign, ast.For, ast.AsyncFor)):
+                targets(sub.target)
+            elif isinstance(sub, ast.NamedExpr):
+                targets(sub.target)
+            elif isinstance(sub, ast.withitem) and sub.optional_vars:
+                targets(sub.optional_vars)
+            elif isinstance(sub, ast.Delete):
+                for tg in sub.targets:
+                    targets(tg)
+    return sorted(n for n in out if n.isidentifier())
 
 
 def wrap(source: str) -> str | None:
@@ -97,7 +143,7 @@ def wrap(source: str) -> str | None:
         start = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])])
         return "\n".join(lines[start - 1:node.end_lineno])
 
-    defs, body = [], []
+    defs, body, body_nodes = [], [], []
     for node in tree.body:
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             continue                                   # global.py supplies these
@@ -105,9 +151,15 @@ def wrap(source: str) -> str | None:
             defs.append(seg(node))
         else:
             body.append(seg(node))
+            body_nodes.append(node)
+    user_globals = [n for n in _assigned_names(body_nodes)
+                    if n not in ("_IN", "_ALLDATA", "_LINES")]
 
     head = _rewrite_body("\n\n".join(defs))
     script = _rewrite_body("\n".join(body)) or "pass"
+    if re.search(r"^def\s+main\s*\(", head, re.M):   # collision with our wrapper
+        head = re.sub(r"(?<![\w.])main(?![\w])", "_umain", head)
+        script = re.sub(r"(?<![\w.])main(?![\w])", "_umain", script)
     if re.search(r"^\s+def\s", head, re.M) or re.search(r"^\s*def\s", script, re.M):
         return None                                    # nested def: breaks their holes
     if "input(" in head or "print(" in head:
@@ -115,11 +167,13 @@ def wrap(source: str) -> str | None:
 
     indented = "\n".join("        " + l if l.strip() else l
                          for l in script.splitlines())
+    gdecl = "global _IN, _ALLDATA, _LINES" + \
+        ("".join(", " + n for n in user_globals) if user_globals else "")
     out = (head + "\n\n" if head.strip() else "") + f'''\
-def main(s):
-    global _IN, _ALLDATA, _LINES
-    _ALLDATA = s
-    _LINES = s.split("\\n")
+def main(_coep_s):
+    {gdecl}
+    _ALLDATA = _coep_s
+    _LINES = _coep_s.split("\\n")
     _IN = iter(_LINES)
     class _Exit(Exception): pass
     _exit = lambda *a: (_ for _ in ()).throw(_Exit())
