@@ -10,7 +10,8 @@ import argparse
 from pathlib import Path
 
 from src.core.fallback import fallback_repair
-from src.core.repair import SearchBudget, repair
+from src.core.reference_repair import ReferenceIndex, local_repair
+from src.core.repair import SearchBudget
 from src.core.synthesis import load_fixer
 from src.experiments._common import (load_env, load_pool, load_problem, tool_path)
 from src.utils.metrics import rps
@@ -29,19 +30,21 @@ def main(argv: list[str]) -> int:
     prob = load_problem(args.problem, args.data_root)
     buggy = Path(args.file).read_text()
     rules = load_fixer(tool_path(args.problem, args.model))
+    correct = load_pool(args.problem, "correct", args.data_root)
+    index = ReferenceIndex(correct)
 
-    budget = SearchBudget(max_candidates=400, max_seconds=10, max_combo=2,
-                          candidate_timeout=3)
-    res = repair(buggy, prob, rules, budget)
+    budget = SearchBudget(max_candidates=150, max_combo=2, candidate_timeout=3)
+    res = local_repair(buggy, prob, rules, index, budget)
     if res.repaired:
-        print(f"LOCAL repair via {list(res.rules)}  RPS={rps(buggy, res.patch):.3f}"
-              f"  ({res.candidates_tried} candidates, {res.seconds:.2f}s)")
+        via = (f"rules {list(res.rules)}" if res.source == "rules"
+               else "reference-guided transplant")
+        print(f"LOCAL repair ({via})  RPS={rps(buggy, res.patch):.3f}  "
+              f"({res.seconds:.2f}s)")
         return 0
 
-    print(f"tool abstained ({res.candidates_tried} candidates tried)")
+    print("tool abstained")
     if args.no_fallback:
         return 0
-    correct = load_pool(args.problem, "correct", args.data_root)
     fb = fallback_repair(buggy, prob, correct, model=args.model)
     if fb.repaired:
         print(f"FALLBACK repair  RPS={rps(buggy, fb.patch):.3f}  "

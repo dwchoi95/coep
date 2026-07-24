@@ -26,7 +26,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from src.runner.testing import run_tests
+from src.runner.testing import run_batch, run_tests
 
 # A generated rule can contain an infinite loop; a rule's apply() runs in this
 # process, so no subprocess timeout bounds it. Cap it with a wall-clock alarm.
@@ -133,25 +133,36 @@ def repair(source: str, problem: dict, rules: list[Rule],
     signature = base.signature()
     ordered = _ordered(rules, signature)
 
-    tried, seen = 0, {source}
+    # Enumerate candidates (symptom-ordered, cheapest combinations first), then
+    # validate the whole batch in ONE child process — spawning a subprocess per
+    # candidate dominates otherwise. The batch stops at the first hit.
+    cands: list[str] = []
+    provs: list[tuple[str, ...]] = []
+    seen = {source}
     for k in range(1, budget.max_combo + 1):
-        for combo in itertools.permutations(ordered, k) if k > 1 else \
-                     ((r,) for r in ordered):
-            if tried >= budget.max_candidates or time.time() - t0 > budget.max_seconds:
-                return RepairResult(False, None, (), tried, time.time() - t0,
-                                    "none", signature)
+        combos = (itertools.permutations(ordered, k) if k > 1
+                  else ((r,) for r in ordered))
+        for combo in combos:
             for cand in _compose(source, combo):
                 if cand in seen:
                     continue
                 seen.add(cand)
-                tried += 1
-                if run_tests(cand, problem, stop_early=True,
-                             timeout=budget.candidate_timeout).all_pass:
-                    return RepairResult(True, cand, tuple(r.name for r in combo),
-                                        tried, time.time() - t0, "local", signature)
-                if tried >= budget.max_candidates:
+                cands.append(cand)
+                provs.append(tuple(r.name for r in combo))
+                if len(cands) >= budget.max_candidates:
                     break
-    return RepairResult(False, None, (), tried, time.time() - t0, "none", signature)
+            if len(cands) >= budget.max_candidates:
+                break
+        if len(cands) >= budget.max_candidates:
+            break
+
+    flags = run_batch(cands, problem, per_candidate_timeout=budget.candidate_timeout)
+    for cand, prov, ok in zip(cands, provs, flags):
+        if ok:
+            return RepairResult(True, cand, prov, len(cands), time.time() - t0,
+                                "local", signature)
+    return RepairResult(False, None, (), len(cands), time.time() - t0,
+                        "none", signature)
 
 
 # --------------------------------------------------------------- provenance

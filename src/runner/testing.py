@@ -134,6 +134,53 @@ def run_tests(source: str, problem: dict, timeout: float | None = None,
     return res
 
 
+def run_batch(sources: list[str], problem: dict,
+              per_candidate_timeout: float = 3.0,
+              per_test: float = PER_TEST_TIMEOUT) -> list[bool]:
+    """Test many candidate programs in ONE child process; return all_pass each.
+
+    Spawning a subprocess per candidate dominates repair time when a search
+    tries hundreds of candidates. The child stops at the first candidate that
+    passes every test (that is the one the search wants) and reports its index,
+    so a batch returns as soon as a repair is found. Order candidates
+    best-first (e.g. smallest edit) and the first True is the chosen patch.
+    """
+    if not sources:
+        return []
+    payload = {
+        "batch": True,
+        "sources": sources,
+        "mode": infer_mode(problem),
+        "entry": problem.get("entry"),
+        "tests": problem.get("tests") or [],
+        "tol": FLOAT_TOL,
+        "per_test": per_test,
+    }
+    # whole-batch wall clock: at most one full candidate budget past the first
+    # hit, bounded so a pathological batch cannot hang the search.
+    timeout = min(per_candidate_timeout * len(sources)
+                  + _budget(len(payload["tests"]), per_test), 300.0)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        json.dump(payload, fh)
+        path = fh.name
+    try:
+        proc = subprocess.run([sys.executable, str(_RUNNER), path],
+                              capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return [False] * len(sources)
+    finally:
+        Path(path).unlink(missing_ok=True)
+    line = (proc.stdout or "").strip().splitlines()
+    if not line:
+        return [False] * len(sources)
+    try:
+        out = json.loads(line[-1])
+    except json.JSONDecodeError:
+        return [False] * len(sources)
+    flags = out.get("pass", [])
+    return (flags + [False] * len(sources))[:len(sources)]
+
+
 def passes(source: str, problem: dict, timeout: float | None = None) -> bool:
     """True iff ``source`` passes every test. Used by generated tools."""
     return run_tests(source, problem, timeout=timeout, stop_early=True).all_pass

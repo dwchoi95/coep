@@ -11,7 +11,8 @@ import argparse
 import time
 
 from src.core.fallback import absorb, fallback_repair
-from src.core.repair import ProvenanceLog, SearchBudget, repair
+from src.core.reference_repair import ReferenceIndex, local_repair
+from src.core.repair import ProvenanceLog, SearchBudget
 from src.core.synthesis import load_fixer
 from src.experiments._common import (load_env, load_pool, load_problem, tool_path)
 from src.utils.metrics import rps
@@ -36,10 +37,10 @@ def main(argv: list[str]) -> int:
     correct = load_pool(args.problem, "correct", args.data_root)
     fpath = tool_path(args.problem, args.model)
 
-    budget = SearchBudget(max_candidates=400, max_seconds=10, max_combo=2,
-                          candidate_timeout=3)
+    budget = SearchBudget(max_candidates=150, max_combo=2, candidate_timeout=3)
+    index = ReferenceIndex(correct)        # correct pool prepared once
     prov = ProvenanceLog()
-    n = local = fb_fixed = absorbed = 0
+    n = noop = by_rules = by_ref = fb_fixed = absorbed = 0
     rps_sum = seconds = usd = 0.0
     in_tok = out_tok = 0
 
@@ -49,12 +50,19 @@ def main(argv: list[str]) -> int:
         if args.learn:
             rules = load_fixer(fpath)      # pick up rules learned this run
         t = time.time()
-        res = repair(src, prob, rules, budget)
+        res = local_repair(src, prob, rules, index, budget)
+        if res.source == "noop":           # already passes: not a buggy program
+            noop += 1
+            continue
         if res.repaired:
-            local += 1
-            prov.record(f"{args.problem}:{i}", res)
             rps_sum += rps(src, res.patch)
             seconds += time.time() - t
+            if res.source == "rules":
+                by_rules += 1
+                prov.record(f"{args.problem}:{i}",
+                            type("R", (), {"rules": res.rules})())
+            elif res.source == "reference":
+                by_ref += 1
             continue
         if not (args.fallback or args.learn):
             seconds += time.time() - t
@@ -70,11 +78,14 @@ def main(argv: list[str]) -> int:
                 usd += ab.usd; in_tok += ab.in_tokens; out_tok += ab.out_tokens
                 absorbed += int(ab.absorbed)
 
+    local = by_rules + by_ref
     repaired = local + fb_fixed
-    print(f"=== {args.problem} [{args.model}] on {n} buggy ===")
-    print(f"RR = {repaired}/{n} = {repaired/n:.1%}  (local {local}, fallback {fb_fixed})")
+    buggy_n = n - noop                      # exclude already-passing programs
+    print(f"=== {args.problem} [{args.model}] on {n} programs ({buggy_n} buggy, {noop} noop) ===")
+    print(f"RR = {repaired}/{buggy_n} = {repaired/max(1,buggy_n):.2%}  "
+          f"(local {local} = rules {by_rules} + reference {by_ref}, fallback {fb_fixed})")
     if repaired:
-        print(f"mean RPS = {rps_sum/repaired:.3f}   ATT = {seconds/n:.3f}s")
+        print(f"mean RPS = {rps_sum/repaired:.3f}   ATT = {seconds/max(1,buggy_n):.3f}s")
     if args.fallback or args.learn:
         print(f"escalation cost: in={in_tok} out={out_tok} ${usd:.4f}"
               + (f"   rules learned: {absorbed}" if args.learn else ""))

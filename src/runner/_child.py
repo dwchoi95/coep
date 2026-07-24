@@ -236,8 +236,40 @@ def _run_file(src, tests, tol, stop_early, per_test):
     return (passed, failures), None
 
 
+def _all_pass(source, mode, entry, tests, tol, per_test) -> bool:
+    if mode == "stdio":
+        out, err = _run_stdio(source, tests, tol, True, per_test)
+    elif mode == "file":
+        out, err = _run_file(source, tests, tol, True, per_test)
+    else:
+        out, err = _run_call(source, entry, tests, tol, True, per_test)
+    if err is not None or out is None:
+        return False
+    passed, _failures = out
+    return passed == len(tests) and len(tests) > 0
+
+
+def _main_batch(payload):
+    """Test many candidates; stop at the first that passes every test."""
+    mode, entry, tests = payload["mode"], payload.get("entry"), payload["tests"]
+    tol, per_test = payload["tol"], payload.get("per_test", 2.0)
+    flags = []
+    for src in payload["sources"]:
+        ok = False
+        try:
+            ok = _all_pass(src, mode, entry, tests, tol, per_test)
+        except BaseException:            # a bad candidate must not kill the batch
+            ok = False
+        flags.append(ok)
+        if ok:
+            break                        # the search wants the first hit
+    print(json.dumps({"pass": flags}))
+
+
 def main():
     payload = json.load(open(sys.argv[1]))
+    if payload.get("batch"):
+        return _main_batch(payload)
     tests = payload["tests"]
     tol, stop_early = payload["tol"], payload["stop_early"]
     per_test = payload.get("per_test", 2.0)
