@@ -1,29 +1,43 @@
 """Export Codeforces problems into the Refactory tool's data format.
 
-Refactory's executor (baselines/refactory) runs programs as *function calls*:
-an ``ans/input_x.txt`` is a Python expression exec'd against the submission's
-top-level ``def``s, captured stdout is string-compared to
-``str(eval(output_x.txt)) + "\\n"``. It strips every import line and every
-top-level non-def statement, breaks on nested ``def``s, never feeds stdin, and
-dies on ``SystemExit``. Codeforces submissions are whole-file stdin->stdout
-scripts, so we adapt the *data*, not their code:
+Follows the prior-work convention for judge-style corpora: each submission is
+placed **verbatim** under ``def main():`` — no hoisting, no renaming, no body
+restructuring — so buggy and correct programs keep identical shape and match
+each other function-by-function (``main`` vs ``main``), with original module
+scoping preserved naturally by closures.
 
-* ``code/global.py`` (read raw, never regularized) installs module-level
-  ``print``/``input`` shims that collect/serve tokens — covering helper
-  functions too — plus the imports submissions lose to regularization.
-* Each submission keeps its original top-level ``def``s at top level (nested
-  defs break their hole-injection) and its script body is re-indented into
-  ``def main(s)``, with ``sys.stdin.*`` idioms rewritten onto the shims and
-  ``exit()``/``sys.exit()`` rewritten to a catchable local exception.
-* ``ans`` files: ``input_x`` = ``_flush(main(<stdin repr>)) #print(`` (the
-  comment defeats their auto-print wrap); ``output_x`` = ``repr`` of the
-  expected stdout normalized to a single token stream — the same whitespace-
-  insensitive comparison our own judge uses, so both systems face one oracle.
+What the executor still makes impossible without help (verified empirically
+against their code):
 
-One environment-compat patch is applied to the tool itself (algorithm
-untouched): ``basic_framework/exec.py`` wraps its RLIMIT_AS call in
-try/except, since macOS refuses to set that limit (their MemoryGuarder
-otherwise crashes at import).
+* every ``import`` line is stripped by their regularizer, even indented ones —
+  ``code/global.py`` (read raw, never regularized) supplies the modules and the
+  common bare names (``gcd``, ``itemgetter``, ...);
+* there is no stdin — ``global.py``'s ``_feed`` installs a per-test
+  ``io.StringIO`` as the real ``sys.stdin`` (so ``sys.stdin.readline()`` etc.
+  work untouched) and shims ``input``/``print``/bare ``stdin``/``stdout``;
+* ``SystemExit`` kills their runner thread — ``exit``/``quit`` are shimmed to a
+  catchable exception and ``sys.exit`` is textually pointed at the shim;
+* programs whose source defines a function become nested-``def`` after the
+  wrap; their hole-injection then produces uncompilable code (verified), so
+  such programs fail all tests under Refactory. That is the convention's known
+  cost (~14% of buggy here) and is reported, not hidden.
+
+Only three mechanical textual rewrites are applied (uniformly, to every
+program): ``sys.exit -> exit``, ``__name__ == '__main__' -> True``,
+``sys.stdout.write -> _wout`` (+ ``sys.stdout.flush() -> None``).
+
+Comparison oracle: expected outputs are normalized to a single token stream
+(exactly our judge's whitespace-insensitive comparison) and written as
+``repr``; the shims' ``_flush`` emits the program's collected output the same
+way, so both systems face one oracle.
+
+Two port-robustness patches to the tool itself (algorithm untouched), both in
+``basic_framework/exec.py``: (1) its RLIMIT_AS call is wrapped in try/except
+(macOS refuses that limit and the tool otherwise crashes at import); (2) its
+thread-join loop waits a bounded grace after the per-test timeout instead of
+forever — a candidate whose code swallows their StopException via a bare
+``except:`` could otherwise hang the entire tool; such a test now scores as
+failed, as on any judge.
 
 Usage:  python3 data/_import/refactory_export.py cf_125A [--wrong-limit N]
 Writes: baselines/refactory/data_cf/<pid>/{ans,code/{reference,correct,wrong}}
@@ -44,149 +58,106 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 GLOBAL_PY = '''\
-import sys as _sys
+import io as _io
 import sys
 import math, re, string, itertools, functools, operator, heapq, bisect, array
+import collections, copy, os, random
 from collections import Counter, defaultdict, deque, OrderedDict
 from math import gcd, sqrt, ceil, floor, factorial, log, log2, inf, pi, isqrt, comb
 from itertools import permutations, combinations, product, accumulate, groupby, chain
 from functools import reduce, lru_cache, cmp_to_key
 from heapq import heappush, heappop, heapify, heappushpop, nlargest, nsmallest
 from bisect import bisect, bisect_left, bisect_right, insort
-import collections, copy, os, io, random
 from operator import itemgetter
+
+
+class _Exit(Exception):
+    pass
+
+
+def exit(*a):
+    raise _Exit()
+
+
+quit = exit
 _OUT = []
-_IN = iter([])
-print = lambda *a, **k: _OUT.append(str(k.get("sep", " ")).join(map(str, a)))
-input = lambda: next(_IN)
-_wout = lambda x: (_OUT.append(str(x)), len(str(x)))[1]
-_flush = lambda _r=None: _sys.stdout.write(" ".join("\\n".join(_OUT).split()) + "\\n")
+
+
+class _W:                       # shim for bare `stdout` (from sys import stdout)
+    def write(self, x):
+        _OUT.append(str(x))
+        return len(str(x))
+
+    def flush(self):
+        pass
+
+
+stdout = _W()
+_wout = stdout.write
+
+
+def print(*a, **k):
+    _OUT.append(str(k.get("sep", " ")).join(map(str, a)))
+
+
+_SIN = _io.StringIO("")
+stdin = _SIN
+
+
+def input(*a):
+    return _SIN.readline().rstrip("\\n")
+
+
+def _feed(s):
+    global _SIN, stdin
+    _OUT.clear()
+    _SIN = _io.StringIO(s)
+    stdin = _SIN
+    sys.stdin = _SIN
+
+
+def _flush(*a):
+    sys.stdout.write(" ".join("\\n".join(_OUT).split()) + "\\n")
 '''
 
-# ordered, longest-first textual rewrites of stdin/exit idioms
-REWRITES = [
-    ("sys.stdin.buffer.read().decode()", "_ALLDATA"),
-    ("sys.stdin.buffer.read().split()", "_ALLDATA.split()"),
-    ("sys.stdin.buffer.read()", "_ALLDATA"),
-    ("sys.stdin.buffer.readline", "input"),
-    ("sys.stdin.read().split()", "_ALLDATA.split()"),
-    ("sys.stdin.read()", "_ALLDATA"),
-    ("sys.stdin.readlines()", "_LINES"),
-    ("sys.stdin.readline", "input"),
-    ("sys.stdin", "_LINES"),
-    ("sys.stdout.write", "_wout"),
-    ("sys.stdout.flush()", "None"),
-    ("sys.stdout", "_sys.stdout"),
-    ("sys.exit", "_exit"),
-]
 
-
-def _rewrite_body(src: str) -> str:
-    for a, b in REWRITES:
-        src = src.replace(a, b)
-    # bare names left behind by `from sys import stdin, stdout`
-    src = re.sub(r"(?<![\w.])stdin\.buffer\.read\(\)", "_ALLDATA", src)
-    src = re.sub(r"(?<![\w.])stdin\.readline", "input", src)
-    src = re.sub(r"(?<![\w.])stdin\.read\(\)", "_ALLDATA", src)
-    src = re.sub(r"(?<![\w.])stdin(?![\w])", "_LINES", src)
-    src = re.sub(r"(?<![\w.])stdout\.write", "_wout", src)
-    src = re.sub(r"(?<![\w.])stdout\.flush\(\)", "None", src)
-    # bare exit()/quit() calls (word boundary), incl. exit(0)
-    src = re.sub(r"(?<![\w.])exit\s*\(", "_exit(", src)
-    src = re.sub(r"(?<![\w.])quit\s*\(", "_exit(", src)
-    # __main__ guards -> always true
+def _rewrite(src: str) -> str:
+    """The three mechanical rewrites the executor makes unavoidable."""
+    src = src.replace("sys.stdout.write", "_wout")
+    src = src.replace("sys.stdout.flush()", "None")
+    src = src.replace("sys.exit", "exit")
     src = re.sub(r"__name__\s*==\s*['\"]__main__['\"]", "True", src)
     return src
 
 
-def _assigned_names(nodes) -> list[str]:
-    """Names bound by top-level script statements (not inside defs/classes)."""
-    out = set()
-
-    def targets(t):
-        if isinstance(t, ast.Name):
-            out.add(t.id)
-        elif isinstance(t, (ast.Tuple, ast.List)):
-            for e in t.elts:
-                targets(e)
-        elif isinstance(t, ast.Starred):
-            targets(t.value)
-
-    for node in nodes:
-        for sub in ast.walk(node):
-            if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                continue
-            if isinstance(sub, ast.Assign):
-                for tg in sub.targets:
-                    targets(tg)
-            elif isinstance(sub, (ast.AugAssign, ast.AnnAssign, ast.For, ast.AsyncFor)):
-                targets(sub.target)
-            elif isinstance(sub, ast.NamedExpr):
-                targets(sub.target)
-            elif isinstance(sub, ast.withitem) and sub.optional_vars:
-                targets(sub.optional_vars)
-            elif isinstance(sub, ast.Delete):
-                for tg in sub.targets:
-                    targets(tg)
-    return sorted(n for n in out if n.isidentifier())
-
-
 def wrap(source: str) -> str | None:
-    """Refactory-format module for one CF submission, or None if unadaptable."""
+    """Whole submission verbatim under ``def main():`` (prior-work convention)."""
     try:
-        tree = ast.parse(source)
+        ast.parse(source)
     except SyntaxError:
         return None
-    lines = source.splitlines()
-
-    def seg(node):  # verbatim source segment incl. decorators
-        start = min([node.lineno] + [d.lineno for d in getattr(node, "decorator_list", [])])
-        return "\n".join(lines[start - 1:node.end_lineno])
-
-    defs, body, body_nodes = [], [], []
-    for node in tree.body:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            continue                                   # global.py supplies these
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            defs.append(seg(node))
-        else:
-            body.append(seg(node))
-            body_nodes.append(node)
-    user_globals = [n for n in _assigned_names(body_nodes)
-                    if n not in ("_IN", "_ALLDATA", "_LINES")]
-
-    head = _rewrite_body("\n\n".join(defs))
-    script = _rewrite_body("\n".join(body)) or "pass"
-    if re.search(r"^def\s+main\s*\(", head, re.M):   # collision with our wrapper
-        head = re.sub(r"(?<![\w.])main(?![\w])", "_umain", head)
-        script = re.sub(r"(?<![\w.])main(?![\w])", "_umain", script)
-    if re.search(r"^\s+def\s", head, re.M) or re.search(r"^\s*def\s", script, re.M):
-        return None                                    # nested def: breaks their holes
-    if "input(" in head or "print(" in head:
-        pass                                           # fine: shims are module-global
-
+    body = _rewrite(source)
     indented = "\n".join("        " + l if l.strip() else l
-                         for l in script.splitlines())
-    gdecl = "global _IN, _ALLDATA, _LINES" + \
-        ("".join(", " + n for n in user_globals) if user_globals else "")
-    out = (head + "\n\n" if head.strip() else "") + f'''\
-def main(_coep_s):
-    {gdecl}
-    _ALLDATA = _coep_s
-    _LINES = _coep_s.split("\\n")
-    _IN = iter(_LINES)
-    class _Exit(Exception): pass
-    _exit = lambda *a: (_ for _ in ()).throw(_Exit())
-    try:
-{indented}
-    except _Exit:
-        pass
-'''
+                         for l in body.splitlines()) or "        pass"
+    out = f"def main():\n    try:\n{indented}\n    except _Exit:\n        pass\n"
     try:
         compile(out, "<wrapped>", "exec")
     except SyntaxError:
         return None
     return out
+
+
+def has_def(source: str) -> bool:
+    """Programs defining functions cannot survive their hole injection."""
+    try:
+        return any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                   for n in ast.walk(ast.parse(source)))
+    except SyntaxError:
+        return False
+
+
+def _entry(stdin_text: str) -> str:
+    return f"_feed({stdin_text!r}) ; main() ; _flush() #print("
 
 
 def _norm(text: str) -> str:
@@ -197,22 +168,23 @@ class _Alarm(Exception):
     pass
 
 
-def simulate(wrapped: str, stdin: str, expected: str, timeout: float = 3.0) -> bool:
+def simulate(wrapped: str, stdin_text: str, expected: str, timeout: float = 3.0) -> bool:
     """Mimic Refactory's exec pipeline (sans hole injection) for one test."""
-    entry = f"_flush(main({stdin!r})) #print("
-    final = GLOBAL_PY + "\n\n" + wrapped + "\n\n" + entry
+    final = GLOBAL_PY + "\n\n" + wrapped + "\n\n" + _entry(stdin_text)
     buf = io.StringIO()
+    real_stdin = sys.stdin
     signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(_Alarm()))
     signal.setitimer(signal.ITIMER_REAL, timeout)
     try:
         with redirect_stdout(buf):
-            exec(final, {})                            # noqa: S102 - sandboxed data prep
+            exec(final, {})                            # noqa: S102 - data prep
     except (_Alarm, Exception):                        # noqa: BLE001
         return False
     except BaseException:                              # SystemExit etc.
         return False
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
+        sys.stdin = real_stdin
     return buf.getvalue() == _norm(expected) + "\n"
 
 
@@ -226,19 +198,23 @@ def export(pid: str, wrong_limit: int = 0, sim_tests: int = 3) -> None:
     (out / "code" / "global.py").write_text(GLOBAL_PY)
 
     for i, t in enumerate(tests, 1):
-        (out / "ans" / f"input_{i:03d}.txt").write_text(
-            f"_flush(main({t['stdin']!r})) #print(")
+        (out / "ans" / f"input_{i:03d}.txt").write_text(_entry(t["stdin"]))
         (out / "ans" / f"output_{i:03d}.txt").write_text(repr(_norm(t["expected"])))
 
-    stats = {"correct_ok": 0, "correct_unadaptable": 0, "correct_sim_fail": 0,
-             "wrong_ok": 0, "wrong_unadaptable": 0}
+    stats = {"correct_ok": 0, "correct_has_def": 0, "correct_unadaptable": 0,
+             "correct_sim_fail": 0, "wrong_ok": 0, "wrong_has_def": 0,
+             "wrong_unadaptable": 0}
     sample = tests[:sim_tests]
 
     corr_dir = ROOT / "data" / pid / "correct"
     for f in sorted(corr_dir.glob("*.py")):
-        w = wrap(f.read_text())
+        src = f.read_text()
+        w = wrap(src)
         if w is None:
             stats["correct_unadaptable"] += 1
+            continue
+        if has_def(src):
+            stats["correct_has_def"] += 1              # would fail their holes
             continue
         if not all(simulate(w, t["stdin"], t["expected"]) for t in sample):
             stats["correct_sim_fail"] += 1
@@ -258,11 +234,14 @@ def export(pid: str, wrong_limit: int = 0, sim_tests: int = 3) -> None:
     if wrong_limit:
         files = files[:wrong_limit]
     for f in files:
-        w = wrap(f.read_text())
+        src = f.read_text()
+        w = wrap(src)
         if w is None:
             stats["wrong_unadaptable"] += 1
             continue
-        (out / "code" / "wrong" / f.name).write_text(w)
+        if has_def(src):
+            stats["wrong_has_def"] += 1                # exported regardless:
+        (out / "code" / "wrong" / f.name).write_text(w)  # their executor decides
         stats["wrong_ok"] += 1
 
     print(f"[{pid}] tests={len(tests)}  {stats}  reference={kept[0].name}")
