@@ -192,10 +192,14 @@ Submissions the tool abstains on go to the LLM. Two things happen:
    arbitrary reference. Selection is local (no LLM cost) and reuses the Stage-1
    structural featurizer. This is the tail the hybrid never sacrifices coverage
    on.
-2. **Self-learning.** When the LLM repairs a program the tool missed, diff
-   (buggy, fixed), and ask the LLM to *generalize that single repair into a new
-   rule* (same `fixer.py` contract: AST-located, source-spliced, named,
-   symptom-declared). Append it to the tool.
+2. **Self-learning** (`fallback.absorb`, implemented). When the LLM repairs a
+   program the tool missed, diff (buggy, fixed) and ask the LLM to *generalize
+   that single repair into a new rule* (same contract: AST-located,
+   source-spliced, named, symptom-declared). The rule is appended to a sibling
+   `learned.py` and kept **only if** the file still loads and the augmented tool
+   now repairs that miss on its own — otherwise it is rolled back, so a bad
+   induction cannot degrade the tool. `load_fixer` merges `fixer.py` with
+   `learned.py`, so coverage accumulates across a term.
 
 The tool therefore **improves across a term**: coverage as a function of
 accumulated fallbacks is a measurable curve. This is the stateful counterpart to

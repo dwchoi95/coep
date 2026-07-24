@@ -8,7 +8,17 @@ set" below).
 
 ## Status (updated 2026-07-24)
 
-What is implemented so far:
+**The CoEP pipeline runs end to end.** Stages 1–4 (selection, synthesis, local
+rule-combination repair, fallback + self-learning) are implemented, plus the
+`run.py build|repair|evaluate` drivers and a hardened runner. Smoke test on
+`refactory_q1`: the `claude-haiku` builder reaches 83% sample coverage for
+$0.041 (cost.json written); `gpt-5.4-nano` builds for $0.004 but its rules do
+not repair the samples (0%) — a real capability floor for the cheapest model.
+Known tuning gap: the 6-sample tool overfits (83% sample → ~9% held-out) with
+large patches (RPS ~0.5); the structural no-rewrite guard and a larger sample
+budget are the levers (still open, below), not a completeness gap.
+
+What is implemented:
 
 - **Dataset: Refactory + Codeforces, 11 problems** (Refactory 5 + Codeforces 6,
   one per rating band), **2,970 buggy**. The Codeforces subset is verifiable ∩
