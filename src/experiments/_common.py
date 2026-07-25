@@ -29,5 +29,5 @@ def load_pool(pid: str, kind: str, root: str = "data") -> list[str]:
 
 
 def tool_path(pid: str, model: str, root: str = "tools") -> Path:
-    from src.core.synthesis import tool_dir_of
-    return Path(root) / pid / tool_dir_of(model) / "fixer.py"
+    """tools/<pid>/<model>/fixer.py — the tool directory is the model name."""
+    return Path(root) / pid / model / "fixer.py"

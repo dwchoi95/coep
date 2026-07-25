@@ -122,18 +122,6 @@ def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8
     return [(b, f) for _e, b, f in picked[:n_samples]]
 
 
-def tool_dir_of(model: str) -> str:
-    """Directory name holding the tool built by ``model``.
-
-    Keyed by the model alias, not the provider family: a tool is the artifact of
-    one specific builder, and the tier comparisons (RQ3) need a haiku-built and a
-    sonnet-built tool for the same problem to coexist. Keying by family let the
-    second build silently overwrite the first and report the survivor under
-    whichever alias the run happened to pass.
-    """
-    return model.replace("/", "-").replace(":", "-")
-
-
 # --------------------------------------------------------------- loading a tool
 def _exec_module(path: Path, tag: str):
     """Import a standalone tool file with ``Rule`` provided in its namespace."""
@@ -259,7 +247,7 @@ def build(problem: dict, references: list[str], samples: list[str],
     pid = problem["pid"]
     budget = budget or SearchBudget()
     out = (Path(out_path) if out_path
-           else _TOOLS / pid / tool_dir_of(model) / "fixer.py")
+           else _TOOLS / pid / model / "fixer.py")
     out.parent.mkdir(parents=True, exist_ok=True)
 
     import time as _time
