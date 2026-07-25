@@ -95,16 +95,29 @@ def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8
     clusters, _ = cluster(buggy)                         # largest-first
 
     picked: list[tuple[float, str, str]] = []
+    fallback: list[tuple[float, str, str]] = []
     for cl in clusters:
         # cheap prefilter: members structurally closest to some correct, then
         # pick the true min absolute-edit one among them.
         cands = sorted(cl.members, key=lambda i: dist[i, nearest_c[i]])[:k_per_cluster]
         best = min(cands, key=edit_to)
         e = edit_to(best)
+        entry = (e, buggy[best], correct[int(nearest_c[best])])
+        fallback.append(entry)
         if e <= max_sample_edit and ast_size(buggy[best]) <= size_cap:
-            picked.append((e, buggy[best], correct[int(nearest_c[best])]))
+            picked.append(entry)
         if len(picked) >= n_samples:
             break
+
+    # A sparse correct pool makes min-edit-to-nearest-correct a measure of
+    # strategy mismatch rather than bug size, so the cap can reject every
+    # cluster and leave the builder with no exemplars at all. Degrade to the
+    # cleanest clusters available instead: the build loop validates each rule
+    # against the samples, so unlearnable exemplars cost one cheap call rather
+    # than a tool that was never given anything to generalize from.
+    if not picked:
+        picked = fallback
+
     picked.sort(key=lambda t: t[0])                      # cleanest first
     return [(b, f) for _e, b, f in picked[:n_samples]]
 

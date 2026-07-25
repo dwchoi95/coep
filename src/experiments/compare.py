@@ -36,7 +36,9 @@ from src.utils.metrics import rps
 
 MODEL_LABEL = {"claude-sonnet": "claude-sonnet-5", "gpt-mini": "gpt-5.4-mini",
                "claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
-_RULE_NAME = re.compile(r"Rule\(\s*['\"]([^'\"]+)['\"]")
+# Generated fixers construct rules either positionally (``Rule('name', ...)``)
+# or by keyword, often across lines (``Rule(\n    name="name", ...)``).
+_RULE_NAME = re.compile(r"Rule\(\s*(?:name\s*=\s*)?['\"]([^'\"]+)['\"]")
 
 
 def main(argv: list[str]) -> int:
