@@ -6,6 +6,7 @@ No experiment logic lives here, so drivers stay independently runnable and
 testable.
 
     python run.py build    --problem refactory_q1 [--model claude-haiku gpt-nano]
+    python run.py calibrate --problem refactory_q1 --model claude-sonnet
     python run.py repair   --problem refactory_q1 --model claude-haiku --file bug.py
     python run.py evaluate --problem refactory_q1 --model claude-haiku [--fallback --learn]
     python run.py --list
@@ -19,9 +20,10 @@ import sys
 # subcommand -> (module under src.experiments, entry function)
 COMMANDS = {
     "build": ("build", "main"),        # synthesize tools/<p_id>/<model>/fixer.py
+    "calibrate": ("calibrate_run", "main"),  # escalation threshold for a built tool
     "repair": ("repair", "main"),      # repair one submission (tool + fallback)
     "evaluate": ("evaluate", "main"),  # single-arm evaluation
-    "compare": ("compare", "main"),    # one pass, three CoEP variants (L/LF/LFSL)
+    "compare": ("compare", "main"),    # one pass, CoEP_L and CoEP_LF
     "pydex": ("pydex_run", "main"),    # PyDex + PyDex_PC baseline arms
 }
 

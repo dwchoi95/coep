@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import argparse
 
+from src.core.calibrate import calibrate, write_into_cost
 from src.core.cluster import cluster
 from src.core.repair import SearchBudget
-from src.core.synthesis import build, select_sample_pairs
+from src.core.synthesis import build, load_fixer, select_sample_pairs
 from src.experiments._common import load_env, load_pool, load_problem
 
 
@@ -22,6 +23,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--n-refs", type=int, default=2)
     ap.add_argument("--r-max", type=int, default=3)
     ap.add_argument("--data-root", default="data")
+    ap.add_argument("--no-calibrate", action="store_true",
+                    help="skip the build-time escalation-threshold calibration")
     args = ap.parse_args(argv)
     load_env()
 
@@ -43,4 +46,16 @@ def main(argv: list[str]) -> int:
                     budget=budget, sample_fixes=fixes)
         print(f"  [{model}] rules={res.rules} coverage={res.coverage:.0%} "
               f"rounds={res.rounds} cost=${res.usd:.4f} → {res.path}")
+        if res.path and not args.no_calibrate:
+            rec = calibrate(prob, load_fixer(res.path), buggy, correct)
+            write_into_cost(res.path, rec)
+            tau = rec.get("rps_tau")
+            print(f"  [{model}] escalation threshold "
+                  + (f"tau={tau} (median {rec.get('rps_median')} + "
+                     f"{rec['rps_tau_k']}*MAD {rec.get('rps_mad')}), "
+                     f"fires on {100*rec['rps_gate_rate']:.1f}% of "
+                     f"{rec['calibration_n']} calibration patches"
+                     if tau is not None else
+                     f"off ({rec['calibration_n']} test-passing patches, "
+                     f"too few to calibrate)"))
     return 0

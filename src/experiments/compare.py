@@ -6,9 +6,17 @@
     results/<ver>/<p_id>/summary.csv     upserted rows (Approach, Model)
 
 Single-pass derivation (no duplicated LLM calls): every submission runs the
-frozen local tool, which is CoEP_L's outcome and CoEP_LF's whenever it repairs
-(Source ``rules``/``reference``). Only on a miss does CoEP_LF make its one
-fallback call (Source ``llm``).
+frozen local tool, which is CoEP_L's outcome unconditionally -- it takes any
+patch that passes the tests, which is the same acceptance rule the classical
+symbolic baseline uses, so the two stay comparable.
+
+CoEP_LF spends its one call in two places: on a miss, and on a patch whose size
+is an outlier for this assignment (``rps > tau``, the threshold frozen with the
+tool by ``core.calibrate``). Local repair's only acceptance test is the
+instructor's suite, so transplant can return a patch larger than the student's
+whole program; the gate is where the hybrid decides that is worth a call. The
+smaller of the two patches is kept, so escalating can cost money but never
+coverage or patch size. An uncalibrated tool leaves the gate off.
 
 Self-learning does not run inside this pass. A successful fallback fix is still
 generalized into a rule, but into a staging copy of the tool that this pass
@@ -33,6 +41,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from src.core.calibrate import load_threshold
 from src.core.fallback import absorb, fallback_repair
 from src.core.reference_repair import ReferenceIndex, local_repair
 from src.core.repair import SearchBudget
@@ -182,9 +191,13 @@ def main(argv: list[str]) -> int:
     index = ReferenceIndex(correct)
     budget = SearchBudget(max_candidates=150, max_combo=2, candidate_timeout=3)
 
+    # Frozen with the tool: the assignment's own outlier cutoff for patch size.
+    tau = None if args.no_llm else load_threshold(frozen_path)
+
     rows_l: list[dict] = []
     rows_lf: list[dict] = []
     learned_names: list[str] = []
+    gated = gate_won = 0
     sl_usd = sl_seconds = 0.0
     sl_in = sl_out = 0
     noop = 0
@@ -198,12 +211,29 @@ def main(argv: list[str]) -> int:
             noop += 1
             continue
 
-        if fz.repaired:                        # both arms share this hit
+        if fz.repaired:
+            pr = rps(src, fz.patch)
             row = event_row(f.stem, model_label, fz.source, True, fz.patch,
-                            rps(src, fz.patch), att_cpu=t_frozen,
-                            rules_l=fz.rules)
-            rows_l.append(row)
-            rows_lf.append(dict(row))
+                            pr, att_cpu=t_frozen, rules_l=fz.rules)
+            rows_l.append(row)                 # CoEP_L takes what passes
+            if args.no_llm or tau is None or pr <= tau:
+                rows_lf.append(dict(row))
+                continue
+            # Gate: this patch is an outlier for this assignment, so spend the
+            # call. Keep whichever patch is smaller, so escalating can lose
+            # money but never coverage or patch size.
+            gated += 1
+            fb = fallback_repair(src, prob, correct, model=args.model)
+            fb_pr = rps(src, fb.patch) if fb.repaired else None
+            better = fb.repaired and fb_pr < pr
+            if better:
+                gate_won += 1
+            rows_lf.append(event_row(
+                f.stem, model_label, "llm" if better else fz.source, True,
+                fb.patch if better else fz.patch, fb_pr if better else pr,
+                att_cpu=t_frozen, att_api=fb.seconds, in_tok=fb.in_tokens,
+                out_tok=fb.out_tokens, api_usd=fb.usd,
+                rules_l=[] if better else fz.rules))
             continue
 
         rows_l.append(event_row(f.stem, model_label, "none", False,
@@ -263,6 +293,10 @@ def main(argv: list[str]) -> int:
     print(f"=== {args.problem} [{model_label}] {len(files)} programs "
           f"({noop} noop excluded) ===")
     print(f"ATT_build={att_build}s  $Build={build_usd}")
+    print("RPS gate: " + (f"tau={tau:.4f}, fired on {gated} "
+                          f"({100*gated/max(1,len(rows_l)):.1f}%), "
+                          f"smaller patch on {gate_won}"
+                          if tau is not None else "off (uncalibrated tool)"))
     for name, rows in (("CoEP_L", rows_l), ("CoEP_LF", rows_lf)):
         print(f"  {name:8s} RR={rr(rows):6.2f}%  n={len(rows)}")
     print(f"self-learning: {len(learned_names)} rule(s) absorbed, "
