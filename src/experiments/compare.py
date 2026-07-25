@@ -28,7 +28,7 @@ from pathlib import Path
 from src.core.fallback import absorb, fallback_repair
 from src.core.reference_repair import ReferenceIndex, local_repair
 from src.core.repair import SearchBudget
-from src.core.synthesis import backend_of, load_fixer
+from src.core.synthesis import load_fixer
 from src.experiments._common import load_env, load_problem, tool_path
 from src.experiments.results_io import (event_row, summarize_events,
                                         upsert_summary, write_events)

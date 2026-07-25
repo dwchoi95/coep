@@ -1,0 +1,651 @@
+Buggy,Model,Source,Patch,Fixed,RPS,ATT_all,ATT_cpu,ATT_api,InT,OuT,$API,Rules_L,Rules_SL
+wrong_1_001,gpt-5.4-mini,rules,"def search(x, seq):
+    for i, e in enumerate(seq):
+        if x <= e:
+            return i
+    return len(seq)
+
+",True,0.0435,0.0733,0.0733,0.0,0,0,0.0,"[""strict_lt_should_be_lte""]",[]
+wrong_1_002,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.1429,0.2378,0.2378,0.0,0,0,0.0,[],[]
+wrong_1_003,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    i = -1
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return i + 1
+",True,0.0968,0.2191,0.2191,0.0,0,0,0.0,[],[]
+wrong_1_004,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.1781,2.2283,2.2283,0.0,0,0,0.0,[],[]
+wrong_1_005,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.0375,0.0879,0.0879,0.0,0,0,0.0,"[""empty_sequence_check_should_use_len""]",[]
+wrong_1_006,gpt-5.4-mini,reference,"def search(x, seq):
+    seq = list(seq)
+    lst1 = 0
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            break
+        elif x > seq[i]:
+            lst1 = i + 1
+    return lst1
+",True,0.735,1.1677,1.1677,0.0,0,0,0.0,[],[]
+wrong_1_007,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.16,0.194,0.194,0.0,0,0,0.0,[],[]
+wrong_1_008,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.0449,2.0346,2.0346,0.0,0,0,0.0,[],[]
+wrong_1_009,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+
+    return len(seq)
+",True,0.5185,0.2659,0.2659,0.0,0,0,0.0,[],[]
+wrong_1_010,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if (x<=elem):
+            return i
+    return len(seq)
+",True,0.4167,0.171,0.171,0.0,0,0,0.0,[],[]
+wrong_1_011,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4815,0.1812,0.1812,0.0,0,0,0.0,[],[]
+wrong_1_012,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4815,0.1811,0.1811,0.0,0,0,0.0,[],[]
+wrong_1_013,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x<= elem:
+            return i
+    return len(seq)
+",True,0.4583,0.1713,0.1713,0.0,0,0,0.0,[],[]
+wrong_1_014,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x <= seq[-1]:
+        for i in range(len(seq)):
+            if seq[i] < x:
+                continue
+            else:
+                return i
+    else:
+        return len(seq)
+    
+",True,0.8519,0.3104,0.3104,0.0,0,0,0.0,[],[]
+wrong_1_015,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+        if x<=elem:
+            break
+    return i
+",True,0.3261,0.431,0.431,0.0,0,0,0.0,[],[]
+wrong_1_016,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+        if x<=elem:
+            break
+    return i
+",True,0.2683,0.3645,0.3645,0.0,0,0,0.0,[],[]
+wrong_1_017,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+        if x<=elem:
+            break
+    return i
+",True,0.2439,0.3902,0.3902,0.0,0,0,0.0,[],[]
+wrong_1_018,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.122,0.3548,0.3548,0.0,0,0,0.0,[],[]
+wrong_1_019,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    elif seq == ():
+        return 0
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.1875,0.5168,0.5168,0.0,0,0,0.0,[],[]
+wrong_1_020,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    elif seq == ():
+        return None
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.1875,0.5139,0.5139,0.0,0,0,0.0,[],[]
+wrong_1_021,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    elif seq == () or seq ==[]:
+        return None
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.1667,0.5772,0.5772,0.0,0,0,0.0,[],[]
+wrong_1_022,gpt-5.4-mini,reference,"def search(x, seq):
+    lst = list(seq)
+    if lst == []:
+        lst.append(x)
+    else:
+        for i in range(len(lst)):
+            if x < lst[i]:
+                lst.insert(i,x)
+            else:
+                lst.insert(len(lst),x)
+    for i in range(len(lst)):
+         if lst[i] == x:
+             return i
+",True,0.1852,1.3873,1.3873,0.0,0,0,0.0,[],[]
+wrong_1_023,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x < int(seq[0]):
+        return 0
+    elif x > int(seq[len(seq)-1]):
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if x > seq[i] and x <= seq[i+1]:
+                return i+1
+",True,0.1406,1.3378,1.3378,0.0,0,0,0.0,[],[]
+wrong_1_024,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x < int(seq[0]):
+        return 0
+    elif x > int(seq[len(seq)-1]):
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if x > seq[i] and x <= seq[i+1]:
+                return i+1
+",True,0.0423,0.0835,0.0835,0.0,0,0,0.0,"[""empty_sequence_check_should_use_len""]",[]
+wrong_1_025,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x <= seq[-1]:
+        for i in range(len(seq)):
+            if seq[i] < x:
+                continue
+            else:
+                return i
+    else:
+        return len(seq)
+",True,0.6038,0.8976,0.8976,0.0,0,0,0.0,[],[]
+wrong_1_026,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4062,0.2079,0.2079,0.0,0,0,0.0,[],[]
+wrong_1_027,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem:
+                return i
+            elif x > seq[-1]:
+                return len(seq)
+",True,0.0769,0.085,0.085,0.0,0,0,0.0,"[""empty_sequence_check_should_use_len""]",[]
+wrong_1_028,gpt-5.4-mini,reference,"def search(x, seq):
+    
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+        elif x > seq[i]:
+            continue
+    return len(seq)  # if bigger than the last element 
+",True,0.3947,0.2664,0.2664,0.0,0,0,0.0,[],[]
+wrong_1_029,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i in range(0,len(seq)):
+        if x<seq[i]:
+            return i
+        elif x==seq[i]:
+            return i
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+        elif len(seq)==0:
+            return 0
+        else:
+            continue 
+",True,0.4468,0.7758,0.7758,0.0,0,0,0.0,[],[]
+wrong_1_030,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i in range(0,len(seq)):
+        if x<seq[i]:
+            return i
+        elif x==seq[i]:
+            return i
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+        elif len(seq)==0:
+            return 0
+        else:
+            continue 
+",True,0.5227,0.6166,0.6166,0.0,0,0,0.0,[],[]
+wrong_1_031,gpt-5.4-mini,rules,"def search(x, seq):
+    
+    for i in range((len(seq)) + 1):
+        if len(seq)==0:
+            return 0
+        elif x<=seq[i]:
+            return i
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+        
+        else:
+            continue 
+",True,0.0638,0.0941,0.0941,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+wrong_1_032,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == []:
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if seq[i] == x:
+                return i
+            elif seq[i] <= x and seq[i+1] > x:
+                return i+1
+",True,0.1047,2.1631,2.1631,0.0,0,0,0.0,[],[]
+wrong_1_033,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.5306,0.6872,0.6872,0.0,0,0,0.0,[],[]
+wrong_1_034,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if x < seq[0]:
+            return 0
+        elif seq[i] <= x <= seq[i+1]:
+            return i+1
+    return len(seq)
+",True,0.4909,0.6951,0.6951,0.0,0,0,0.0,[],[]
+wrong_1_035,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if x < seq[0]:
+            return 0
+        elif seq[i] <= x <= seq[i+1]:
+            return i+1
+    return len(seq)
+",True,0.4808,0.7422,0.7422,0.0,0,0,0.0,[],[]
+wrong_1_036,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if x < seq[0]:
+            return 0
+        elif seq[i] <= x <= seq[i+1]:
+            return i+1
+    return len(seq)
+",True,0.4808,0.7258,0.7258,0.0,0,0,0.0,[],[]
+wrong_1_037,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.5102,0.6852,0.6852,0.0,0,0,0.0,[],[]
+wrong_1_038,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.4694,0.6864,0.6864,0.0,0,0,0.0,[],[]
+wrong_1_039,gpt-5.4-mini,reference,"def search(x, seq):
+    counter = 0
+    for i in range(len(seq)):
+        if x > seq[i]:
+            counter = i + 1
+        elif x == seq[i]:
+            counter = i
+    return counter
+",True,0.3684,0.4815,0.4815,0.0,0,0,0.0,[],[]
+wrong_1_040,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.4694,0.6728,0.6728,0.0,0,0,0.0,[],[]
+wrong_1_041,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.449,0.7308,0.7308,0.0,0,0,0.0,[],[]
+wrong_1_042,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.4074,0.6854,0.6854,0.0,0,0,0.0,[],[]
+wrong_1_043,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.4444,0.7043,0.7043,0.0,0,0,0.0,[],[]
+wrong_1_044,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if seq[i] < x <= seq[i+1]:
+            return i+1
+        elif x <= seq[0]:
+            return 0
+    return len(seq)
+",True,0.4074,0.6851,0.6851,0.0,0,0,0.0,[],[]
+wrong_1_045,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return False
+    else:     
+        for i in range(len(seq)):
+            if x < seq[i]:
+                return i
+            elif seq[i] == seq[-1] and seq[i]<x:
+                return i+1
+            elif seq[i]<x<=seq[i+1]:
+                return i+1    
+        
+",True,0.2794,1.0539,1.0539,0.0,0,0,0.0,[],[]
+wrong_1_046,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return False
+    else:     
+        for i in range(len(seq)):
+            if x < seq[i]:
+                return i
+            elif seq[i] == seq[-1] and seq[i]<x:
+                return i+1
+            elif seq[i]<x<=seq[i+1]:
+                return i+1    
+        
+",True,0.45,0.7539,0.7539,0.0,0,0,0.0,[],[]
+wrong_1_047,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == []:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i in range(len(seq)):
+        if x < seq[i]:
+            return i
+        elif seq[i] == seq[-1] and seq[i]<x:
+            return i+1
+        elif seq[i]<x<=seq[i+1]:
+            return i+1    
+        
+",True,0.5781,1.438,1.438,0.0,0,0,0.0,[],[]
+wrong_1_048,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return False
+    else:     
+        for i in range(len(seq)):
+            if x <= seq[i]:
+                return i 
+            else:
+                if x > seq[-1]:
+                    return len(seq) 
+                else:
+                    continue
+",True,0.3095,0.5756,0.5756,0.0,0,0,0.0,[],[]
+wrong_1_049,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)-1):
+        if x < seq[0]:
+            return 0
+        elif seq[i] <= x <= seq[i+1]:
+            return i+1
+    return len(seq)
+",True,0.4231,0.6046,0.6046,0.0,0,0,0.0,[],[]
+wrong_1_050,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == []:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i in range(len(seq)):
+        if x < seq[i]:
+            return i
+        elif seq[i] == seq[-1] and seq[i]<x:
+            return i+1
+        elif seq[i]<x<=seq[i+1]:
+            return i+1    
+        
+",True,0.5781,1.4306,1.4306,0.0,0,0,0.0,[],[]
+wrong_1_051,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif seq[-1] < x:
+        return len(seq)
+    newseq = list(seq)
+    sortlist = []
+    while x not in sortlist and newseq:
+        start = newseq[0]
+        if x <= start:
+            sortlist.append(x)
+        else:
+            sortlist.append(start)
+            newseq.pop(0)
+    sortlist.extend(newseq)
+    for pos, elem in enumerate(sortlist):
+        if elem == x:
+            return pos
+",True,0.2949,23.1519,23.1519,0.0,0,0,0.0,[],[]
+wrong_1_052,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif seq[-1] < x:
+        return len(seq)
+    newseq = list(seq)
+    sortlist = []
+    while x not in sortlist and newseq:
+        start = newseq[0]
+        if x <= start:
+            sortlist.append(x)
+        else:
+            sortlist.append(start)
+            newseq.pop(0)
+    sortlist.extend(newseq)
+    for pos, elem in enumerate(sortlist):
+        if elem == x:
+            return pos
+",True,0.022,1.209,1.209,0.0,0,0,0.0,[],[]
+wrong_1_053,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.0185,0.079,0.079,0.0,0,0,0.0,"[""return_none_should_be_zero""]",[]
+wrong_1_054,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    a = list(enumerate(seq))
+    for item in a:
+        if x <= item[1]:
+            return item[0]
+    if x > seq[-1]:
+        return len(seq)
+",True,0.2308,0.2632,0.2632,0.0,0,0,0.0,[],[]
+wrong_1_055,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if len(seq) == 0:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    counter = 0
+    for i in seq:
+        counter = counter + 1
+        if x > seq[counter]:
+            continue
+        elif x <= seq[counter]:
+            return counter
+
+",True,0.1475,0.7965,0.7965,0.0,0,0,0.0,[],[]
+wrong_1_056,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for num in range(len(seq)):
+            if x > seq[num]:
+                continue
+            elif x <= seq[num]:
+                return num 
+    return 0
+",True,0.2955,0.5068,0.5068,0.0,0,0,0.0,[],[]
+wrong_1_057,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for num in range(len(seq)):
+            if x > seq[num]:
+                continue
+            elif x <= seq[num]:
+                return num 
+    return 0
+",True,0.0588,0.0977,0.0977,0.0,0,0,0.0,"[""empty_sequence_check_should_use_len""]",[]
+wrong_1_058,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq) == 0 or []:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for num in range(len(seq)):
+            if x > seq[num]:
+                continue
+            elif x <= seq[num]:
+                return num 
+    return 0
+",True,0.0556,0.0876,0.0876,0.0,0,0,0.0,"[""empty_sequence_check_should_use_len""]",[]
+wrong_1_059,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(0, len(seq)):
+        if seq[i] < x:
+            continue
+        elif seq[len(seq) - 1] < x:
+            return len(seq)
+        else:
+            return i
+        if seq[i-1] < x < seq[i]:
+            return i
+    return len(seq)
+",True,0.5128,0.5855,0.5855,0.0,0,0,0.0,[],[]
+wrong_1_060,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == []:
+        return 0
+    for i in seq:
+        if x <= i:
+            return seq.index(i)
+        elif x > max(seq):
+            return len(seq)
+",True,0.2414,0.2556,0.2556,0.0,0,0,0.0,[],[]
