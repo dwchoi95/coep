@@ -50,12 +50,22 @@ def main(argv: list[str]) -> int:
                     help="skip fallback/absorption (CoEP_L only; no API key)")
     ap.add_argument("--data-root", default="data")
     ap.add_argument("--ver", default="v2")
+    ap.add_argument("--subset", default="",
+                    help="smoke_set.json manifest; restricts the pass to its "
+                         "sampled submissions for this problem")
     args = ap.parse_args(argv)
     if not args.no_llm:
         load_env()
 
     prob = load_problem(args.problem, args.data_root)
     files = sorted((Path(args.data_root) / args.problem / "buggy").glob("*.py"))
+    if args.subset:
+        keep = set(json.loads(Path(args.subset).read_text())
+                   ["problems"].get(args.problem, []))
+        files = [f for f in files if f.stem in keep]
+        if not files:
+            print(f"{args.problem}: not in {args.subset}, nothing to run")
+            return 0
     if args.limit:
         files = files[:args.limit]
     correct = [f.read_text() for f in
