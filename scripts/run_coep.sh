@@ -31,7 +31,7 @@ if not p.exists():
     sys.exit(1)
 s = pd.read_csv(p)
 label = MODEL_LABEL.get(model, model)
-hit = s[(s.Approach == "CoEP_LFSL") & (s.Model == label) & (s.N > 5)]
+hit = s[(s.Approach == "CoEP_LF") & (s.Model == label) & (s.N > 5)]
 sys.exit(0 if len(hit) else 1)
 PY
     then

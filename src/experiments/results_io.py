@@ -1,5 +1,5 @@
 """Unified results storage — the agreed CSV format, one definition for every
-approach (Refactory, PyDex, PyDex_PC, CoEP_L, CoEP_LF, CoEP_LFSL).
+approach (Refactory, PyDex, PyDex_PC, CoEP_L, CoEP_LF, CoEP_L+SL).
 
 Layout:
     results/<ver>/<p_id>/<approach>.csv   one row per truly-buggy submission
@@ -71,10 +71,27 @@ def event_row(buggy: str, model: str, source: str, fixed: bool,
 
 
 def write_events(ver: str, pid: str, approach_file: str, rows: list[dict]) -> Path:
+    """Upsert this run's rows into the arm's event file, keyed by (Buggy, Model).
+
+    The file carries a Model column because one arm is evaluated under several
+    models; a plain overwrite meant the second model erased the first, leaving
+    only the last-run model's per-submission rows on disk while the summary
+    still listed both. Rows for other models, and for submissions this run did
+    not touch (a --subset pass), are preserved.
+    """
     d = ROOT / "results" / ver / pid
     d.mkdir(parents=True, exist_ok=True)
     path = d / f"{approach_file}.csv"
-    pd.DataFrame(rows, columns=EVENT_COLS).to_csv(path, index=False)
+    fresh = pd.DataFrame(rows, columns=EVENT_COLS)
+    if path.exists() and len(fresh):
+        prior = pd.read_csv(path)
+        # Buggy ids read back as ints on the numeric Codeforces corpus, so key
+        # on their string form to compare like with like.
+        def key(df):
+            return df.Buggy.astype(str) + "\x00" + df.Model.astype(str)
+        prior = prior[~key(prior).isin(set(key(fresh)))]
+        fresh = pd.concat([prior, fresh], ignore_index=True)[EVENT_COLS]
+    fresh.to_csv(path, index=False)
     return path
 
 
