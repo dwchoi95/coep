@@ -222,16 +222,37 @@ Submissions the tool abstains on go to the LLM. Two things happen:
 2. **Self-learning** (`fallback.absorb`, implemented). When the LLM repairs a
    program the tool missed, diff (buggy, fixed) and ask the LLM to *generalize
    that single repair into a new rule* (same contract: AST-located,
-   source-spliced, named, symptom-declared). The rule is appended to a sibling
-   `learned.py` and kept **only if** the file still loads and the augmented tool
-   now repairs that miss on its own — otherwise it is rolled back, so a bad
-   induction cannot degrade the tool. `load_fixer` merges `fixer.py` with
-   `learned.py`, so coverage accumulates across a term.
+   source-spliced, named, symptom-declared). The rule is kept **only if** the
+   file still loads and the augmented tool now repairs that miss on its own —
+   otherwise it is rolled back, so a bad induction cannot degrade the tool. A
+   miss the rules already learned would catch induces nothing further, so one
+   recurring bug does not produce one rule per occurrence.
 
-The tool therefore **improves across a term**: coverage as a function of
-accumulated fallbacks is a measurable curve. This is the stateful counterpart to
+**Self-learning does not run inside the evaluated pass.** Absorption writes to a
+staging copy of the tool that the pass never consults, so no submission's
+outcome depends on which submissions preceded it and both `CoEP_L` and `CoEP_LF`
+are reproducible from the frozen artifact alone. An evolving tool would have put
+the ordering *inside* the shared local path, where it would also decide which
+patch `CoEP_L` returns.
+
+The accumulated rules are persisted as their own artifact, `tools/<p_id>/<model>/
+sl/` — a sibling directory, because `load_fixer` merges any adjacent
+`learned.py` and storing it in place would silently fold the learned rules into
+`CoEP_L` and destroy the frozen baseline. `compare --with-learned` evaluates
+that augmented tool **frozen**, as `CoEP_L+SL`: order-independent, and directly
+comparable to `CoEP_L` on the same submissions.
+
+The tool therefore **improves across a term**, and the improvement is now
+measured rather than accumulated mid-measurement: `CoEP_L` versus `CoEP_L+SL` is
+the learning curve's endpoint. This is the stateful counterpart to
 per-submission repair's statelessness — and the LLM-side analogue (accumulating
 few-shot examples) we already showed does not help.
+
+Each rule's inducing submission is named in that submission's `CoEP_LF` row
+(`Rules_SL`). Those few are the only ones for which `CoEP_L+SL` is not a test of
+generalization — the rule was validated against them by construction — so they
+are reported alongside, and the augmented numbers are given with and without
+them.
 
 ---
 
@@ -243,7 +264,12 @@ few-shot examples) we already showed does not help.
 | 2. Synthesis | ≤ `R_max` builder calls | once per (problem, model) |
 | 3. Local repair | **zero** | every covered submission |
 | 4. Fallback | one per-submission call | only on abstention |
-| 4. Self-learning | one call per absorbed miss | amortized into future coverage |
+| 4. Self-learning | one call per induced rule | priced to the `sl/` artifact, not to `CoEP_LF` |
+
+Self-learning is billed to the artifact it produces rather than to the pass it
+runs alongside: `CoEP_LF` gets no benefit from rules it never loads, so charging
+it their induction cost would overstate the arm being reported. `sl/cost.json`
+carries `base_usd` and `self_learning_usd` separately for that reason.
 
 Stage-2 cost is measured exactly (official-SDK token usage, extended-thinking
 tokens included) and **written alongside each tool** as `tools/<p_id>/<model>/
@@ -289,7 +315,11 @@ Settled:
   correct member (§1). References = structural medoids.
 - **Builder models** = the two cheapest, `claude-haiku-4-5` and `gpt-5.4-nano`,
   one tool each.
-- **No RPS gate; no wholesale rewrites** (§2.1, §3).
+- **No wholesale rewrites** (§2.1, §3). The RPS gate is no longer settled and
+  has moved to the open list below.
+- **Self-learning is evaluated frozen, not online** (§4): the pass records
+  `CoEP_L` and `CoEP_LF`, and `CoEP_L+SL` is a separate deterministic run over
+  the persisted `sl/` artifact.
 
 Still open:
 - Adding the **behavioral view** and an `α` weight, and a density clusterer that
@@ -298,6 +328,16 @@ Still open:
   budget.
 - The **structural guard** that hard-rejects whole-`FunctionDef`/module rewrites
   (prompt-level today).
-- Whether self-learning rules are kept per-term or reset (report both).
+- Whether self-learning rules are kept per-term or reset (report both). The
+  `sl/` artifact makes both runnable from one pass: keep it and evaluate
+  `CoEP_L+SL`, or ignore it and `CoEP_L` is the reset case.
+- The **abstention threshold** for oversized transplants (see §3): the local
+  tool currently accepts any patch that passes the tests, so it has no
+  minimality criterion at all, while the rule layer must abstain when it cannot
+  express a targeted edit. Candidate is a per-assignment τ computed at build
+  time from the tool's own RPS distribution over the input buggy programs
+  (no API cost), with `min(local, llm)` on escalation so the gate cannot
+  regress either RR or RPS. Undefined τ (no test-passing fix at build time)
+  falls back to escalating only on local failure.
 - Gate check (from PLAN): if clustered-`N` does not beat random-`N` at matched
   `N` on Refactory, revisit before spending the Codeforces build budget.
