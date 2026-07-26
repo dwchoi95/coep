@@ -1,27 +1,77 @@
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\NumProblems}{5}
-\newcommand{\NumEval}{2{,}970}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BaseRate}{100.0}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BaseQualityRate}{86.0}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\CoepRate}{47.5}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\CoepMeanRPS}{0.127}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\HybridRate}{90.0}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\FallbackRate}{52.5}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BuildUsdPerProblem}{0.256}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BuildUsdTotal}{1.28}
+% Macros are populated from results/v2 by the full campaign. Each carries the
+% arm, corpus, and denominator it was measured on, because several of them
+% differ between the Refactory corpus (N=1,686) and the whole benchmark
+% (N=2,872), and a macro used under the wrong denominator is the failure mode
+% these comments exist to prevent.
+
+\newcommand{\NumEval}{2{,}872}   % buggy submissions, noop-excluded, both corpora
+\newcommand{\NumEvalRefac}{1{,}686}  % Refactory corpus, noop-excluded
+\newcommand{\NumEvalCF}{1{,}186}     % Codeforces, noop-excluded
+
+% --- CoEP_L (frozen local tool, zero LLM at deployment), claude-sonnet-5
+\newcommand{\LocalRR}{97.75}     % Refactory corpus
+\newcommand{\LocalRPS}{0.317}    % Refactory corpus, over repaired
+\newcommand{\LocalRRAll}{98.64}  % whole benchmark
+\newcommand{\LocalRPSAll}{0.490} % whole benchmark
+\newcommand{\LocalRRCF}{99.92}   % Codeforces
+\newcommand{\LocalRPSCF}{0.731}  % Codeforces
+
+% --- CoEP_LF (+ fallback on abstentions and on tau-outlier patches), sonnet
+\newcommand{\HybridRR}{99.23}    % Refactory corpus
+\newcommand{\HybridRPS}{0.289}   % Refactory corpus
+\newcommand{\HybridRRAll}{99.55} % whole benchmark
+\newcommand{\HybridRPSAll}{0.461}
+\newcommand{\HybridRRCF}{100.00} % Codeforces
+\newcommand{\HybridRPSCF}{0.704}
+
+% --- baselines
+\newcommand{\RefacRR}{90.8}      % Refactory, its own published corpus result
+\newcommand{\RefacRPS}{0.40}
+\newcommand{\RefacRRCF}{78.59}   % Refactory, our run on Codeforces
+\newcommand{\RefacRPSCF}{0.547}
+\newcommand{\PydexRR}{98.52}     % PyDex sonnet, Refactory corpus
+\newcommand{\PydexRPS}{0.358}
+\newcommand{\PydexRRAll}{98.89}  % PyDex sonnet, whole benchmark
+\newcommand{\PydexRPSAll}{0.591}
+
+% --- cost (USD totals over the whole benchmark unless noted)
+\newcommand{\PydexUsd}{287.44}       % PyDex sonnet, N=2,872
+\newcommand{\PydexPCUsd}{258.50}     % same queries under prompt caching
+\newcommand{\CacheSavingFrac}{10.1}  % (287.44-258.50)/287.44
+\newcommand{\HybridUsd}{4.15}        % CoEP_LF sonnet: build 2.84 + API 1.31
+\newcommand{\HybridUsdMini}{0.48}    % CoEP_LF gpt-mini: build 0.26 + API 0.22
+\newcommand{\BuildUsdSonnet}{2.84}   % 11 tools, claude-sonnet
+\newcommand{\BuildUsdMini}{0.258}    % 11 tools, gpt-5.4-mini
+\newcommand{\CostRatio}{69}          % PydexUsd / HybridUsd
+\newcommand{\CostRatioMini}{599}     % PydexUsd / HybridUsdMini
+
+% --- turnaround (seconds per submission, whole benchmark)
+\newcommand{\HybridATT}{2.28}
+\newcommand{\LocalATT}{1.92}
+\newcommand{\PydexATT}{14.86}
+\newcommand{\RefacATT}{5.63}
+
+% --- RQ4 repair-source split (CoEP_L sonnet, 2,833 repairs)
+\newcommand{\RuleShare}{15.8}    % percent of local repairs from named rules
+\newcommand{\RuleRPS}{0.063}     % mean RPS of rule repairs
+\newcommand{\RefShare}{84.2}     % percent from reference transplant
+\newcommand{\RefRPS}{0.570}
+
+% --- RQ5 escalation gate (claude-sonnet)
+\newcommand{\GateFired}{206}     % submissions routed by tau, whole benchmark
+\newcommand{\GateRate}{7.3}      % percent of locally repaired submissions
+\newcommand{\GateWon}{135}       % of those, model returned the smaller patch
+\newcommand{\GateWinFrac}{65.5}  % GateWon / GateFired
+\newcommand{\GateUsd}{1.31}      % total escalation spend, whole benchmark
+
+% --- RQ6 self-learning (frozen augmented tool vs frozen base tool)
+\newcommand{\SLProblems}{3}      % of 22 (problem, model) cells that learned anything
+\newcommand{\SLqTwoBase}{90.89}  % refactory_q2 CoEP_L, sonnet
+\newcommand{\SLqTwoAug}{94.24}   % refactory_q2 CoEP_L+SL, sonnet
+\newcommand{\SLcfBase}{98.55}    % cf_1011B CoEP_L, sonnet
+\newcommand{\SLcfAug}{100.00}    % cf_1011B CoEP_L+SL, sonnet
+
+% --- prose constants carried over from the cost anatomy
 \newcommand{\PrefixFrac}{55}
-\newcommand{\CacheSavingFrac}{23}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BreakEvenN}{197}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\CoepMeanSec}{0.8}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BaseUsdPerInst}{2.73}
 \newcommand{\BaseInTok}{439}
 \newcommand{\BaseOutTok}{94}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BuildInTok}{51227}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\BuildOutTok}{75015}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\AblRate}{6.5}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\AblP}{4.1e-25}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\RetryRate}{98.5}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\RetryUsd}{3.26}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\CoepRetryRate}{98.5}
-% STALE-v1 (unused; superseded by the v2 full run): \newcommand{\CoepRetryUsd}{1.78}
-\newcommand{\LocalRR}{97.8}      % CoEP local RR, Refactory corpus, var-aware transplant (1648/1686)
-\newcommand{\LocalRPS}{0.326}    % CoEP local mean RPS over repaired (validated full run)
