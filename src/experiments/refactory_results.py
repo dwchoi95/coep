@@ -14,22 +14,68 @@ whichever arm's denominator happened to include them -- on cf_125A it was the
 difference between N=38 here and N=37 there, and a rate is not comparable
 across two denominators.
 
+RPS is recomputed from the returned patch rather than read from their CSV.
+Refactory rewrites each program into ``def main(): try: <body> except _Exit:
+pass`` and reformats it, and reports RPS between the *wrapped* buggy program
+and the *wrapped* repair. That is a fair measure of its own edit, but not the
+same quantity we compute for the other arms, and the wrapper inflates the
+denominator, so the reported value runs low: on cf_125A theirs averages 0.523
+where the same patches measured on the same footing as every other arm average
+0.606. We strip the scaffold and measure against the student's original
+program, which is what CoEP and PyDex are measured against.
+
 Usage: python3 -m src.experiments.refactory_results cf_125A [cf_110A ...]
 """
 from __future__ import annotations
 
 import argparse
+import ast
 from pathlib import Path
 
 import pandas as pd
 
 from src.experiments._common import load_problem
+from src.utils.metrics import rps as compute_rps
 from src.experiments.results_io import (build_overall, event_row,
                                         summarize_events, upsert_summary,
                                         write_events)
 from src.runner.testing import run_tests
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def unwrap(src: str) -> str:
+    """Undo Refactory's ``def main(): try: ... except _Exit: pass`` scaffold.
+
+    Reformatting does not matter -- RPS is computed over ASTs -- but the
+    wrapper does: it adds nodes to both sides, and the extra nodes in the
+    denominator make every patch look smaller than it is.
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return src
+    fn = next((n for n in tree.body
+               if isinstance(n, ast.FunctionDef) and n.name == "main"), None)
+    if fn is None:
+        return src
+    inner = fn.body
+    if len(inner) == 1 and isinstance(inner[0], ast.Try):
+        inner = inner[0].body
+
+    def is_guard(n) -> bool:                 # the `if __name__ == ...: main()`
+        return isinstance(n, ast.If) and "__name__" in ast.dump(n.test)
+
+    def is_call(n) -> bool:                  # a bare `main()` at module level
+        return (isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                and getattr(n.value.func, "id", "") == "main")
+
+    keep = [n for n in tree.body
+            if n is not fn and not is_guard(n) and not is_call(n)]
+    try:
+        return ast.unparse(ast.Module(body=keep + inner, type_ignores=[]))
+    except Exception:                        # noqa: BLE001 - keep the original
+        return src
 
 
 def collect(pid: str, ver: str = "v2") -> dict:
@@ -59,7 +105,12 @@ def collect(pid: str, ver: str = "v2") -> dict:
             except (TypeError, ValueError):
                 return None
 
-        rps = num(r["RPS"]) if ok else None
+        rps = None
+        if ok and patch:
+            try:
+                rps = compute_rps((buggy_dir / name).read_text(), unwrap(patch))
+            except Exception:                # noqa: BLE001 - unparseable patch
+                rps = num(r["RPS"])          # fall back to their own figure
         rows.append(event_row(stem, "none", "reference" if ok else "none", ok,
                               patch, rps, att_cpu=num(r["Total Time"]) or 0.0))
 
