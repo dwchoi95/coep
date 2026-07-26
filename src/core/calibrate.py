@@ -10,11 +10,21 @@ large *for this assignment* is not claimed, it is escalated.
 The threshold is a property of the assignment, computed once at build time from
 the tool's own behaviour and frozen with it:
 
-    tau_p = median(RPS_p) + K * MAD(RPS_p)
+    tau_p = min( median(RPS_p) + K * MAD(RPS_p),  RPS_CAP )
 
 over the patches the freshly built tool produces for the assignment's own buggy
 programs, counting only those that pass the tests. Running the tool costs no API
 call, so calibration does not touch the once-per-assignment claim.
+
+The cap is there because a purely relative threshold reads a bad distribution as
+normal. On cf_131A the outlier rule puts tau at 1.71, so 78 submissions whose
+patch is *larger than the program it repairs* are accepted as typical. RPS above
+1 is not a repair under any assignment's standards -- it is a rewrite -- so the
+threshold never sits above it. Escalating that band on cf_131A pulled its mean
+from 1.316 to 1.115 and the assignment's from 0.832 to 0.804 for $0.06. On five
+of the eleven assignments the cap never binds, because the outlier rule is
+already below it: it sleeps where the pool is dense and wakes where it is
+sparse.
 
 Two choices are worth stating plainly. ``MAD`` rather than the standard
 deviation, because the outliers being detected inflate the standard deviation
@@ -40,6 +50,9 @@ from src.core.repair import SearchBudget
 from src.utils.metrics import rps
 
 K = 3.0
+# A patch at least as large as the program it repairs is a rewrite, not a
+# repair; the threshold never exceeds this regardless of the distribution.
+RPS_CAP = 1.0
 # MAD scaled to estimate sigma (for a normal distribution MAD = 0.6745 sigma).
 MAD_TO_SIGMA = 1.4826
 # Below this many test-passing patches the median and MAD are too unstable to
@@ -61,10 +74,10 @@ def mad(xs: list[float]) -> float:
 
 
 def threshold(rps_values: list[float], k: float = K) -> float | None:
-    """``median + k*MAD``; ``None`` when there is too little to calibrate on."""
+    """``min(median + k*MAD, RPS_CAP)``; ``None`` when too little to calibrate."""
     if len(rps_values) < MIN_CALIBRATION:
         return None
-    return _median(rps_values) + k * mad(rps_values)
+    return min(_median(rps_values) + k * mad(rps_values), RPS_CAP)
 
 
 def calibrate(problem: dict, rules, buggy: list[str], correct: list[str],
@@ -85,7 +98,8 @@ def calibrate(problem: dict, rules, buggy: list[str], correct: list[str],
             repaired += 1
             values.append(rps(src, res.patch))
     tau = threshold(values, k)
-    rec = {"rps_tau": tau, "rps_tau_k": k, "calibration_n": len(values),
+    rec = {"rps_tau": tau, "rps_tau_k": k, "rps_cap": RPS_CAP,
+           "calibration_n": len(values),
            "calibration_noop": noop,
            "calibration_repaired": repaired}
     if values:
