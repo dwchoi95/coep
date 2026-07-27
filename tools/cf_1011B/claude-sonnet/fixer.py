@@ -4,7 +4,6 @@ from src.core.repair import Rule
 
 
 def _span(source, node):
-    """(start, end) char offsets of node in source."""
     lines = source.splitlines(keepends=True)
     starts = [0]
     for ln in lines:
@@ -19,152 +18,136 @@ def _splice(source, node, new_text):
     return source[:s] + new_text + source[e:]
 
 
-def _line_indent(source, node):
-    lines = source.splitlines(keepends=True)
-    line = lines[node.lineno - 1]
-    return line[: len(line) - len(line.lstrip())]
-
-
-def _increase_binary_search_bound(source):
-    """Binary search upper bound set too tight (e.g. r = 100); widen it."""
+def _bump_binary_search_bound(source):
+    """A too-small upper bound for a binary search (e.g. r = 100) prevents
+    the search from ever reaching the true optimum near that bound.
+    Bump small integer literal upper bounds to a safely large constant."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     out = []
+    bound_names = {"r", "end", "hi", "right", "high", "R", "HI"}
     for node in ast.walk(tree):
-        if (
-            isinstance(node, ast.Assign)
-            and len(node.targets) == 1
-            and isinstance(node.targets[0], ast.Name)
-            and isinstance(node.value, ast.Constant)
-            and isinstance(node.value.value, int)
-            and node.value.value == 100
-        ):
-            # confirm this constant lives near a binary-search-style while loop
-            found_pattern = False
-            for n2 in ast.walk(tree):
-                if isinstance(n2, ast.While):
-                    for stmt in ast.walk(n2):
-                        if (
-                            isinstance(stmt, ast.Assign)
-                            and isinstance(stmt.value, ast.BinOp)
-                            and isinstance(stmt.value.op, ast.FloorDiv)
-                        ):
-                            found_pattern = True
-                            break
-                if found_pattern:
-                    break
-            if found_pattern:
-                new_source = _splice(source, node.value, "100000")
-                if new_source != source:
-                    out.append(new_source)
+        if (isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and node.targets[0].id in bound_names
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, int)
+                and not isinstance(node.value.value, bool)):
+            val = node.value.value
+            if 0 < val <= 1000:
+                s, e = _span(source, node.value)
+                candidate = source[:s] + "100000" + source[e:]
+                if candidate != source:
+                    out.append(candidate)
     return out
 
 
-def _fix_accumulator_reset(source):
-    """Accumulator not reset each outer iteration and no early-stop break."""
+def _stmt_lists(tree):
+    seen = []
+    for node in ast.walk(tree):
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, list) and value and all(
+                    isinstance(v, ast.stmt) for v in value):
+                seen.append(value)
+    return seen
+
+
+def _move_accumulator_reset_inside_loop(source):
+    """A reset of an accumulator (like `s = 0`) placed *before* an outer
+    loop instead of inside it, causing the accumulated count to carry over
+    between outer-loop iterations. Move the reset to be the first statement
+    inside the outer loop's body, right before the inner accumulation loop."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     out = []
-    body_lists = []
-    for node in ast.walk(tree):
-        for field in ("body", "orelse", "finalbody"):
-            lst = getattr(node, field, None)
-            if isinstance(lst, list) and lst and isinstance(lst[0], ast.stmt):
-                body_lists.append(lst)
+    lines = source.splitlines(keepends=True)
+    starts = [0]
+    for ln in lines:
+        starts.append(starts[-1] + len(ln))
 
-    for lst in body_lists:
-        for i in range(len(lst) - 1):
-            stmt = lst[i]
-            nxt = lst[i + 1]
-            if not (
-                isinstance(stmt, ast.Assign)
-                and len(stmt.targets) == 1
-                and isinstance(stmt.targets[0], ast.Name)
-                and isinstance(stmt.value, ast.Constant)
-                and stmt.value.value == 0
-            ):
+    for stmts in _stmt_lists(tree):
+        for idx, node in enumerate(stmts):
+            if not (isinstance(node, ast.Assign)
+                    and len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)):
                 continue
-            if not isinstance(nxt, ast.For):
+            var = node.targets[0].id
+            if not (isinstance(node.value, ast.Constant)
+                    and node.value.value == 0
+                    and not isinstance(node.value.value, bool)):
                 continue
-            acc_name = stmt.targets[0].id
-            outer = nxt
+            if idx + 1 >= len(stmts) or not isinstance(stmts[idx + 1], ast.For):
+                continue
+            outer = stmts[idx + 1]
 
-            has_aug = False
-            for sub in ast.walk(outer):
-                if (
-                    isinstance(sub, ast.AugAssign)
-                    and isinstance(sub.target, ast.Name)
-                    and sub.target.id == acc_name
-                    and isinstance(sub.op, ast.Add)
-                ):
-                    has_aug = True
+            inner_for = None
+            for stmt in outer.body:
+                if isinstance(stmt, ast.For):
+                    inner_for = stmt
                     break
-            if not has_aug:
+            if inner_for is None:
                 continue
 
-            target_if = None
-            for sub in outer.body:
-                if isinstance(sub, ast.If):
-                    names = {
-                        n.id for n in ast.walk(sub.test) if isinstance(n, ast.Name)
-                    }
-                    if acc_name in names:
-                        target_if = sub
-                        break
-            if target_if is None:
+            accum = any(
+                isinstance(s, ast.AugAssign)
+                and isinstance(s.target, ast.Name)
+                and s.target.id == var
+                for s in inner_for.body
+            )
+            if not accum:
                 continue
 
-            has_break = any(isinstance(x, ast.Break) for x in ast.walk(target_if))
-            if has_break:
+            assign_line_start = starts[node.lineno - 1]
+            assign_line_end = starts[node.end_lineno]
+            insertion_offset = starts[inner_for.lineno - 1]
+
+            if insertion_offset < assign_line_end:
                 continue
 
-            if not outer.body:
-                continue
-            first_stmt = outer.body[0]
-            indent = _line_indent(source, first_stmt)
-            reset_text = f"{acc_name} = 0\n{indent}"
-            s0, _ = _span(source, first_stmt)
-            new_source = source[:s0] + reset_text + source[s0:]
+            indent = " " * inner_for.col_offset
+            insertion_text = f"{indent}{var} = 0\n"
 
-            offset = len(reset_text)
-            _, if_e = _span(source, target_if)
-            if_e_new = if_e + offset
-            if_indent = _line_indent(source, target_if)
-            else_text = f"\n{if_indent}else:\n{if_indent}    break"
-            new_source = new_source[:if_e_new] + else_text + new_source[if_e_new:]
-
+            new_source = (
+                source[:assign_line_start]
+                + source[assign_line_end:insertion_offset]
+                + insertion_text
+                + source[insertion_offset:]
+            )
             if new_source != source:
                 out.append(new_source)
     return out
 
 
-def _flip_comparison(source):
-    """Loosen/tighten a strict comparison (>, >=, <, <=) by one step."""
+def _relax_threshold_comparison(source):
+    """A strict/non-strict flip on the feasibility-count threshold check
+    (e.g. `k > n` instead of `k >= n`), which shifts the computed answer
+    by one. Toggle between Gt/GtE for comparisons against a bare name."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
-    mapping = {
-        ast.GtE: (ast.Gt, ">"),
-        ast.Gt: (ast.GtE, ">="),
-        ast.LtE: (ast.Lt, "<"),
-        ast.Lt: (ast.LtE, "<="),
-    }
     out = []
+    flips = {
+        ast.Gt: ("GtE", " >= "),
+        ast.GtE: ("Gt", " > "),
+        ast.Lt: ("LtE", " <= "),
+        ast.LtE: ("Lt", " < "),
+    }
     for node in ast.walk(tree):
         if isinstance(node, ast.Compare) and len(node.ops) == 1:
             op = node.ops[0]
-            if type(op) in mapping:
-                _, op_text = mapping[type(op)]
-                left = node.left
-                right = node.comparators[0]
+            t = type(op)
+            if t in flips:
+                left, right = node.left, node.comparators[0]
                 ls, le = _span(source, left)
                 rs, re_ = _span(source, right)
-                new_cmp = source[ls:le] + f" {op_text} " + source[rs:re_]
+                _, sep = flips[t]
+                new_cmp = source[ls:le] + sep + source[rs:re_]
                 candidate = _splice(source, node, new_cmp)
                 if candidate != source:
                     out.append(candidate)
@@ -175,18 +158,18 @@ class Fixer:
     def rules(self):
         return [
             Rule(
-                name="widen_binary_search_bound",
-                apply=_increase_binary_search_bound,
+                name="bump_binary_search_upper_bound",
+                apply=_bump_binary_search_bound,
                 symptoms=("wrong",),
             ),
             Rule(
-                name="reset_accumulator_and_break",
-                apply=_fix_accumulator_reset,
-                symptoms=("wrong", "timeout"),
+                name="move_accumulator_reset_inside_outer_loop",
+                apply=_move_accumulator_reset_inside_loop,
+                symptoms=("wrong",),
             ),
             Rule(
-                name="comparison_flip",
-                apply=_flip_comparison,
+                name="relax_threshold_comparison",
+                apply=_relax_threshold_comparison,
                 symptoms=("wrong",),
             ),
         ]

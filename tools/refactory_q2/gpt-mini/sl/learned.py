@@ -2,8 +2,8 @@ from src.core.repair import Rule
 LEARNED = []
 
 
-def _learned_count_equals_one(source):
-    """Treat a uniqueness check as exact-one, not greater-than-one, when counting matches."""
+def _learned_count_exactly_one(source):
+    """Fix uniqueness checks that incorrectly use `> 1` when the intent is to require exactly one match."""
     import ast
     try:
         tree = ast.parse(source)
@@ -11,38 +11,41 @@ def _learned_count_equals_one(source):
         return []
     out = []
 
-    class Rewriter(ast.NodeVisitor):
+    class Fixer(ast.NodeVisitor):
         def visit_If(self, node):
             # Match: if count > 1: ...  ->  if count != 1: ...
-            if isinstance(node.test, ast.Compare):
-                cmp = node.test
-                if (
-                    isinstance(cmp.left, ast.Name)
-                    and cmp.left.id == "count"
-                    and len(cmp.ops) == 1
-                    and isinstance(cmp.ops[0], ast.Gt)
-                    and len(cmp.comparators) == 1
-                    and isinstance(cmp.comparators[0], ast.Constant)
-                    and cmp.comparators[0].value == 1
-                ):
-                    start = cmp.left.lineno, cmp.left.col_offset
-                    end = cmp.comparators[0].end_lineno, cmp.comparators[0].end_col_offset
-                    lines = source.splitlines(keepends=True)
-                    def pos_to_idx(line, col):
-                        return sum(len(lines[i]) for i in range(line - 1)) + col
-                    s = pos_to_idx(*start)
-                    e = pos_to_idx(*end)
-                    out.append(source[:s] + "count != 1" + source[e:])
-            self.generic_visit(node)
+            test = node.test
+            if (
+                isinstance(test, ast.Compare)
+                and len(test.ops) == 1
+                and isinstance(test.ops[0], ast.Gt)
+                and len(test.comparators) == 1
+                and isinstance(test.comparators[0], ast.Constant)
+                and test.comparators[0].value == 1
+            ):
+                start = (test.lineno, test.col_offset)
+                end = (test.end_lineno, test.end_col_offset)
 
-    Rewriter().visit(tree)
+                lines = source.splitlines(keepends=True)
+                offsets = [0]
+                for line in lines:
+                    offsets.append(offsets[-1] + len(line))
+
+                s = offsets[start[0] - 1] + start[1]
+                e = offsets[end[0] - 1] + end[1]
+
+                edited = source[:s] + source[s:e].replace(">", "!=", 1) + source[e:]
+                if edited != source:
+                    out.append(edited)
+
+    Fixer().visit(tree)
     return out
 
-LEARNED.append(Rule("count_equals_one", _learned_count_equals_one, symptoms=('wrong')))
+LEARNED.append(Rule("count_exactly_one", _learned_count_exactly_one, symptoms=('wrong')))
 
 
-def _learned_exactly_one_for_uniqueness_checks(source):
-    """Fix uniqueness checks that incorrectly treat counts of 0 as unique by using != 1 instead of > 1."""
+def _learned_exactly_one_for_uniqueness(source):
+    """Detects the misconception that a value is considered unique when it appears fewer than two times, and repairs it to require exactly one occurrence."""
     import ast
     try:
         tree = ast.parse(source)
@@ -50,37 +53,37 @@ def _learned_exactly_one_for_uniqueness_checks(source):
         return []
     out = []
 
-    class Rewriter(ast.NodeVisitor):
+    class Fixer(ast.NodeVisitor):
         def visit_If(self, node):
-            # Match: if counter > 1: return False
+            # Match: if count >= 2: return False
             if (
                 isinstance(node.test, ast.Compare)
+                and isinstance(node.test.left, ast.Name)
+                and node.test.left.id == "count"
                 and len(node.test.ops) == 1
-                and isinstance(node.test.ops[0], ast.Gt)
+                and isinstance(node.test.ops[0], ast.GtE)
                 and len(node.test.comparators) == 1
                 and isinstance(node.test.comparators[0], ast.Constant)
-                and node.test.comparators[0].value == 1
+                and node.test.comparators[0].value == 2
+                and node.body
+                and isinstance(node.body[0], ast.Return)
+                and isinstance(node.body[0].value, ast.Constant)
+                and node.body[0].value.value is False
             ):
-                # Only rewrite if the body returns False and the condition is a simple count variable
-                if (
-                    len(node.body) == 1
-                    and isinstance(node.body[0], ast.Return)
-                    and isinstance(node.body[0].value, ast.Constant)
-                    and node.body[0].value.value is False
-                    and isinstance(node.test.left, ast.Name)
-                ):
-                    start = node.test.left.end_lineno
-                    end = node.test.comparators[0].end_lineno
-                    # Replace only the operator token ">"
-                    lines = source.splitlines(keepends=True)
-                    abs_start = sum(len(l) for l in lines[:node.test.left.end_lineno - 1]) + node.test.left.end_col_offset
-                    abs_end = sum(len(l) for l in lines[:node.test.comparators[0].lineno - 1]) + node.test.comparators[0].col_offset
-                    if abs_start < abs_end:
-                        edited = source[:abs_start] + " != " + source[abs_end:]
-                        out.append(edited)
+                cmp = node.test
+                start = cmp.left.end_col_offset
+                end = cmp.comparators[0].col_offset + len("2")
+                lines = source.splitlines(True)
+                idx = cmp.left.lineno - 1
+                # compute absolute char offsets
+                prefix = sum(len(lines[i]) for i in range(idx))
+                abs_start = prefix + start
+                abs_end = prefix + end
+                edited = source[:abs_start] + " != 1" + source[abs_end:]
+                out.append(edited)
             self.generic_visit(node)
 
-    Rewriter().visit(tree)
+    Fixer().visit(tree)
     return out
 
-LEARNED.append(Rule("exactly_one_for_uniqueness_checks", _learned_exactly_one_for_uniqueness_checks, symptoms=('wrong')))
+LEARNED.append(Rule("exactly_one_for_uniqueness", _learned_exactly_one_for_uniqueness, symptoms=('wrong')))

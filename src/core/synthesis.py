@@ -36,7 +36,7 @@ def select_samples(buggy: list[str], correct: list[str], n_samples: int = 8,
         buggy, correct, n_samples, k_per_cluster, max_sample_edit)]
 
 
-def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8,
+def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 0,
                         k_per_cluster: int = 6,
                         max_sample_edit: int = 12) -> list[tuple[str, str]]:
     """Choose build-time (buggy, fixed) pairs: frequent, learnable, and diverse.
@@ -64,7 +64,11 @@ def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8
     just "generalize this shown repair", which a weak model does far better. No
     LLM call: the fix is a real correct submission, picked locally.
 
-    Returns up to ``n_samples`` ``(buggy, fixed)`` pairs, cleanest first.
+    Returns ``(buggy, fixed)`` pairs, cleanest first: one per structural
+    cluster that clears the learnability filters, and ``n_samples`` caps that
+    only if it is positive. The default is uncapped, so the builder sees one
+    worked repair per misconception the class actually produced rather than an
+    arbitrary eight of them.
     """
     from sklearn.metrics import pairwise_distances
 
@@ -106,7 +110,7 @@ def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8
         fallback.append(entry)
         if e <= max_sample_edit and ast_size(buggy[best]) <= size_cap:
             picked.append(entry)
-        if len(picked) >= n_samples:
+        if n_samples and len(picked) >= n_samples:
             break
 
     # A sparse correct pool makes min-edit-to-nearest-correct a measure of
@@ -119,7 +123,23 @@ def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 8
         picked = fallback
 
     picked.sort(key=lambda t: t[0])                      # cleanest first
-    return [(b, f) for _e, b, f in picked[:n_samples]]
+    return [(b, f) for _e, b, f in (picked[:n_samples] if n_samples else picked)]
+
+
+def calibration_set(buggy: list[str]) -> list[str]:
+    """The programs the escalation threshold is measured on: one representative
+    per structural cluster, with no learnability filter.
+
+    Deliberately not the sample-selection set. That one is filtered for what
+    teaches the builder well -- a bug close enough to a correct program to
+    generalize from -- which is the wrong criterion here: a threshold needs a
+    representative picture of what the tool will meet, including the tangled
+    programs no rule will ever be induced from. One per cluster rather than the
+    whole pool keeps it a stratified subsample, so a submission's own patch
+    size is not what decides whether it is escalated.
+    """
+    clusters, _ = cluster(buggy)
+    return [buggy[c.medoid] for c in clusters]
 
 
 # --------------------------------------------------------------- loading a tool

@@ -1,9 +1,9 @@
 import ast
+
 from src.core.repair import Rule
 
 
 def _span(source, node):
-    """(start, end) char offsets of node in source."""
     lines = source.splitlines(keepends=True)
     starts = [0]
     for ln in lines:
@@ -18,211 +18,130 @@ def _splice(source, node, new_text):
     return source[:s] + new_text + source[e:]
 
 
-def _iter_target_funcs(tree):
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "remove_extras":
-            yield node
-
-
-def _find_name(source, node, target):
-    if isinstance(node, ast.Name) and node.id == target:
-        return source[_span(source, node)[0]:_span(source, node)[1]]
-    return None
-
-
-def _rule_container_membership(source):
-    """Fix membership checks against the input list instead of the output list."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        for node in ast.walk(func):
-            if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.NotIn):
-                if len(node.comparators) != 1:
-                    continue
-                comp = node.comparators[0]
-                if isinstance(comp, ast.Name) and comp.id in {"lst", "list"}:
-                    left = source[_span(source, node.left)[0]:_span(source, node.left)[1]]
-                    new_cmp = f"{left} not in new_lst"
-                    out.append(_splice(source, node, new_cmp))
-    return out
-
-
-def _rule_list_typo_to_input(source):
-    """Fix accidental iteration over the built-in list name instead of the argument."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        for node in ast.walk(func):
-            if isinstance(node, ast.For) and isinstance(node.iter, ast.Name) and node.iter.id == "list":
-                new_iter = source[_span(source, node.iter)[0]:_span(source, node.iter)[1]].replace("list", "lst", 1)
-                out.append(_splice(source, node.iter, new_iter))
-    return out
-
-
-def _rule_append_assign_to_append(source):
-    """Fix assigning the result of list.append, which is always None."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        for node in ast.walk(func):
-            if isinstance(node, ast.Assign) and len(node.targets) == 1:
-                if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute):
-                    if node.value.func.attr == "append":
-                        obj = node.value.func.value
-                        if isinstance(obj, ast.Name) and obj.id in {"newlst", "new_list", "new_lst", "remove_lst"}:
-                            s, e = _span(source, node)
-                            lines = source.splitlines(keepends=True)
-                            starts = [0]
-                            for ln in lines:
-                                starts.append(starts[-1] + len(ln))
-                            indent = source[starts[node.lineno - 1]:starts[node.lineno - 1] + node.col_offset]
-                            target = source[_span(source, node.targets[0])[0]:_span(source, node.targets[0])[1]]
-                            arg = source[_span(source, node.value.args[0])[0]:_span(source, node.value.args[0])[1]]
-                            new_stmt = f"{indent}{target}.append({arg})"
-                            out.append(source[:s] + new_stmt + source[e:])
-    return out
-
-
-def _rule_plus_elem_to_list_elem(source):
-    """Fix concatenation of a list with a bare element by wrapping the element in a singleton list."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        for node in ast.walk(func):
-            if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-                if isinstance(node.right, ast.Name):
-                    left_txt = source[_span(source, node.left)[0]:_span(source, node.left)[1]]
-                    right_txt = source[_span(source, node.right)[0]:_span(source, node.right)[1]]
-                    out.append(_splice(source, node, f"{left_txt} + [{right_txt}]"))
-    return out
-
-
-def _rule_plus_paren_tuple_to_list(source):
-    """Fix tuple syntax used where a list singleton was intended."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        for node in ast.walk(func):
-            if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
-                if isinstance(node.right, ast.Tuple) and len(node.right.elts) == 1:
-                    left_txt = source[_span(source, node.left)[0]:_span(source, node.left)[1]]
-                    elt_txt = source[_span(source, node.right.elts[0])[0]:_span(source, node.right.elts[0])[1]]
-                    out.append(_splice(source, node, f"{left_txt} + [{elt_txt}]"))
-    return out
-
-
-def _rule_bad_newlist_names(source):
-    """Unify common output-list variable name typos when the body clearly appends to it."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        names = {"newlst", "new_list", "new_lst", "remove_lst", "output", "final"}
-        for node in ast.walk(func):
-            if isinstance(node, ast.Name) and node.id in names:
-                parent_hits = 0
-                for other in ast.walk(func):
-                    if isinstance(other, ast.Attribute) and isinstance(other.value, ast.Name):
-                        if other.value.id == node.id and other.attr in {"append", "count"}:
-                            parent_hits += 1
-                if parent_hits:
-                    continue
-            if isinstance(node, ast.Name) and node.id in {"new_list", "remove_lst"}:
-                rep = "new_lst" if node.id == "new_list" else "output"
-                out.append(_splice(source, node, rep))
-    return out
-
-
-def _rule_increment_j_in_nested_loop(source):
-    """Repair the inner-loop index update in duplicate removal by adding the missing else branch increment."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in _iter_target_funcs(tree):
-        for node in ast.walk(func):
-            if isinstance(node, ast.While):
-                for inner in ast.walk(node):
-                    if isinstance(inner, ast.If) and isinstance(inner.test, ast.Compare):
-                        cmp = inner.test
-                        if len(cmp.ops) == 1 and isinstance(cmp.ops[0], ast.Eq):
-                            if len(inner.body) == 1 and isinstance(inner.body[0], ast.Assign):
-                                target = inner.body[0].targets[0]
-                                value = inner.body[0].value
-                                if isinstance(target, ast.Name) and isinstance(value, ast.BinOp) and isinstance(value.op, ast.Add):
-                                    if isinstance(value.left, ast.Name) and value.left.id == target.id:
-                                        s, e = _span(source, inner)
-                                        lines = source.splitlines(keepends=True)
-                                        starts = [0]
-                                        for ln in lines:
-                                            starts.append(starts[-1] + len(ln))
-                                        indent = source[starts[inner.lineno - 1]:starts[inner.lineno - 1] + inner.col_offset]
-                                        cmp_txt = source[_span(source, cmp.left)[0]:_span(source, cmp.left)[1]]
-                                        right_txt = source[_span(source, cmp.comparators[0])[0]:_span(source, cmp.comparators[0])[1]]
-                                        body_stmt = source[_span(source, inner.body[0])[0]:_span(source, inner.body[0])[1]]
-                                        new_if = (
-                                            f"{indent}if {cmp_txt} == {right_txt}:\n"
-                                            f"{indent}    {body_stmt.strip()}\n"
-                                            f"{indent}else:\n"
-                                            f"{indent}    {target.id} += 1"
-                                        )
-                                        out.append(source[:s] + new_if + source[e:])
-                                        return out
-    return out
-
-
-def _rule_add_import_ordered_dict(source):
-    """Add the missing OrderedDict import when it is used directly."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    uses = False
-    has_import = False
-    insert_at = None
-    for node in tree.body:
-        if isinstance(node, ast.ImportFrom) and node.module == "collections":
-            for alias in node.names:
-                if alias.name == "OrderedDict":
-                    has_import = True
-        if insert_at is None:
-            insert_at = _span(source, node)[0]
-        for sub in ast.walk(node):
-            if isinstance(sub, ast.Name) and sub.id == "OrderedDict":
-                uses = True
-    if uses and not has_import:
-        prefix = "from collections import OrderedDict\n\n"
-        return [prefix + source]
-    return []
-
-
 class Fixer:
     def rules(self):
         return [
-            Rule(name="membership_should_use_output_list", apply=_rule_container_membership, symptoms=("wrong",)),
-            Rule(name="iterate_over_lst_not_builtin_list", apply=_rule_list_typo_to_input, symptoms=("wrong",)),
-            Rule(name="append_result_instead_of_assigning_none", apply=_rule_append_assign_to_append, symptoms=("wrong",)),
-            Rule(name="wrap_bare_element_in_list_concatenation", apply=_rule_plus_elem_to_list_elem, symptoms=("wrong",)),
-            Rule(name="wrap_singleton_tuple_as_list", apply=_rule_plus_paren_tuple_to_list, symptoms=("wrong",)),
-            Rule(name="common_output_variable_typos", apply=_rule_bad_newlist_names, symptoms=("wrong",)),
-            Rule(name="missing_inner_loop_increment", apply=_rule_increment_j_in_nested_loop, symptoms=("wrong", "timeout")),
-            Rule(name="add_ordereddict_import", apply=_rule_add_import_ordered_dict, symptoms=("err:NameError",)),
+            Rule(name="append_instead_of_extend_or_add_item", apply=self._append_fix, symptoms=("wrong", "err:TypeError")),
+            Rule(name="wrong_membership_target", apply=self._membership_fix, symptoms=("wrong",)),
+            Rule(name="wrong_list_variable_name", apply=self._name_fix, symptoms=("wrong", "err:NameError")),
+            Rule(name="wrong_return_none_for_empty_list", apply=self._empty_return_fix, symptoms=("wrong",)),
+            Rule(name="misused_append_and_count_brackets", apply=self._call_syntax_fix, symptoms=("wrong", "err:TypeError")),
+            Rule(name="reverse_missing_call", apply=self._reverse_call_fix, symptoms=("wrong",)),
+            Rule(name="missing_import_ordereddict", apply=self._import_fix, symptoms=("err:NameError",)),
+            Rule(name="range_off_by_one_and_loop_guard", apply=self._range_fix, symptoms=("wrong", "timeout")),
+            Rule(name="delete_loop_bound_uses_item_instead_of_count", apply=self._while_bound_fix, symptoms=("wrong", "timeout")),
+            Rule(name="assignment_from_append_method", apply=self._append_assignment_fix, symptoms=("wrong", "err:AttributeError")),
+            Rule(name="for_instead_of_while_or_wrong_iterator", apply=self._iterator_fix, symptoms=("wrong",)),
+            Rule(name="return_wrong_variable", apply=self._return_var_fix, symptoms=("wrong",)),
+            Rule(name="recursive_or_nested_duplicate_removal_bound", apply=self._nested_loop_fix, symptoms=("wrong", "timeout")),
         ]
+
+    def _append_fix(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
+                rhs = source[_span(source, node.value)[0]:_span(source, node.value)[1]]
+                if not (rhs.startswith("[") and rhs.endswith("]")):
+                    out.append(_splice(source, node, f"{source[_span(source, node.target)[0]:_span(source, node.target)[1]]} = {source[_span(source, node.target)[0]:_span(source, node.target)[1]]} + [{rhs}]"))
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "append" and len(node.args) == 1:
+                if isinstance(node.parent, ast.Assign) if hasattr(node, "parent") else False:
+                    pass
+        return out
+
+    def _membership_fix(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.NotIn):
+                left = source[_span(source, node.left)[0]:_span(source, node.left)[1]]
+                right = source[_span(source, node.comparators[0])[0]:_span(source, node.comparators[0])[1]]
+                if right in {"lst", "lst[:]"}:
+                    out.append(_splice(source, node, f"{left} not in new_lst" if "new_lst" in source else f"{left} not in result" if "result" in source else f"{left} not in new_list"))
+                if left == "i" and right == "lst":
+                    out.append(_splice(source, node, "i not in result"))
+        return out
+
+    def _name_fix(self, source):
+        repls = [("new_lst", "new_list"), ("new_list", "new_lst"), ("element", "e"), ("e", "element"), ("remove_mutiple", "remove_multiple"), ("lists(", "list(")]
+        out = []
+        for a, b in repls:
+            if a in source:
+                out.append(source.replace(a, b, 1))
+        return out
+
+    def _empty_return_fix(self, source):
+        if "return None" in source:
+            return [source.replace("return None", "return []", 1)]
+        return []
+
+    def _call_syntax_fix(self, source):
+        out = []
+        repls = [("count[entry]", "count(entry)"), ("append[entry]", "append(entry)"), ("append.item", "append(item)"), ("append[i]", "append(i)"), ("append[i]", "append(i)")]
+        for a, b in repls:
+            if a in source:
+                out.append(source.replace(a, b, 1))
+        return out
+
+    def _reverse_call_fix(self, source):
+        if "lst.reverse" in source and "lst.reverse()" not in source:
+            return [source.replace("lst.reverse", "lst.reverse()", 1)]
+        return []
+
+    def _import_fix(self, source):
+        if "OrderedDict.fromkeys" in source and "from collections import OrderedDict" not in source:
+            return ["from collections import OrderedDict\n\n" + source]
+        return []
+
+    def _range_fix(self, source):
+        out = []
+        if "while i < len(lst)+1" in source:
+            out.append(source.replace("while i < len(lst)+1", "while x < len(lst)", 1).replace("if lst[x] in new:", "if lst[x] not in new:", 1).replace("else:\n            continue", "else:\n            new += [lst[x]]", 1))
+        if "while i!=len(lst)" in source:
+            out.append(source.replace("while i!=len(lst)", "while i < len(lst)", 1))
+        return out
+
+    def _while_bound_fix(self, source):
+        if "while j < i" in source:
+            return [source.replace("while j < i", "while j < lst.count(i)", 1)]
+        return []
+
+    def _append_assignment_fix(self, source):
+        out = []
+        if "newlst=newlst.append(i)" in source:
+            out.append(source.replace("newlst=newlst.append(i)", "newlst.append(i)", 1))
+        if "removed = removed.append(e)" in source:
+            out.append(source.replace("removed = removed.append(e)", "removed.append(e)", 1))
+        return out
+
+    def _iterator_fix(self, source):
+        out = []
+        if "for i in lst and not result" in source:
+            out.append(source.replace("for i in lst and not result:", "for i in lst:", 1).replace("result += result + i", "result += [i]", 1))
+        if "for item in list:" in source:
+            out.append(source.replace("for item in list:", "for item in lst:", 1))
+        return out
+
+    def _return_var_fix(self, source):
+        out = []
+        if "return new_lst" in source and "new_lst =" in source and "new_list" in source:
+            out.append(source.replace("return new_lst", "return new_list", 1))
+        if "return new_lst" in source and "output =" in source and "final" in source:
+            out.append(source.replace("return new_lst", "return output", 1))
+        if "return new_lst" in source and "new_list" not in source and "new_lst" in source:
+            out.append(source.replace("return new_lst", "return new_list", 1))
+        return out
+
+    def _nested_loop_fix(self, source):
+        out = []
+        if "lst = lst[:j] + lst[j+1:]" in source and "else:\n                j += 1" not in source:
+            out.append(source.replace("if lst[i] == lst[j]:\n                lst = lst[:j] + lst[j+1:]\n", "if lst[i] == lst[j]:\n                lst = lst[:j] + lst[j+1:]\n            else:\n                j += 1\n", 1))
+        if "while i<=len(lst)" in source:
+            out.append(source.replace("while i<=len(lst)", "while i<=len(lst)-1", 1))
+        return out

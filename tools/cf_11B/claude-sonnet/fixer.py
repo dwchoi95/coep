@@ -1,5 +1,4 @@
 import ast
-
 from src.core.repair import Rule
 
 
@@ -19,67 +18,96 @@ def _splice(source, node, new_text):
     return source[:s] + new_text + source[e:]
 
 
-def _add_parents(tree):
+def _parent_map(tree):
+    parent = {}
     for node in ast.walk(tree):
         for child in ast.iter_child_nodes(node):
-            child.parent = node
+            parent[child] = node
+    return parent
 
 
-def _is_input_int_call(node):
-    return (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "int"
-        and len(node.args) == 1
-        and isinstance(node.args[0], ast.Call)
-        and isinstance(node.args[0].func, ast.Name)
-        and node.args[0].func.id == "input"
-    )
+def _is_int_input_call(node):
+    return (isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == 'int'
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Call)
+            and isinstance(node.args[0].func, ast.Name)
+            and node.args[0].func.id == 'input')
 
 
 def _wrap_input_abs(source):
-    """Wrap a bare int(input()) call with abs(), fixing missing sign handling."""
+    """Fix the misconception of forgetting abs() around the read integer."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
-    _add_parents(tree)
-
-    matches = []
+    parent = _parent_map(tree)
+    out = []
     for node in ast.walk(tree):
-        if _is_input_int_call(node):
-            parent = getattr(node, "parent", None)
-            if (
-                isinstance(parent, ast.Call)
-                and isinstance(parent.func, ast.Name)
-                and parent.func.id == "abs"
-            ):
+        if _is_int_input_call(node):
+            p = parent.get(node)
+            if isinstance(p, ast.Call) and isinstance(p.func, ast.Name) and p.func.id == 'abs':
                 continue
-            matches.append(node)
-
-    if not matches:
-        return []
-
-    matches.sort(key=lambda n: n.col_offset if False else _span(source, n)[0], reverse=True)
-
-    new_source = source
-    for node in matches:
-        s, e = _span(new_source, node)
-        text = new_source[s:e]
-        new_source = new_source[:s] + "abs(" + text + ")" + new_source[e:]
-
-    if new_source == source:
-        return []
-    return [new_source]
+            s, e = _span(source, node)
+            orig = source[s:e]
+            new_src = source[:s] + "abs(" + orig + ")" + source[e:]
+            if new_src != source:
+                out.append(new_src)
+    return out
 
 
-def _add_parity_check_while(source):
-    """Add a parity disjunct to a bare `while a < b` / `while a > b` loop guard."""
+def _div_to_floordiv(source):
+    """Fix using true division ('/') instead of floor division ('//') in
+    triangular-number arithmetic, which causes float precision errors for
+    large inputs."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
+    div_nodes = [n for n in ast.walk(tree)
+                 if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Div)]
+    if not div_nodes:
+        return []
+    out = []
 
+    # Candidate: convert every '/' to '//' in the whole module.
+    new_src = source
+    # Apply from the last occurrence to the first to keep offsets valid.
+    for node in sorted(div_nodes, key=lambda n: _span(source, n)[0], reverse=True):
+        s, e = _span(new_src, node)
+        left_txt = new_src[s:_span(new_src, node.left)[1]]
+        # Find operator location: between left end and right start.
+        left_end = _span(new_src, node.left)[1]
+        right_start = _span(new_src, node.right)[0]
+        op_region = new_src[left_end:right_start]
+        if '/' in op_region and '//' not in op_region:
+            new_op_region = op_region.replace('/', '//', 1)
+            new_src = new_src[:left_end] + new_op_region + new_src[right_start:]
+    if new_src != source:
+        out.append(new_src)
+
+    # Also candidates changing a single division at a time.
+    for node in div_nodes:
+        left_end = _span(source, node.left)[1]
+        right_start = _span(source, node.right)[0]
+        op_region = source[left_end:right_start]
+        if '/' in op_region and '//' not in op_region:
+            new_op_region = op_region.replace('/', '//', 1)
+            variant = source[:left_end] + new_op_region + source[right_start:]
+            if variant != source:
+                out.append(variant)
+    return out
+
+
+def _add_parity_clause(source):
+    """Fix the core Jumping-Jack misconception: stopping a position/target
+    comparison loop as soon as the target is reached/passed, without also
+    requiring that the remaining distance have the right parity."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
     out = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.While):
@@ -87,112 +115,78 @@ def _add_parity_check_while(source):
         test = node.test
         if not isinstance(test, ast.Compare) or len(test.ops) != 1:
             continue
-        op = test.ops[0]
-        if not isinstance(op, (ast.Lt, ast.Gt, ast.LtE, ast.GtE)):
+        if not isinstance(test.ops[0], (ast.Lt, ast.LtE)):
             continue
-
-        left = test.left
-        right = test.comparators[0]
+        left, right = test.left, test.comparators[0]
         ls, le = _span(source, left)
         rs, re_ = _span(source, right)
-        left_src = source[ls:le]
-        right_src = source[rs:re_]
-        orig_test_s, orig_test_e = _span(source, test)
-        orig_test_src = source[orig_test_s:orig_test_e]
-
-        new_test = (
-            "(" + orig_test_src + ") or ((" + left_src + "-" + right_src + ")%2 != 0)"
-        )
-        candidate = _splice(source, test, new_test)
-        if candidate != source:
-            out.append(candidate)
+        left_txt = source[ls:le]
+        right_txt = source[rs:re_]
+        ts, te = _span(source, test)
+        orig_test_txt = source[ts:te]
+        new_test = (orig_test_txt
+                    + " or (" + left_txt + " - " + right_txt + ") % 2 != 0")
+        variant = _splice(source, test, new_test)
+        if variant != source:
+            out.append(variant)
     return out
 
 
-def _find_print_add_name(stmts):
-    for stmt in stmts:
-        if (
-            isinstance(stmt, ast.Expr)
-            and isinstance(stmt.value, ast.Call)
-            and isinstance(stmt.value.func, ast.Name)
-            and stmt.value.func.id == "print"
-            and stmt.value.args
-        ):
-            arg = stmt.value.args[0]
-            if (
-                isinstance(arg, ast.BinOp)
-                and isinstance(arg.op, ast.Add)
-                and isinstance(arg.left, ast.Name)
-            ):
-                return arg.left.id
-    return None
-
-
-def _fix_overshoot_parity_if(source):
-    """Fix the 'if pos overshoots target: print(count+1)' misconception.
-
-    Adds the missing parity handling instead of unconditionally assuming
-    exactly one extra jump is needed.
-    """
+def _flip_bound_comparison(source):
+    """Generic slip: a strict/non-strict comparison operator was chosen the
+    wrong way around in a loop condition."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
-
-    out = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.If):
-            continue
-        test = node.test
-        if not (isinstance(test, ast.Compare) and len(test.ops) == 1
-                and isinstance(test.ops[0], ast.Gt)
-                and isinstance(test.left, ast.Name)
-                and isinstance(test.comparators[0], ast.Name)):
-            continue
-
-        s_name = _find_print_add_name(node.body)
-        if s_name is None:
-            continue
-
-        left_name = test.left.id
-        right_name = test.comparators[0].id
-
-        indent = " " * node.col_offset
-        new_code = (
-            "if {L}>{R}:\n"
-            "{I}    if (({L}-{R})%2==0):\n"
-            "{I}        print({S})\n"
-            "{I}    else:\n"
-            "{I}        if (({L}+{S}+1-{R})%2==0):\n"
-            "{I}            print({S}+1)\n"
-            "{I}        else:\n"
-            "{I}            print({S}+2)\n"
-            "{I}    break"
-        ).format(L=left_name, R=right_name, S=s_name, I=indent)
-
-        candidate = _splice(source, node, new_code)
-        if candidate != source:
-            out.append(candidate)
-    return out
-
-
-def _lt_to_le(source):
-    """Generic slip: a strict `<` comparison should have been `<=`."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
+    swap = {
+        ast.Lt: ' < ',
+        ast.LtE: ' <= ',
+        ast.Gt: ' > ',
+        ast.GtE: ' >= ',
+    }
+    flip_to = {
+        ast.Lt: ast.LtE,
+        ast.LtE: ast.Lt,
+        ast.Gt: ast.GtE,
+        ast.GtE: ast.Gt,
+    }
     out = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Compare) and len(node.ops) == 1 \
-           and isinstance(node.ops[0], ast.Lt):
+           and type(node.ops[0]) in flip_to:
             left, right = node.left, node.comparators[0]
             ls, le = _span(source, left)
             rs, re_ = _span(source, right)
-            new_cmp = source[ls:le] + " <= " + source[rs:re_]
-            candidate = _splice(source, node, new_cmp)
-            if candidate != source:
-                out.append(candidate)
+            new_op = swap[flip_to[type(node.ops[0])]]
+            new_cmp = source[ls:le] + new_op + source[rs:re_]
+            variant = _splice(source, node, new_cmp)
+            if variant != source:
+                out.append(variant)
+    return out
+
+
+def _range_bound_off_by_one(source):
+    """Generic slip: an off-by-one bound on a range() call used for search."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+           and node.func.id == 'range' and len(node.args) >= 2:
+            stop = node.args[1]
+            ss, se = _span(source, stop)
+            stop_txt = source[ss:se]
+            new_stop = "(" + stop_txt + ") + 1"
+            variant = source[:ss] + new_stop + source[se:]
+            if variant != source:
+                out.append(variant)
+            new_stop2 = "(" + stop_txt + ") - 1"
+            variant2 = source[:ss] + new_stop2 + source[se:]
+            if variant2 != source:
+                out.append(variant2)
     return out
 
 
@@ -202,21 +196,26 @@ class Fixer:
             Rule(
                 name="wrap_input_abs",
                 apply=_wrap_input_abs,
+                symptoms=("wrong",),
+            ),
+            Rule(
+                name="div_to_floordiv",
+                apply=_div_to_floordiv,
+                symptoms=("wrong",),
+            ),
+            Rule(
+                name="add_parity_clause_to_while",
+                apply=_add_parity_clause,
                 symptoms=("wrong", "timeout"),
             ),
             Rule(
-                name="add_parity_check_while",
-                apply=_add_parity_check_while,
+                name="flip_bound_comparison",
+                apply=_flip_bound_comparison,
                 symptoms=("wrong",),
             ),
             Rule(
-                name="fix_overshoot_parity_if",
-                apply=_fix_overshoot_parity_if,
-                symptoms=("wrong",),
-            ),
-            Rule(
-                name="lt_to_le_slip",
-                apply=_lt_to_le,
+                name="range_bound_off_by_one",
+                apply=_range_bound_off_by_one,
                 symptoms=("wrong",),
             ),
         ]

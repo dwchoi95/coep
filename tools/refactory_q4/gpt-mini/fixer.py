@@ -17,19 +17,11 @@ def _splice(source, node, new_text):
     return source[:s] + new_text + source[e:]
 
 
-def _replace_node(source, target, new_text):
-    return _splice(source, target, new_text)
+def _replace_node(source, old, new):
+    return _splice(source, old, new)
 
 
-def _compare_op_spans(source, compare_node):
-    left = compare_node.left
-    right = compare_node.comparators[0]
-    ls, le = _span(source, left)
-    rs, re = _span(source, right)
-    return ls, le, rs, re
-
-
-def _rule_empty_list_check(source):
+def _list_empty_check_fix(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -38,53 +30,79 @@ def _rule_empty_list_check(source):
     for node in ast.walk(tree):
         if isinstance(node, ast.Compare) and len(node.ops) == 1:
             op = node.ops[0]
-            if isinstance(op, ast.Eq) and isinstance(node.comparators[0], ast.Tuple):
-                tup = node.comparators[0]
-                if len(tup.elts) == 0:
-                    left = node.left
+            if isinstance(op, ast.Eq):
+                right = node.comparators[0]
+                if isinstance(right, ast.Tuple) and len(right.elts) == 0:
+                    left_s, left_e = _span(source, node.left)
+                    right_s, right_e = _span(source, right)
+                    out.append(_splice(source, node, source[left_s:left_e] + " == []"))
+    return out
+
+
+def _lt_to_gt(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Lt):
+            left_s, left_e = _span(source, node.left)
+            right_s, right_e = _span(source, node.comparators[0])
+            out.append(_splice(source, node, source[left_s:left_e] + " > " + source[right_s:right_e]))
+    return out
+
+
+def _gt_to_lt(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Gt):
+            left_s, left_e = _span(source, node.left)
+            right_s, right_e = _span(source, node.comparators[0])
+            out.append(_splice(source, node, source[left_s:left_e] + " < " + source[right_s:right_e]))
+    return out
+
+
+def _empty_base_case_fix(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Eq):
+            left = node.left
+            right = node.comparators[0]
+            if isinstance(left, ast.Call) and isinstance(left.func, ast.Name) and left.func.id == "len":
+                if len(left.args) == 1 and isinstance(right, ast.Constant) and right.value == 1:
                     ls, le = _span(source, left)
-                    ts, te = _span(source, tup)
-                    out.append(_replace_node(source, node, source[ls:le] + " == []"))
-            if isinstance(op, ast.Eq) and isinstance(node.comparators[0], ast.List):
-                lst = node.comparators[0]
-                if len(lst.elts) == 0:
-                    left = node.left
-                    ls, le = _span(source, left)
-                    out.append(_replace_node(source, node, source[ls:le] + " == ()"))
+                    rs, re = _span(source, right)
+                    out.append(_splice(source, node, source[ls:le] + " <= " + source[rs:re]))
     return out
 
 
-def _rule_min_to_max(source):
+def _pop_index_fix(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     out = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "min" and len(node.args) == 1:
-            arg = node.args[0]
-            s, e = _span(source, node)
-            as_, ae = _span(source, arg)
-            out.append(source[s:as_] + "max" + source[as_:ae] + source[e:])
-    return out
-
-
-def _rule_max_to_min(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+            if node.value.id == "lst" and isinstance(node.slice, ast.Name) and node.slice.id == "index":
+                out.append(_splice(source, node, "index"))
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "max" and len(node.args) == 1:
-            arg = node.args[0]
-            s, e = _span(source, node)
-            as_, ae = _span(source, arg)
-            out.append(source[s:as_] + "min" + source[as_:ae] + source[e:])
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            if node.value.id == "lst" and node.attr == "pop":
+                out.append(_splice(source, node, "lst.pop"))
     return out
 
 
-def _rule_pop_noarg_to_pop0(source):
+def _pop_call_parentheses_fix(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -92,110 +110,65 @@ def _rule_pop_noarg_to_pop0(source):
     out = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            if node.func.attr == "pop" and len(node.args) == 0 and len(node.keywords) == 0:
-                s, e = _span(source, node)
-                out.append(source[s:e - 1] + "(0)")
-    return out
-
-
-def _rule_pop0_to_pop_noarg(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            if node.func.attr == "pop" and len(node.args) == 1 and len(node.keywords) == 0:
+            if node.func.attr == "pop" and len(node.args) == 1:
                 arg = node.args[0]
-                if isinstance(arg, ast.Constant) and arg.value == 0:
-                    s, e = _span(source, node)
-                    out.append(source[s:e].replace("(0)", "()", 1))
+                if isinstance(arg, ast.Name):
+                    out.append(_splice(source, node, source[_span(source, node.func)[0]:_span(source, node.func)[1]] + "(" + arg.id + ")"))
     return out
 
 
-def _rule_reverse_return(source):
+def _reverse_return_fix(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     out = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Return) and isinstance(node.value, ast.Name):
-            v = node.value.id
-            s, e = _span(source, node)
-            out.append(source[s:e].replace(v, f"{v}[::-1]", 1))
+        if isinstance(node, ast.Return):
+            val = node.value
+            if isinstance(val, ast.Subscript) and isinstance(val.slice, ast.Slice):
+                sl = val.slice
+                if sl.lower is None and sl.upper is None and isinstance(sl.step, ast.UnaryOp) and isinstance(sl.step.op, ast.USub):
+                    out.append(_splice(source, node, "return " + source[_span(source, val)[0]:_span(source, val)[1]]))
+            if isinstance(val, ast.Name):
+                continue
     return out
 
 
-def _rule_swap_lt_gt_in_compare(source):
+def _append_prepend_fix(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     out = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Compare) and len(node.ops) == 1:
-            if isinstance(node.ops[0], ast.Lt):
-                left, right = node.left, node.comparators[0]
-                ls, le, rs, re = _compare_op_spans(source, node)
-                out.append(source[:le] + " > " + source[rs:re] + source[re:])
-            elif isinstance(node.ops[0], ast.Gt):
-                left, right = node.left, node.comparators[0]
-                ls, le, rs, re = _compare_op_spans(source, node)
-                out.append(source[:le] + " < " + source[rs:re] + source[re:])
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            tgt = node.targets[0]
+            if isinstance(tgt, ast.Name) and tgt.id in {"result", "new_lst", "new", "sort", "rslt"}:
+                if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Add):
+                    if isinstance(node.value.left, ast.Name) and node.value.left.id == tgt.id:
+                        right = node.value.right
+                        if isinstance(right, ast.List) and len(right.elts) == 1:
+                            elt = right.elts[0]
+                            if isinstance(elt, ast.Subscript):
+                                s, e = _span(source, node.value)
+                                out.append(_splice(source, node.value, "[" + source[_span(source, elt)[0]:_span(source, elt)[1]] + "] + " + tgt.id))
     return out
 
 
-def _rule_add_reverse_before_return(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for func in [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]:
-        rets = [n for n in func.body if isinstance(n, ast.Return)]
-        if len(rets) == 1:
-            ret = rets[0]
-            if isinstance(ret.value, ast.Name):
-                name = ret.value.id
-                insert_at = _span(source, ret)[0]
-                out.append(source[:insert_at] + f"{name}.reverse()\n    " + source[insert_at:])
-    return out
-
-
-def _rule_change_extend_reverse_to_reset(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
-            continue
-        if isinstance(node, ast.Assign):
-            continue
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            if node.func.attr == "extend" and len(node.args) == 1:
-                arg = node.args[0]
-                if isinstance(arg, ast.List) and len(arg.elts) == 1:
-                    elt = arg.elts[0]
-                    if isinstance(elt, ast.Subscript):
-                        s, e = _span(source, node)
-                        out.append(source[s:e].replace("extend", "insert", 1))
-    return out
+def _remove_wrong_empty_tuple_check(source):
+    return _list_empty_check_fix(source)
 
 
 class Fixer:
     def rules(self):
         return [
-            Rule(name="empty_list_check", apply=_rule_empty_list_check, symptoms=("wrong", "err:TypeError")),
-            Rule(name="min_to_max", apply=_rule_min_to_max, symptoms=("wrong",)),
-            Rule(name="max_to_min", apply=_rule_max_to_min, symptoms=("wrong",)),
-            Rule(name="pop_noarg_to_pop0", apply=_rule_pop_noarg_to_pop0, symptoms=("wrong", "timeout")),
-            Rule(name="pop0_to_pop_noarg", apply=_rule_pop0_to_pop_noarg, symptoms=("wrong",)),
-            Rule(name="reverse_return", apply=_rule_reverse_return, symptoms=("wrong",)),
-            Rule(name="swap_compare_direction", apply=_rule_swap_lt_gt_in_compare, symptoms=("wrong",)),
-            Rule(name="reverse_before_return", apply=_rule_add_reverse_before_return, symptoms=("wrong",)),
-            Rule(name="extend_to_insert_slip", apply=_rule_change_extend_reverse_to_reset, symptoms=("wrong",)),
+            Rule(name="empty_list_not_empty_tuple", apply=_list_empty_check_fix, symptoms=("wrong",)),
+            Rule(name="comparison_lt_to_gt", apply=_lt_to_gt, symptoms=("wrong",)),
+            Rule(name="comparison_gt_to_lt", apply=_gt_to_lt, symptoms=("wrong",)),
+            Rule(name="len_one_should_allow_zero", apply=_empty_base_case_fix, symptoms=("wrong",)),
+            Rule(name="fix_pop_index_parentheses", apply=_pop_call_parentheses_fix, symptoms=("err:TypeError", "err:SyntaxError")),
+            Rule(name="fix_pop_index_argument", apply=_pop_index_fix, symptoms=("err:TypeError", "wrong")),
+            Rule(name="reverse_slicing_return", apply=_reverse_return_fix, symptoms=("wrong",)),
+            Rule(name="prepend_instead_of_append", apply=_append_prepend_fix, symptoms=("wrong",)),
         ]

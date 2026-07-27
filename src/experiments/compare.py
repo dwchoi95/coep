@@ -158,6 +158,11 @@ def main(argv: list[str]) -> int:
                          "instead of running the main pass")
     ap.add_argument("--data-root", default="data")
     ap.add_argument("--ver", default="v2")
+    ap.add_argument("--gate-mode", default="pool", choices=["pool", "crossfit"],
+                    help="pool: one threshold fitted on every calibration "
+                         "patch (what a deployment ships). crossfit: each "
+                         "submission judged by a threshold fitted with its "
+                         "fold held out (no submission influences its own rule)")
     ap.add_argument("--subset", default="",
                     help="smoke_set.json manifest; restricts the pass to its "
                          "sampled submissions for this problem")
@@ -192,7 +197,8 @@ def main(argv: list[str]) -> int:
     budget = SearchBudget(max_candidates=150, max_combo=2, candidate_timeout=3)
 
     # Frozen with the tool: the assignment's own outlier cutoff for patch size.
-    tau = None if args.no_llm else load_threshold(frozen_path)
+    gate = None if args.no_llm else load_threshold(frozen_path, args.gate_mode)
+    tau_of = gate if callable(gate) else (lambda _s: gate)
 
     rows_l: list[dict] = []
     rows_lf: list[dict] = []
@@ -216,6 +222,7 @@ def main(argv: list[str]) -> int:
             row = event_row(f.stem, model_label, fz.source, True, fz.patch,
                             pr, att_cpu=t_frozen, rules_l=fz.rules)
             rows_l.append(row)                 # CoEP_L takes what passes
+            tau = tau_of(f.stem)
             if args.no_llm or tau is None or pr <= tau:
                 rows_lf.append(dict(row))
                 continue
@@ -293,10 +300,12 @@ def main(argv: list[str]) -> int:
     print(f"=== {args.problem} [{model_label}] {len(files)} programs "
           f"({noop} noop excluded) ===")
     print(f"ATT_build={att_build}s  $Build={build_usd}")
-    print("RPS gate: " + (f"tau={tau:.4f}, fired on {gated} "
+    shown = (f"{gate:.4f}" if isinstance(gate, float)
+             else ("per-fold" if gate is not None else None))
+    print("RPS gate: " + (f"[{args.gate_mode}] tau={shown}, fired on {gated} "
                           f"({100*gated/max(1,len(rows_l)):.1f}%), "
                           f"smaller patch on {gate_won}"
-                          if tau is not None else "off (uncalibrated tool)"))
+                          if gate is not None else "off (uncalibrated tool)"))
     for name, rows in (("CoEP_L", rows_l), ("CoEP_LF", rows_lf)):
         print(f"  {name:8s} RR={rr(rows):6.2f}%  n={len(rows)}")
     print(f"self-learning: {len(learned_names)} rule(s) absorbed, "

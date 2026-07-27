@@ -18,180 +18,216 @@ def _splice(source, node, new_text):
     return source[:s] + new_text + source[e:]
 
 
-def _replace_node(source, old, new_node):
-    return _splice(source, old, ast.get_source_segment(source, new_node))
-
-
-def _lt_to_le(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Lt):
-            left = ast.get_source_segment(source, node.left)
-            right = ast.get_source_segment(source, node.comparators[0])
-            if left is None or right is None:
-                continue
-            out.append(_splice(source, node, f"{left} <= {right}"))
-    return out
-
-
-def _ge_to_gt(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.GtE):
-            left = ast.get_source_segment(source, node.left)
-            right = ast.get_source_segment(source, node.comparators[0])
-            if left is None or right is None:
-                continue
-            out.append(_splice(source, node, f"{left} > {right}"))
-    return out
-
-
-def _gt_to_ge(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Gt):
-            left = ast.get_source_segment(source, node.left)
-            right = ast.get_source_segment(source, node.comparators[0])
-            if left is None or right is None:
-                continue
-            out.append(_splice(source, node, f"{left} >= {right}"))
-    return out
-
-
-def _return_none_to_zero(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Return) and node.value is None:
-            out.append(_splice(source, node, "return 0"))
-        elif isinstance(node, ast.Return) and isinstance(node.value, ast.Constant) and node.value.value is None:
-            out.append(_splice(source, node, "return 0"))
-    return out
-
-
-def _return_none_to_len(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Return) and node.value is None:
-            out.append(_splice(source, node, "return len(seq)"))
-        elif isinstance(node, ast.Return) and isinstance(node.value, ast.Constant) and node.value.value is None:
-            out.append(_splice(source, node, "return len(seq)"))
-    return out
-
-
-def _return_in_for_to_else(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.For) and node.body:
-            last = node.body[-1]
-            if isinstance(last, ast.Return):
-                txt = ast.get_source_segment(source, last)
-                if txt is None:
-                    continue
-                prefix = source[_span(source, node)[0]:_span(source, last)[0]]
-                suffix = source[_span(source, last)[1]:_span(source, node)[1]]
-                out.append(source[:_span(source, node)[0]] + prefix + suffix + source[_span(source, node)[1]:])
-    return out
-
-
-def _range_len_plus1_to_len(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "range" and len(node.args) == 1:
-            arg = node.args[0]
-            if isinstance(arg, ast.BinOp) and isinstance(arg.op, ast.Add):
-                left = ast.get_source_segment(source, arg.left)
-                right = ast.get_source_segment(source, arg.right)
-                if left == "len(seq)" and right == "1":
-                    out.append(_splice(source, arg, "len(seq)"))
-                if right == "len(seq)" and left == "1":
-                    out.append(_splice(source, arg, "len(seq)"))
-    return out
-
-
-def _return_stmt_to_break(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Return):
-            out.append(_splice(source, node, "break"))
-    return out
-
-
-def _index_method_to_direct_index(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "index":
-            if len(node.args) == 1:
-                obj = ast.get_source_segment(source, node.func.value)
-                arg = ast.get_source_segment(source, node.args[0])
-                if obj is not None and arg is not None:
-                    out.append(_splice(source, node, f"{obj}.index({arg})"))
-    return out
-
-
-def _eq_empty_to_len_empty(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Eq):
-            left = ast.get_source_segment(source, node.left)
-            right = ast.get_source_segment(source, node.comparators[0])
-            if left in {"seq", "list(seq)"} and right in {"[]", "()"}:
-                out.append(_splice(source, node, "len(seq) == 0"))
-            elif right in {"seq", "list(seq)"} and left in {"[]", "()"}:
-                out.append(_splice(source, node, "len(seq) == 0"))
-    return out
+def _replace_node(source, old_node, new_node_text):
+    return _splice(source, old_node, new_node_text)
 
 
 class Fixer:
     def rules(self):
         return [
-            Rule(name="strict_lt_should_be_lte", apply=_lt_to_le, symptoms=("wrong", "timeout")),
-            Rule(name="ge_bound_should_be_gt", apply=_ge_to_gt, symptoms=("wrong",)),
-            Rule(name="gt_bound_should_be_gte", apply=_gt_to_ge, symptoms=("wrong",)),
-            Rule(name="return_none_should_be_zero", apply=_return_none_to_zero, symptoms=("wrong", "err:TypeError")),
-            Rule(name="return_none_should_be_len", apply=_return_none_to_len, symptoms=("wrong",)),
-            Rule(name="premature_return_in_loop_should_fallthrough", apply=_return_in_for_to_else, symptoms=("wrong",)),
-            Rule(name="range_len_plus_one_off_by_one", apply=_range_len_plus1_to_len, symptoms=("wrong", "timeout")),
-            Rule(name="return_stmt_inside_loop_should_break", apply=_return_stmt_to_break, symptoms=("wrong",)),
-            Rule(name="use_direct_index_instead_of_value_index", apply=_index_method_to_direct_index, symptoms=("wrong",)),
-            Rule(name="empty_sequence_check_should_use_len", apply=_eq_empty_to_len_empty, symptoms=("wrong",)),
+            Rule(name="strict_lt_to_lte",
+                 apply=self._strict_lt_to_lte,
+                 symptoms=("wrong", "timeout", "err:IndexError")),
+            Rule(name="strict_gt_to_gte",
+                 apply=self._strict_gt_to_gte,
+                 symptoms=("wrong", "timeout", "err:IndexError")),
+            Rule(name="return_none_to_zero",
+                 apply=self._return_none_to_zero,
+                 symptoms=("wrong", "err:TypeError", "err:NameError")),
+            Rule(name="return_minus_one_to_len_or_zero",
+                 apply=self._return_minus_one_to_len_or_zero,
+                 symptoms=("wrong",)),
+            Rule(name="fix_empty_seq_none_to_zero",
+                 apply=self._fix_empty_seq_none_to_zero,
+                 symptoms=("wrong", "err:TypeError")),
+            Rule(name="fix_return_inside_loop_to_else_or_after_loop",
+                 apply=self._fix_return_inside_loop_to_else_or_after_loop,
+                 symptoms=("wrong",)),
+            Rule(name="fix_off_by_one_return_count_minus_one",
+                 apply=self._fix_off_by_one_return_count_minus_one,
+                 symptoms=("wrong",)),
+            Rule(name="fix_equality_check_inclusive_boundaries",
+                 apply=self._fix_equality_check_inclusive_boundaries,
+                 symptoms=("wrong",)),
+            Rule(name="fix_last_element_guard_gte_to_gt",
+                 apply=self._fix_last_element_guard_gte_to_gt,
+                 symptoms=("wrong",)),
+            Rule(name="fix_wrong_return_index_vs_value",
+                 apply=self._fix_wrong_return_index_vs_value,
+                 symptoms=("wrong",)),
+            Rule(name="fix_missing_final_return_zero",
+                 apply=self._fix_missing_final_return_zero,
+                 symptoms=("wrong",)),
+            Rule(name="fix_single_value_return_before_break",
+                 apply=self._fix_single_value_return_before_break,
+                 symptoms=("wrong",)),
         ]
+
+    def _strict_lt_to_lte(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Lt):
+                left = node.left
+                right = node.comparators[0]
+                ls, le = _span(source, left)
+                rs, re = _span(source, right)
+                out.append(_replace_node(source, node, source[ls:le] + " <= " + source[rs:re]))
+        return out
+
+    def _strict_gt_to_gte(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Gt):
+                left = node.left
+                right = node.comparators[0]
+                ls, le = _span(source, left)
+                rs, re = _span(source, right)
+                out.append(_replace_node(source, node, source[ls:le] + " >= " + source[rs:re]))
+        return out
+
+    def _return_none_to_zero(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return) and node.value is not None:
+                if isinstance(node.value, ast.Constant) and node.value.value is None:
+                    out.append(_replace_node(source, node, "return 0"))
+        return out
+
+    def _return_minus_one_to_len_or_zero(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return) and isinstance(node.value, ast.BinOp):
+                txt = ast.get_source_segment(source, node.value)
+                if txt and "- 1" in txt and "len(" in txt:
+                    out.append(_replace_node(source, node.value, txt.replace("- 1", "")))
+        return out
+
+    def _fix_empty_seq_none_to_zero(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return):
+                if isinstance(node.value, ast.Constant) and node.value.value is None:
+                    out.append(_replace_node(source, node, "return 0"))
+        return out
+
+    def _fix_return_inside_loop_to_else_or_after_loop(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For):
+                if node.body and isinstance(node.body[-1], ast.Return):
+                    ret = node.body[-1]
+                    txt = ast.get_source_segment(source, ret)
+                    if txt and txt.strip() == "return len(seq)":
+                        out.append(_replace_node(source, ret, "break"))
+                if node.body and isinstance(node.body[0], ast.Return):
+                    ret = node.body[0]
+                    txt = ast.get_source_segment(source, ret)
+                    if txt and "return" in txt and "len(seq)" in txt:
+                        out.append(_replace_node(source, ret, "break"))
+        return out
+
+    def _fix_off_by_one_return_count_minus_one(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return):
+                txt = ast.get_source_segment(source, node)
+                if txt and "return count-1" in txt.replace(" ", ""):
+                    out.append(_replace_node(source, node, "return count"))
+        return out
+
+    def _fix_equality_check_inclusive_boundaries(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1:
+                txt = ast.get_source_segment(source, node)
+                if txt:
+                    if "x < seq[position]" in txt:
+                        out.append(_replace_node(source, node, txt.replace("<", "<=", 1)))
+                    elif "x > seq[-1]" in txt and ">=" in txt:
+                        out.append(_replace_node(source, node, txt.replace(">=", ">")))
+        return out
+
+    def _fix_last_element_guard_gte_to_gt(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.GtE):
+                txt = ast.get_source_segment(source, node)
+                if txt and "seq[-1]" in txt:
+                    out.append(_replace_node(source, node, txt.replace(">=", ">", 1)))
+        return out
+
+    def _fix_wrong_return_index_vs_value(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return):
+                txt = ast.get_source_segment(source, node)
+                if txt and "return i" in txt and "seq.index" not in txt:
+                    out.append(_replace_node(source, node, txt.replace("return i", "return len(seq)")))
+        return out
+
+    def _fix_missing_final_return_zero(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "search":
+                if node.body and not isinstance(node.body[-1], ast.Return):
+                    last = node.body[-1]
+                    if isinstance(last, ast.For) or isinstance(last, ast.While):
+                        out.append(_splice(source, last, ast.get_source_segment(source, last) + "\n    return 0"))
+        return out
+
+    def _fix_single_value_return_before_break(self, source):
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+        out = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Return):
+                txt = ast.get_source_segment(source, node)
+                if txt and txt.strip() == "return":
+                    out.append(_replace_node(source, node, "break"))
+        return out

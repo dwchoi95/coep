@@ -3,7 +3,6 @@ from src.core.repair import Rule
 
 
 def _span(source, node):
-    """(start, end) char offsets of node in source."""
     lines = source.splitlines(keepends=True)
     starts = [0]
     for ln in lines:
@@ -18,24 +17,17 @@ def _splice(source, node, new_text):
     return source[:s] + new_text + source[e:]
 
 
-def _replace_node(source, target, replacement):
-    s, e = _span(source, target)
-    return source[:s] + replacement + source[e:]
-
-
-def _make_add_rule(source):
+def _replace_node(source, target, new_node):
     try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
-            out.append(_replace_node(source, node.op, "Sub()"))
-    return out
+        segment = ast.get_source_segment(source, new_node)
+    except Exception:
+        segment = None
+    if segment is None:
+        return None
+    return _splice(source, target, segment)
 
 
-def _fix_digit_root_pattern(source):
+def _digital_root_fix(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -46,63 +38,14 @@ def _fix_digit_root_pattern(source):
             left = node.left
             right = node.comparators[0]
             if isinstance(right, ast.Constant) and right.value == 10:
-                new = _splice(source, node.ops[0], ">=")
-                out.append(new)
-        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.LtE):
-            if isinstance(node.comparators[0], ast.Constant) and node.comparators[0].value == 9:
-                new = _splice(source, node.ops[0], "<")
-                out.append(new)
-    return out
-
-
-def _range_upper_plus_one(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "range":
-            if len(node.args) == 2 and isinstance(node.args[1], ast.BinOp) and isinstance(node.args[1].op, ast.Add):
-                if isinstance(node.args[1].right, ast.Constant) and node.args[1].right.value == 1:
-                    out.append(_replace_node(source, node.args[1], source[_span(source, node.args[1].left)[0]:_span(source, node.args[1].right)[1]]))
-    return out
-
-
-def _wrong_self_product_to_pair_product(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.NotEq):
-            left = node.left
-            right = node.comparators[0]
-            if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Mult):
                 ls, le = _span(source, left)
                 rs, re = _span(source, right)
-                new_text = source[ls:le] + " != " + source[rs:re]
-                out.append(_splice(source, node, new_text))
+                new_cmp = source[ls:le] + " <= " + source[rs:re]
+                out.append(_splice(source, node, new_cmp))
     return out
 
 
-def _fix_mod_9_index(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-    out = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Subscript):
-            if isinstance(node.slice, ast.BinOp) and isinstance(node.slice.op, ast.Mod):
-                if isinstance(node.slice.right, ast.Constant) and node.slice.right.value == 9:
-                    repl = source[_span(source, node.slice.left)[0]:_span(source, node.slice.left)[1]]
-                    out.append(_replace_node(source, node.slice, repl))
-    return out
-
-
-def _fix_range_start(source):
+def _range_upper_to_inclusive(source):
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -110,18 +53,84 @@ def _fix_range_start(source):
     out = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "range":
-            if len(node.args) == 2 and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
-                out.append(_replace_node(source, node.args[0], "1"))
+            if len(node.args) == 2:
+                a0, a1 = node.args
+                if isinstance(a0, ast.Constant) and getattr(a0, "value", None) == 1:
+                    if isinstance(a1, ast.Name):
+                        s, e = _span(source, a1)
+                        out.append(_splice(source, a1, source[s:e] + " + 1"))
+    return out
+
+
+def _less_to_less_equal(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Lt):
+            left = node.left
+            right = node.comparators[0]
+            ls, le = _span(source, left)
+            rs, re = _span(source, right)
+            new_cmp = source[ls:le] + " <= " + source[rs:re]
+            out.append(_splice(source, node, new_cmp))
+    return out
+
+
+def _equal_to_not_equal(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], ast.Eq):
+            left = node.left
+            right = node.comparators[0]
+            ls, le = _span(source, left)
+            rs, re = _span(source, right)
+            new_cmp = source[ls:le] + " != " + source[rs:re]
+            out.append(_splice(source, node, new_cmp))
+    return out
+
+
+def _plus_one_to_plus_zero(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            if isinstance(node.right, ast.Constant) and node.right.value == 1:
+                s, e = _span(source, node.right)
+                out.append(source[:s] + "0" + source[e:])
     return out
 
 
 class Fixer:
     def rules(self):
         return [
-            Rule(name="digit_root_base_case_cmp", apply=_fix_digit_root_pattern, symptoms=("wrong",)),
-            Rule(name="range_upper_off_by_one", apply=_range_upper_plus_one, symptoms=("wrong",)),
-            Rule(name="self_product_miscompare", apply=_wrong_self_product_to_pair_product, symptoms=("wrong",)),
-            Rule(name="mod_nine_indexing", apply=_fix_mod_9_index, symptoms=("wrong",)),
-            Rule(name="range_start_one", apply=_fix_range_start, symptoms=("wrong",)),
-            Rule(name="augadd_to_sub", apply=_make_add_rule, symptoms=("wrong",)),
+            Rule(
+                name="digital_root_count_range_fix",
+                apply=_range_upper_to_inclusive,
+                symptoms=("wrong",),
+            ),
+            Rule(
+                name="strict_lt_to_le",
+                apply=_less_to_less_equal,
+                symptoms=("wrong",),
+            ),
+            Rule(
+                name="eq_to_neq_miscount",
+                apply=_equal_to_not_equal,
+                symptoms=("wrong",),
+            ),
+            Rule(
+                name="off_by_one_plus_one_to_zero",
+                apply=_plus_one_to_plus_zero,
+                symptoms=("wrong",),
+            ),
         ]

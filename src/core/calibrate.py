@@ -43,6 +43,7 @@ refactory_q3, 13.7% on refactory_q4.
 from __future__ import annotations
 
 import json
+import zlib
 from pathlib import Path
 
 from src.core.reference_repair import ReferenceIndex, local_repair
@@ -59,6 +60,15 @@ MAD_TO_SIGMA = 1.4826
 # define an outlier; the gate stays off and escalation reverts to local failure
 # only, which is also what happens when the tool repairs nothing at all.
 MIN_CALIBRATION = 20
+# Cross-fitting folds. Each submission is judged by a threshold estimated from
+# the other folds, so no submission's own patch size enters the rule that
+# decides whether it is escalated, while the evaluation set stays whole.
+FOLDS = 5
+
+
+def fold_of(stem: str, k: int = FOLDS) -> int:
+    """Deterministic fold for a submission id (``hash`` is salted per process)."""
+    return zlib.crc32(stem.encode()) % k
 
 
 def _median(xs: list[float]) -> float:
@@ -81,24 +91,43 @@ def threshold(rps_values: list[float], k: float = K) -> float | None:
 
 
 def calibrate(problem: dict, rules, buggy: list[str], correct: list[str],
-              budget: SearchBudget | None = None, k: float = K) -> dict:
+              budget: SearchBudget | None = None, k: float = K,
+              stems: list[str] | None = None) -> dict:
     """Run the built tool over the assignment's own buggy programs and derive
-    the escalation threshold from the patches that pass the tests."""
+    the escalation threshold from the patches that pass the tests.
+
+    Records two thresholds. ``rps_tau`` is estimated from every patch and is
+    what a deployment ships, where the calibration cohort is last term's
+    submissions rather than the ones being repaired. ``rps_tau_folds`` holds one
+    threshold per cross-fitting fold, each estimated with that fold held out, so
+    a single-cohort evaluation can report numbers no submission influenced the
+    rule for.
+    """
     budget = budget or SearchBudget(max_candidates=150, max_combo=2,
                                     candidate_timeout=3)
     index = ReferenceIndex(correct)
+    stems = stems or [str(i) for i in range(len(buggy))]
     values: list[float] = []
+    per_fold: dict[int, list[float]] = {i: [] for i in range(FOLDS)}
     repaired = noop = 0
-    for src in buggy:
+    for stem, src in zip(stems, buggy):
         res = local_repair(src, problem, rules, index, budget)
         if res.source == "noop":
             noop += 1
             continue
         if res.repaired:
             repaired += 1
-            values.append(rps(src, res.patch))
+            v = rps(src, res.patch)
+            values.append(v)
+            per_fold[fold_of(stem)].append(v)
     tau = threshold(values, k)
+    # fold f is judged by a threshold fitted on everything except fold f
+    folds = {f: threshold([v for g, vs in per_fold.items() if g != f for v in vs], k)
+             for f in range(FOLDS)}
     rec = {"rps_tau": tau, "rps_tau_k": k, "rps_cap": RPS_CAP,
+           "rps_tau_folds": {str(f): (round(t, 4) if t is not None else None)
+                             for f, t in folds.items()},
+           "rps_fold_k": FOLDS,
            "calibration_n": len(values),
            "calibration_noop": noop,
            "calibration_repaired": repaired}
@@ -121,10 +150,24 @@ def write_into_cost(tool_fixer: Path, record: dict) -> Path:
     return path
 
 
-def load_threshold(tool_fixer: Path) -> float | None:
-    """The frozen threshold for a built tool, or ``None`` if uncalibrated."""
+def load_threshold(tool_fixer: Path, mode: str = "pool"):
+    """The frozen threshold for a built tool, or ``None`` if uncalibrated.
+
+    ``mode="pool"`` returns the single deployed threshold. ``mode="crossfit"``
+    returns a callable ``stem -> tau`` that serves each submission the
+    threshold fitted without its fold.
+    """
     path = Path(tool_fixer).parent / "cost.json"
     if not path.exists():
         return None
-    v = json.loads(path.read_text()).get("rps_tau")
+    d = json.loads(path.read_text())
+    if mode == "crossfit":
+        folds = d.get("rps_tau_folds")
+        if not folds:
+            return None
+        table = {int(f): (float(t) if t is not None else None)
+                 for f, t in folds.items()}
+        k = int(d.get("rps_fold_k", FOLDS))
+        return lambda stem: table.get(fold_of(stem, k))
+    v = d.get("rps_tau")
     return float(v) if v is not None else None

@@ -6,6 +6,7 @@ calls the builder model. The same selection feeds every model.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from src.core.calibrate import calibrate, write_into_cost
 from src.core.cluster import cluster
@@ -19,7 +20,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--problem", required=True, help="problem id, e.g. refactory_q1")
     ap.add_argument("--model", default=["claude-sonnet", "gpt-mini"], nargs="+",
                     help="builder model(s)")
-    ap.add_argument("--n-samples", type=int, default=8)
+    ap.add_argument("--n-samples", type=int, default=0,
+                    help="0 = one per structural cluster, uncapped")
     ap.add_argument("--n-refs", type=int, default=2)
     ap.add_argument("--r-max", type=int, default=3)
     ap.add_argument("--data-root", default="data")
@@ -30,6 +32,8 @@ def main(argv: list[str]) -> int:
 
     prob = load_problem(args.problem, args.data_root)
     buggy = load_pool(args.problem, "buggy", args.data_root)
+    stems = [f.stem for f in
+             sorted((Path(args.data_root) / args.problem / "buggy").glob("*.py"))]
     correct = load_pool(args.problem, "correct", args.data_root)
 
     pairs = select_sample_pairs(buggy, correct, n_samples=args.n_samples)
@@ -47,7 +51,8 @@ def main(argv: list[str]) -> int:
         print(f"  [{model}] rules={res.rules} coverage={res.coverage:.0%} "
               f"rounds={res.rounds} cost=${res.usd:.4f} → {res.path}")
         if res.path and not args.no_calibrate:
-            rec = calibrate(prob, load_fixer(res.path), buggy, correct)
+            rec = calibrate(prob, load_fixer(res.path), buggy, correct,
+                            stems=stems)
             write_into_cost(res.path, rec)
             tau = rec.get("rps_tau")
             print(f"  [{model}] escalation threshold "

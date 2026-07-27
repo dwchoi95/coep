@@ -7,6 +7,7 @@ paid for again) to acquire a threshold. No LLM calls: it only runs the tool.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from src.core.calibrate import calibrate, write_into_cost
 from src.core.synthesis import load_fixer
@@ -22,6 +23,8 @@ def main(argv: list[str]) -> int:
 
     prob = load_problem(args.problem, args.data_root)
     buggy = load_pool(args.problem, "buggy", args.data_root)
+    stems = [f.stem for f in
+             sorted((Path(args.data_root) / args.problem / "buggy").glob("*.py"))]
     correct = load_pool(args.problem, "correct", args.data_root)
 
     for model in args.model:
@@ -29,7 +32,7 @@ def main(argv: list[str]) -> int:
         if not path.exists():
             print(f"  [{model}] no tool at {path}, skipped")
             continue
-        rec = calibrate(prob, load_fixer(path), buggy, correct)
+        rec = calibrate(prob, load_fixer(path), buggy, correct, stems=stems)
         write_into_cost(path, rec)
         tau = rec.get("rps_tau")
         if tau is None:
