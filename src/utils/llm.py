@@ -52,8 +52,8 @@ def extract_code(text: str) -> str | None:
     return None
 
 
-def complete(prompt: str, model: str = "claude-sonnet", *, system: str | None = None,
-             max_tokens: int = 8192, temperature: float | None = 0.0,
+def complete(prompt: str, model: str = "claude-sonnet-5", *, system: str | None = None,
+             max_tokens: int = 64000, temperature: float | None = 0.0,
              cache_prefix: str | None = None) -> Completion:
     """Send one prompt, return the response with usage accounting.
 
@@ -96,18 +96,9 @@ def complete(prompt: str, model: str = "claude-sonnet", *, system: str | None = 
 
 
 # ----------------------------------------------------------------- backends
-_MODEL_IDS = {
-    "claude-sonnet": "claude-sonnet-5",
-    "claude-haiku": "claude-haiku-4-5",
-    "gpt-mini": "gpt-5.4-mini",
-    "gpt-nano": "gpt-5.4-nano-2026-03-17",
-}
-
-
 def _deprecates_temperature(model_id: str) -> bool:
     """True for Claude models that reject the `temperature` parameter."""
-    return (model_id.startswith(("claude-sonnet-5", "claude-opus-4", "claude-fable"))
-            or model_id.startswith("claude-haiku-4"))
+    return model_id.startswith(("claude-sonnet-5", "claude-opus-4", "claude-fable"))
 
 
 def _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix):
@@ -119,12 +110,12 @@ def _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix):
                    {"type": "text", "text": prompt}]
     else:
         content = prompt
-    model_id = _MODEL_IDS.get(model, model)
+    model_id = model
     kwargs = {"model": model_id, "max_tokens": max_tokens,
               "messages": [{"role": "user", "content": content}]}
     if system:
         kwargs["system"] = system
-    # Newer Claude models (sonnet-5, opus-4.x, haiku-4.5) deprecate `temperature`
+    # Newer Claude models (sonnet-5, opus-4.x) deprecate `temperature`
     # and reject it; only the older families still accept it.
     if temperature is not None and not _deprecates_temperature(model_id):
         kwargs["temperature"] = temperature
@@ -149,10 +140,10 @@ def _anthropic(prompt, model, system, max_tokens, temperature, cache_prefix):
 def _openai(prompt, model, system, max_tokens, temperature):
     from openai import OpenAI
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    model_id = _MODEL_IDS.get(model, model)
+    model_id = model
     msgs = ([{"role": "system", "content": system}] if system else []) + \
            [{"role": "user", "content": prompt}]
-    # GPT-5 series (incl. nano) take `max_completion_tokens`, not `max_tokens`,
+    # GPT-5 series takes `max_completion_tokens`, not `max_tokens`,
     # and support only the default temperature.
     is_gpt5 = model_id.startswith("gpt-5")
     kwargs = {"model": model_id, "messages": msgs}

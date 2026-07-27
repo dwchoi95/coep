@@ -19,130 +19,68 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from src.core.cluster import cluster, structural_features
+from src.core.cluster import cluster, cluster_docs, edit_script, pair_by_bfs
 from src.core.repair import Rule, SearchBudget, repair
 from src.prompts import render
 from src.utils import llm as llm_mod
-from src.utils.metrics import rps
 
 _TOOLS = Path(__file__).resolve().parents[2] / "tools"
 
 
 # --------------------------------------------------------------- Stage-1 samples
-def select_samples(buggy: list[str], correct: list[str], n_samples: int = 8,
-                   k_per_cluster: int = 6, max_sample_edit: int = 12) -> list[str]:
-    """Just the buggy sources from :func:`select_sample_pairs` (compat)."""
-    return [b for b, _f in select_sample_pairs(
-        buggy, correct, n_samples, k_per_cluster, max_sample_edit)]
+def select_sample_pairs(buggy: list[str],
+                        correct: list[str]) -> list[tuple[str, str, int]]:
+    """One worked (buggy -> fixed) pair per cluster: the cluster's modal repair.
 
+    ``k`` clusters produce ``k`` pairs. Nothing is capped, filtered or
+    deduplicated, because every knob that used to trim this list was a guess and
+    the build is too cheap for guessing to pay: showing a builder every cluster
+    of every assignment costs a few dollars against the hundreds a
+    per-submission arm spends on the same benchmark.
 
-def select_sample_pairs(buggy: list[str], correct: list[str], n_samples: int = 0,
-                        k_per_cluster: int = 6,
-                        max_sample_edit: int = 12) -> list[tuple[str, str]]:
-    """Choose build-time (buggy, fixed) pairs: frequent, learnable, and diverse.
+    Two choices here were measured rather than assumed:
 
-    Three forces, learned from watching the builder waste effort on rare tangled
-    programs while the common misconceptions went uncovered:
+    * **Representativeness** -- each cluster contributes its *modal* repair, the
+      member whose edit script the cluster most agrees on. Neither obvious
+      alternative survived: the medoid is the most typical *program*, usually a
+      multi-issue mess, and the smallest repair is the submission that came
+      closest to correct, an outlier rather than a spokesman.
+    * **Grouping by repair, not by shape** -- clusters are built over the *edit
+      script* between a program and its partner, not the program's own AST
+      paths. A rule induced from a representative only pays off on members
+      needing the same edit, so that is the partition to respect; grouping by
+      shape reliably fills the largest clusters with programs that merely look
+      alike.
 
-    * **Frequency** — walk clusters largest-first, so the common misconceptions
-      (big clusters) are represented before the rare ones.
-    * **Learnability** — each cluster contributes the member with the smallest
-      **absolute** tree-edit distance to its nearest correct program: a clean,
-      single-misconception exemplar a targeted rule can be learned from, not the
-      medoid (the most *typical* shape, often a multi-issue mess). Absolute edit,
-      not RPS: RPS is normalized by program size, so a 25-line tangle looks
-      "close" to a 25-line correct program even when dozens of nodes differ.
-    * **Fixability filter** — skip a cluster whose cleanest member still needs
-      more than ``max_sample_edit`` node edits: no small-edit rule exists for it,
-      so showing it to the builder only invites a wholesale rewrite. Let those
-      escalate to the fallback instead.
+    Each sample is paired with its minimum-edit correct program: sequences are
+    matched one-to-one across top-level definitions and aligned, so the partner
+    is the one needing the fewest operations rather than the one that merely
+    looks closest. Showing the builder the pair -- buggy AND its targeted fix --
+    turns "infer the fix, then generalize it" into "generalize this shown
+    repair", which a weak model does far better. No LLM call: the fix is a real
+    correct submission, picked locally.
 
-    Each sample is paired with its **minimum-edit correct program** (the correct
-    solution nearest to it by *actual* tree-edit distance, over a shortlist of
-    the structurally-closest ``n_targets``). Showing the builder the pair —
-    buggy AND its targeted fix — turns "infer the fix, then generalize it" into
-    just "generalize this shown repair", which a weak model does far better. No
-    LLM call: the fix is a real correct submission, picked locally.
-
-    Returns ``(buggy, fixed)`` pairs, cleanest first: one per structural
-    cluster that clears the learnability filters, and ``n_samples`` caps that
-    only if it is positive. The default is uncapped, so the builder sees one
-    worked repair per misconception the class actually produced rather than an
-    arbitrary eight of them.
+    Returns ``(buggy, fixed, cluster_size)`` triples, cleanest repair first.
     """
-    from sklearn.metrics import pairwise_distances
-
-    from src.utils.metrics import ast_size
-
+    if not buggy:
+        return []
     if not correct:
         clusters, _ = cluster(buggy)
-        return [(buggy[c.medoid], "") for c in clusters[:n_samples]]
+        return [(buggy[c.medoid], "", len(c.members)) for c in clusters]
 
-    matrix, vec = structural_features(buggy + correct)   # shared vocabulary
-    if vec is None:
-        clusters, _ = cluster(buggy)
-        return [(buggy[c.medoid], "") for c in clusters[:n_samples]]
-    X = matrix.toarray() if hasattr(matrix, "toarray") else matrix
-    B, C = X[:len(buggy)], X[len(buggy):]
-    dist = pairwise_distances(B, C, metric="cosine")     # buggy x correct
-    nearest_c = dist.argmin(axis=1)                       # structural nearest fix
+    partner, edit = pair_by_bfs(buggy, correct)
+    docs = [edit_script(b, correct[int(partner[i])]) for i, b in enumerate(buggy)]
+    # distance_threshold=None: cut where the data says, not at a constant.
+    clusters, _ = (cluster_docs(docs, distance_threshold=None) if any(docs)
+                   else cluster(buggy))
 
-    _edit: dict[int, float] = {}
-    def edit_to(bi: int) -> float:                        # abs tree edits, cached
-        if bi not in _edit:
-            ci = int(nearest_c[bi])
-            _edit[bi] = rps(buggy[bi], correct[ci]) * ast_size(buggy[bi])
-        return _edit[bi]
-
-    csizes = sorted(ast_size(c) for c in correct)
-    size_cap = 3 * csizes[len(csizes) // 2]              # 3x median correct size
-    clusters, _ = cluster(buggy)                         # largest-first
-
-    picked: list[tuple[float, str, str]] = []
-    fallback: list[tuple[float, str, str]] = []
-    for cl in clusters:
-        # cheap prefilter: members structurally closest to some correct, then
-        # pick the true min absolute-edit one among them.
-        cands = sorted(cl.members, key=lambda i: dist[i, nearest_c[i]])[:k_per_cluster]
-        best = min(cands, key=edit_to)
-        e = edit_to(best)
-        entry = (e, buggy[best], correct[int(nearest_c[best])])
-        fallback.append(entry)
-        if e <= max_sample_edit and ast_size(buggy[best]) <= size_cap:
-            picked.append(entry)
-        if n_samples and len(picked) >= n_samples:
-            break
-
-    # A sparse correct pool makes min-edit-to-nearest-correct a measure of
-    # strategy mismatch rather than bug size, so the cap can reject every
-    # cluster and leave the builder with no exemplars at all. Degrade to the
-    # cleanest clusters available instead: the build loop validates each rule
-    # against the samples, so unlearnable exemplars cost one cheap call rather
-    # than a tool that was never given anything to generalize from.
-    if not picked:
-        picked = fallback
-
+    picked = [(float(edit[c.medoid]), buggy[c.medoid],
+               correct[int(partner[c.medoid])], len(c.members))
+              for c in clusters]
     picked.sort(key=lambda t: t[0])                      # cleanest first
-    return [(b, f) for _e, b, f in (picked[:n_samples] if n_samples else picked)]
+    return [(b, f, n) for _e, b, f, n in picked]
 
 
-def calibration_set(buggy: list[str]) -> list[str]:
-    """The programs the escalation threshold is measured on: one representative
-    per structural cluster, with no learnability filter.
-
-    Deliberately not the sample-selection set. That one is filtered for what
-    teaches the builder well -- a bug close enough to a correct program to
-    generalize from -- which is the wrong criterion here: a threshold needs a
-    representative picture of what the tool will meet, including the tangled
-    programs no rule will ever be induced from. One per cluster rather than the
-    whole pool keeps it a stratified subsample, so a submission's own patch
-    size is not what decides whether it is escalated.
-    """
-    clusters, _ = cluster(buggy)
-    return [buggy[c.medoid] for c in clusters]
-
-
-# --------------------------------------------------------------- loading a tool
 def _exec_module(path: Path, tag: str):
     """Import a standalone tool file with ``Rule`` provided in its namespace."""
     name = f"_{tag}_{path.parent.name}"
@@ -203,7 +141,13 @@ def _render_block(sources: list[str]) -> str:
 
 
 def _render_pairs(samples: list[str], fixes: list[str]) -> str:
-    """buggy → fixed pairs for the builder to generalize."""
+    """buggy → fixed pairs for the builder to generalize.
+
+    Deliberately unannotated. Labelling each pair with its cluster size was
+    tried and removed: the size is a property of our clustering, not of the
+    class, and the audits show the largest clusters are the least coherent, so
+    the count would assert most confidently exactly where it is least earned.
+    """
     out = []
     for i, (b, f) in enumerate(zip(samples, fixes), 1):
         out.append(f"### Repair {i}\nBuggy:\n```python\n{b.strip()}\n```\n"
@@ -253,8 +197,8 @@ class BuildResult:
                 "build_seconds": round(self.seconds, 2)}
 
 
-def build(problem: dict, references: list[str], samples: list[str],
-          model: str = "claude-sonnet", r_max: int = 3, llm_fn=None,
+def build(problem: dict, samples: list[str],
+          model: str = "claude-sonnet-5", r_max: int = 3, llm_fn=None,
           out_path: str | Path | None = None,
           budget: SearchBudget | None = None,
           sample_fixes: list[str] | None = None) -> BuildResult:
@@ -263,6 +207,7 @@ def build(problem: dict, references: list[str], samples: list[str],
     ``sample_fixes[i]`` is a correct fix for ``samples[i]``; when given, the
     builder is shown (buggy → fixed) pairs to generalize, which a weak model
     handles far better than inferring the fix itself.
+
     """
     pid = problem["pid"]
     budget = budget or SearchBudget()
@@ -278,10 +223,13 @@ def build(problem: dict, references: list[str], samples: list[str],
     best_code: str | None = None
     best_cov: float = -1.0
     call = llm_fn or llm_mod.complete
-    # The builder emits a whole module; with extended thinking the response needs
-    # generous headroom or it truncates before the code block. Only the real API
+    # The builder emits a whole module, so the response needs generous headroom
+    # or it truncates before the code block closes and the round is lost. At
+    # 32768 that happened on every round of three assignments, costing $3.35 for
+    # no tool, so the ceiling is the model's, not a guess. Only the real API
     # takes this kwarg (test stubs keep their (prompt, model) signature).
-    extra = {} if llm_fn else {"max_tokens": 32000}
+    out_cap = 64000
+    extra = {} if llm_fn else {"max_tokens": out_cap}
 
     sample_block = (_render_pairs(samples, sample_fixes) if sample_fixes
                     else _render_block(samples))
@@ -289,7 +237,6 @@ def build(problem: dict, references: list[str], samples: list[str],
         prompt = render("build_fixer",
                         description=problem.get("description", ""),
                         tests=_render_tests(problem),
-                        references=_render_block(references) or "(none provided)",
                         samples=sample_block,
                         feedback=_feedback(uncovered_srcs, load_error))
         comp = call(prompt, model=model, **extra)
@@ -300,7 +247,13 @@ def build(problem: dict, references: list[str], samples: list[str],
 
         code = comp.code
         if not code:
-            load_error = "no python code block in the response"
+            # Truncation and refusal both arrive as "no code"; say which, or the
+            # next round repeats the same over-long answer and is lost too.
+            load_error = ("the previous answer was cut off at the output limit "
+                          "before the code block closed -- write a shorter module"
+                          if not llm_fn and comp.out_tokens >= out_cap
+                          else "no python code block in the response")
+            res.last_error = load_error
             continue
         if "import Rule" not in code:             # keep the artifact standalone
             code = "from src.core.repair import Rule\n" + code

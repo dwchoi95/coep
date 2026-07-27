@@ -20,7 +20,6 @@ then longer combinations, under an explicit budget rather than a blind 2^|R|.
 """
 from __future__ import annotations
 
-import itertools
 import signal
 import threading
 import time
@@ -95,9 +94,6 @@ class Rule:
 
 @dataclass
 class SearchBudget:
-    max_candidates: int = 2000
-    max_seconds: float = 20.0
-    max_combo: int = 3                    # longest rule combination to compose
     candidate_timeout: float = 3.0        # hard wall per candidate (subprocess kill)
 
 
@@ -105,19 +101,6 @@ def _ordered(rules: list[Rule], signature: tuple[str, ...]) -> list[Rule]:
     """Rules whose declared symptoms occur in this program's failures first."""
     present = set(signature)
     return sorted(rules, key=lambda r: 0 if (set(r.symptoms) & present) else 1)
-
-
-def _compose(source: str, combo: tuple[Rule, ...]) -> list[str]:
-    """Apply a rule combination in order, threading every intermediate result."""
-    frontier = [source]
-    for rule in combo:
-        nxt = []
-        for s in frontier:
-            nxt.extend(rule(s))
-        if not nxt:
-            return []
-        frontier = nxt[:16]               # keep the fan-out bounded
-    return frontier
 
 
 def repair(source: str, problem: dict, rules: list[Rule],
@@ -133,35 +116,48 @@ def repair(source: str, problem: dict, rules: list[Rule],
     signature = base.signature()
     ordered = _ordered(rules, signature)
 
-    # Enumerate candidates (symptom-ordered, cheapest combinations first), then
-    # validate the whole batch in ONE child process — spawning a subprocess per
-    # candidate dominates otherwise. The batch stops at the first hit.
-    cands: list[str] = []
-    provs: list[tuple[str, ...]] = []
+    # One depth at a time: expand every program found so far by one more rule
+    # application, test that layer, and stop at the first layer that passes.
+    #
+    # Nothing here is capped -- not combination length, not candidate count, not
+    # fan-out. Those were three arbitrary numbers, and testing layer by layer
+    # removes the need for them: a submission repaired by one edit costs one
+    # small layer, and the combinatorial blow-up two or three layers down is
+    # only ever reached by submissions no rule set was going to repair anyway,
+    # where ``candidate_timeout`` ends the search.
+    #
+    # Testing per layer also makes the shallowest repair the one returned, by
+    # construction rather than by luck of ordering. Depth is a proxy for patch
+    # size, and small patches are the point.
+    deadline = t0 + budget.candidate_timeout
+    frontier: list[tuple[str, tuple[str, ...]]] = [(source, ())]
     seen = {source}
-    for k in range(1, budget.max_combo + 1):
-        combos = (itertools.permutations(ordered, k) if k > 1
-                  else ((r,) for r in ordered))
-        for combo in combos:
-            for cand in _compose(source, combo):
-                if cand in seen:
-                    continue
-                seen.add(cand)
-                cands.append(cand)
-                provs.append(tuple(r.name for r in combo))
-                if len(cands) >= budget.max_candidates:
-                    break
-            if len(cands) >= budget.max_candidates:
-                break
-        if len(cands) >= budget.max_candidates:
-            break
+    tried = 0
 
-    flags = run_batch(cands, problem, per_candidate_timeout=budget.candidate_timeout)
-    for cand, prov, ok in zip(cands, provs, flags):
-        if ok:
-            return RepairResult(True, cand, prov, len(cands), time.time() - t0,
-                                "local", signature)
-    return RepairResult(False, None, (), len(cands), time.time() - t0,
+    while frontier and time.time() < deadline:
+        layer: list[tuple[str, tuple[str, ...]]] = []
+        for parent, prov in frontier:
+            if time.time() >= deadline:
+                break
+            for rule in ordered:
+                for cand in rule(parent):
+                    if cand in seen:
+                        continue
+                    seen.add(cand)
+                    layer.append((cand, prov + (rule.name,)))
+        if not layer:
+            break
+        tried += len(layer)
+        cands = [c for c, _ in layer]
+        flags = run_batch(cands, problem,
+                          per_candidate_timeout=budget.candidate_timeout)
+        for (cand, prov), ok in zip(layer, flags):
+            if ok:
+                return RepairResult(True, cand, prov, tried,
+                                    time.time() - t0, "local", signature)
+        frontier = layer
+
+    return RepairResult(False, None, (), tried, time.time() - t0,
                         "none", signature)
 
 
