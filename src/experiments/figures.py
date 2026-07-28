@@ -196,10 +196,21 @@ def fig_gate(ver: str, sweep: Path | None) -> Path:
         ys = [p["rps"] for p in pts]
         ax.scatter(xs, ys, s=13, color="#2e86c1", alpha=0.75, zorder=3,
                    label=f"threshold settings ({len(pts)})", edgecolor="none")
-        ship = [p for p in pts if p.get("shipped")]
-        if ship:
-            ax.scatter([ship[0]["usd"]], [ship[0]["rps"]], s=52, marker="*",
-                       color="#1f4e79", zorder=5, label=r"shipped: $\mathrm{RPS}>1$")
+    # The shipped point is the canonical CoEP_LF run, not the sweep's
+    # reconstruction of it, so the paper never carries two numbers for one
+    # configuration. The sweep's own points share one cached fallback.
+    rep = rps = 0
+    usd = 0.0
+    for pid in ORDER:
+        c = _cell(_summary(ver, pid), "CoEP_LF", FRONTIER)
+        if c is None:
+            continue
+        k = round(float(c["RR"]) * int(c["N"]))
+        rep += k
+        rps += float(c["RPS"]) * k
+        usd += float(c["$API"]) + float(c["$Build"])
+    ax.scatter([usd], [rps / max(rep, 1)], s=62, marker="*", color="#1f4e79",
+               zorder=6, label=r"shipped: $\mathrm{RPS}>1$")
     for approach, model, label, col, mk in (
             ("PyDex", FRONTIER, "PyDex", "#c0392b", "s"),
             ("PyDex_PC", FRONTIER, r"PyDex$_{PC}$", "#e07b6a", "D"),

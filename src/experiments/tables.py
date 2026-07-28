@@ -191,7 +191,7 @@ def tab_robust(ver: str) -> str:
     out = [r"\begin{tabular}{lccc}", r"\toprule",
            r"& Refactory & PyDex & \textsc{CoEP}\textsubscript{LF} \\",
            r"Stratum & \multicolumn{3}{c}{RR (\%) / RPS} \\", r"\midrule",
-           r"\multicolumn{4}{l}{\emph{Difficulty} (Sonnet 5 builder)}\\"]
+           r"\multicolumn{4}{l}{\emph{Difficulty} (Sonnet builder)}\\"]
     for name, pids in BANDS:
         out.append(f"\\quad {name} & {cell(_band(ver, pids, 'Refactory', 'none'))}"
                    f" & {cell(_band(ver, pids, 'PyDex', FRONTIER))}"
@@ -200,10 +200,19 @@ def tab_robust(ver: str) -> str:
     for model, name in ((FRONTIER, "Claude Sonnet 5"), (CHEAP, "GPT-5.4-mini")):
         out.append(f"\\quad {name} & -- & {cell(_band(ver, ORDER, 'PyDex', model))}"
                    f" & {cell(_band(ver, ORDER, 'CoEP_LF', model))} \\\\")
-    out += [r"\midrule",
-            r"\multicolumn{4}{l}{\emph{Escalation threshold}, 38 settings}\\",
-            r"\quad range & -- & -- & \emph{[inv.]} / \emph{[band]} \\",
-            r"\bottomrule", r"\end{tabular}"]
+    sweep = ROOT / "results" / ver / "threshold_sweep.json"
+    out.append(r"\midrule")
+    if sweep.exists():
+        pts = json.loads(sweep.read_text())
+        rr = {round(100 * q["rr"], 2) for q in pts}
+        lo, hi = min(q["rps"] for q in pts), max(q["rps"] for q in pts)
+        ulo, uhi = min(q["usd"] for q in pts), max(q["usd"] for q in pts)
+        out += [r"\multicolumn{4}{l}{\emph{Threshold}, %d measured settings}\\" % len(pts),
+                r"\quad range & -- & -- & %s / %.3f--%.3f \\"
+                % (f"{next(iter(rr)):.1f}" if len(rr) == 1 else "varies", lo, hi),
+                r"\quad spend & \multicolumn{3}{c}{\$%.2f--\$%.2f total} \\"
+                % (ulo, uhi)]
+    out += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out) + "\n"
 
 
