@@ -20,11 +20,17 @@ fixed AST normalized by buggy program size; lower is better.
 |---|---|---|---|
 | Refactory (reference-guided) | 85.93% | 0.500 | no model |
 | PyDex (one LLM call per submission) | 98.94% | 0.634 | $292.77 / $28.42 |
+| CoEP_fw (our substrate, builder rules removed) | 98.69% | 0.492 | no model |
 | **CoEP_L** (frozen tool, no model at repair time) | **99.06%** | **0.463** | build only |
 | **CoEP_LF** (+ fallback on abstentions and oversized patches) | **99.70%** | **0.410** | **$13.58 / $1.00** |
 
 Costs are `claude-sonnet-5 / gpt-5.4-mini` and include the one-off build. An
-assignment repays that build after 11 submissions against PyDex.
+assignment repays that build after 11 submissions against PyDex. CoEP_fw is
+worth reading first: the substrate alone, with no model anywhere, already
+matches a per-submission LLM arm on coverage at a smaller patch. What the
+builder's rules add is a patch 2.1 times smaller on the quarter of submissions
+they cover, 22 submissions the substrate cannot repair, and the misconception
+label behind every rule-produced repair.
 
 ## Layout
 
@@ -68,9 +74,7 @@ python run.py pydex   --problem refactory_q1     # the per-submission baseline
 python run.py repair  --problem refactory_q1 --file bug.py    # one submission
 ```
 
-`run.py --list` prints every driver. `src/experiments/v1/` is the previous
-campaign's code, kept runnable against `results/v1/` and not used by anything
-current.
+`run.py --list` prints every driver.
 
 ## Notes on the measurements
 

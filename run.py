@@ -28,6 +28,8 @@ COMMANDS = {
     "numbers": ("numbers", "main"),     # regenerate paper/numbers.tex
     "figures": ("figures", "main"),     # regenerate paper/figures/*.pdf
     "pydex": ("pydex_run", "main"),    # PyDex + PyDex_PC baseline arms
+    "refactory": ("refactory_results", "main"),   # collect our Refactory run
+    "refactory-published": ("refactory_published", "main"),  # its own-corpus figures
 }
 
 

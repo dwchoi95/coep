@@ -190,7 +190,7 @@ def main(argv: list[str]) -> int:
                          "submission judged by a threshold fitted with its "
                          "fold held out (no submission influences its own rule)")
     ap.add_argument("--subset", default="",
-                    help="smoke_set.json manifest; restricts the pass to its "
+                    help="JSON manifest of submission ids; restricts the pass to its "
                          "sampled submissions for this problem")
     ap.add_argument("--only-missing", action="store_true",
                     help="run only submissions with no row yet for this model, "

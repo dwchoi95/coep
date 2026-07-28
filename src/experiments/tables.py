@@ -100,14 +100,17 @@ def _pooled(ver: str, pid: str, approach: str) -> tuple[int, int, float] | None:
 
 
 def tab_effect(ver: str) -> str:
-    arms = [("Refactory", "none"), ("PyDex", FRONTIER),
+    SHORT = {"Measuring Lengths in Baden": "Measuring Lengths",
+             "Planning The Expedition": "Planning Expedition"}
+    arms = [("Refactory", "none"), ("PyDex", FRONTIER), ("CoEP_L_fw", FRONTIER),
             ("CoEP_L", FRONTIER), ("CoEP_LF", FRONTIER)]
-    head = " & ".join(["Refactory", "PyDex", r"\textsc{CoEP}\textsubscript{L}",
+    head = " & ".join(["Refactory", "PyDex", r"\textsc{CoEP}\textsubscript{fw}",
+                       r"\textsc{CoEP}\textsubscript{L}",
                        r"\textsc{CoEP}\textsubscript{LF}"])
-    out = [r"\begin{tabular}{crlc rrrr c rrrr}", r"\toprule",
-           r"& & & & \multicolumn{4}{c}{\textbf{RR} (\%)} & & "
-           r"\multicolumn{4}{c}{\textbf{RPS}} \\",
-           r"\cmidrule(lr){5-8}\cmidrule(lr){10-13}",
+    out = [r"\begin{tabular}{crlc rrrrr c rrrrr}", r"\toprule",
+           r"& & & & \multicolumn{5}{c}{\textbf{RR} (\%)} & & "
+           r"\multicolumn{5}{c}{\textbf{RPS}} \\",
+           r"\cmidrule(lr){5-9}\cmidrule(lr){11-15}",
            r"& ID & Assignment & Rating & " + head + " & & " + head + r" \\",
            r"\midrule"]
     acc = {a: [0.0, 0.0, 0, 0] for a, _m in arms}      # rr*n, rps*rep, n, rep
@@ -117,6 +120,7 @@ def tab_effect(ver: str) -> str:
         for i, pid in enumerate(pids):
             df = _summary(ver, pid)
             title, rating = _meta(pid)
+            title = SHORT.get(title, title)
             spine = (r"\multirow{%d}{*}{\rotatebox[origin=c]{90}{\emph{%s}}}"
                      % (len(pids), gname)) if i == 0 else ""
             rr, rps = [], []
