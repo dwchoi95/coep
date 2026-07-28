@@ -72,6 +72,35 @@ per assignment, over both builders.}
 \label{tab:cost}
 \end{table}
 
+\section{How the Arms Fare as the Pool Thins}
+
+The main paper's ablation compares the tool with and without the builder's
+rules on the benchmark as it stands, where every assignment arrives with
+hundreds of correct submissions already in hand. Table~\ref{tab:pool} varies
+that. Each tool is held fixed and only the number of correct programs the
+transplant may draw on is restricted, over 203 sampled submissions and the
+frontier builder; \texttt{run.py pool} reproduces it.
+
+Two readings. Coverage separates the layers only at the extreme: with two or
+more correct programs the arms are indistinguishable, with one the rules add
+2.5 points, and with none the substrate has nothing to transplant and falls to
+7.4\% where the rules carry 34.5\%. Patch size separates them everywhere, and
+by more as the pool thins: 3.4\% apart on the full pool, 9.6\% at ten, 14.7\%
+at one.
+
+This is a repair-time restriction, not a cold start. Each tool was built with
+the whole pool available, since its worked pairs are drawn from it, so what the
+table isolates is the substrate's dependence on the pool at deployment. A true
+cold start would also rebuild, and would cost a model call per pool size.
+
+\begin{table}[h]
+\centering\small\setlength{\tabcolsep}{6pt}
+\input{supp/tab_pool}
+\caption{Repair rate and patch size as the reference pool is restricted to $k$
+correct programs.}
+\label{tab:pool}
+\end{table}
+
 \section{Robustness}
 
 Table~\ref{tab:robust} puts three axes side by side: assignment difficulty, the
