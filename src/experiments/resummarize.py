@@ -1,0 +1,72 @@
+"""`run.py resummarize` — rebuild summary.csv rows from the event logs.
+
+The event log is the record; summary.csv is a view of it. A pass that writes
+one arm can still upsert another arm's row, and if it does so from an empty
+row list it silently zeroes a completed measurement -- which is how the
+framework-only ablation wiped every CoEP_LF summary row while leaving
+coep_lf.csv intact. Rebuilding the view from the record costs nothing and makes
+that class of loss recoverable rather than a re-run.
+
+Only arms whose event file exists are touched; anything else is left alone.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from src.experiments._common import tool_path
+from src.experiments.results_io import (build_overall, read_events,
+                                        summarize_events, upsert_summary)
+
+ROOT = Path(__file__).resolve().parents[2]
+
+# event file -> (approach label, does this arm have a build behind it)
+ARMS = {"refactory": ("Refactory", False), "pydex": ("PyDex", False),
+        "pydex_pc": ("PyDex_PC", False), "coep_l": ("CoEP_L", True),
+        "coep_lf": ("CoEP_LF", True), "coep_l_sl": ("CoEP_L+SL", True),
+        "coep_l_fw": ("CoEP_L_fw", True)}
+# Refactory's CS1 rows are its *published* per-assignment figures and PyDex's
+# carry token counts the collector priced; recomputing either from our event
+# logs would silently replace an external number with our own. They are
+# rebuilt only when named.
+DEFAULT = ("coep_l", "coep_lf", "coep_l_sl", "coep_l_fw")
+
+
+def _build_cost(pid: str, model: str, tools_root: str) -> tuple[float, float]:
+    f = tool_path(pid, model, tools_root).parent / "cost.json"
+    d = json.loads(f.read_text()) if f.exists() else {}
+    return float(d.get("build_seconds") or 0.0), float(d.get("usd") or 0.0)
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(prog="run.py resummarize")
+    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--tools-root", default="tools")
+    ap.add_argument("--only", nargs="*", default=list(DEFAULT),
+                    help="event file stems to rebuild; the baseline arms are "
+                         "excluded by default and must be named explicitly")
+    args = ap.parse_args(argv)
+
+    base = ROOT / "results" / args.ver
+    fixed = 0
+    for pdir in sorted(p for p in base.iterdir() if p.is_dir()):
+        for stem, (approach, has_build) in ARMS.items():
+            if args.only and stem not in args.only:
+                continue
+            if not (pdir / f"{stem}.csv").exists():
+                continue
+            rows = read_events(args.ver, pdir.name, stem)
+            for model in sorted({str(r["Model"]) for r in rows}):
+                mine = [r for r in rows if str(r["Model"]) == model]
+                att_build, usd = ((0.0, 0.0) if not has_build else
+                                  _build_cost(pdir.name, model, args.tools_root))
+                # the learned artifact prices its own induction on top
+                rec = summarize_events(approach, model, mine,
+                                       att_build=att_build, build_usd=usd)
+                upsert_summary(args.ver, pdir.name, rec)
+                fixed += 1
+                print(f"  {pdir.name:<14}{approach:<11}{model:<17}"
+                      f"N={rec['N']:>4} RR={100*rec['RR']:.2f}% RPS={rec['RPS']}")
+    print(f"rebuilt {fixed} summary rows -> {build_overall(args.ver)}")
+    return 0

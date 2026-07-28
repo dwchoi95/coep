@@ -23,6 +23,7 @@ COMMANDS = {
     "evaluate": ("evaluate", "main"),  # single-arm evaluation
     "compare": ("compare", "main"),    # one pass, CoEP_L and CoEP_LF
     "stats": ("stats_report", "main"),  # Wilson intervals + exact McNemar
+    "resummarize": ("resummarize", "main"),  # rebuild summary.csv from events
     "tables": ("tables", "main"),       # regenerate the paper's LaTeX bodies
     "numbers": ("numbers", "main"),     # regenerate paper/numbers.tex
     "figures": ("figures", "main"),     # regenerate paper/figures/*.pdf

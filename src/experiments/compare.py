@@ -322,13 +322,13 @@ def main(argv: list[str]) -> int:
     # Summarize the whole file, not just the rows this pass produced: a
     # --only-missing run touches a handful of submissions, but the arm's
     # reported result is the pool.
-    for approach, rows in (
-            ("CoEP_L_fw" if args.framework_only else "CoEP_L",
-             read_events(args.ver, args.problem,
-                         "coep_l_fw" if args.framework_only else "coep_l",
-                         model_label)),
-            ("CoEP_LF", [] if args.framework_only else
-             read_events(args.ver, args.problem, "coep_lf", model_label))):
+    # Only summarize what this pass actually wrote. Upserting another arm's
+    # row from an empty list zeroes a completed measurement, which is exactly
+    # what the ablation did to CoEP_LF before this guard existed.
+    written = ([("CoEP_L_fw", "coep_l_fw")] if args.framework_only
+               else [("CoEP_L", "coep_l"), ("CoEP_LF", "coep_lf")])
+    for approach, stem in written:
+        rows = read_events(args.ver, args.problem, stem, model_label)
         upsert_summary(args.ver, args.problem,
                        summarize_events(approach, model_label, rows,
                                         att_build=att_build,
