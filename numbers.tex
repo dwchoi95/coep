@@ -1,73 +1,76 @@
-% Macros are populated from results/v2 by the full campaign. Each carries the
-% arm, corpus, and denominator it was measured on, because several of them
-% differ between the Refactory corpus (N=1,686) and the whole benchmark
-% (N=2,872), and a macro used under the wrong denominator is the failure mode
-% these comments exist to prevent.
+% Macros are populated from results/v2. Each carries the arm, corpus, and
+% denominator it was measured on, because several of them differ between the
+% Refactory corpus (N=1,783) and the whole benchmark (N=2,970), and a macro used
+% under the wrong denominator is the failure mode these comments exist to
+% prevent.
 
-\newcommand{\NumEval}{2{,}872}   % buggy submissions, noop-excluded, both corpora
-\newcommand{\NumEvalRefac}{1{,}686}  % Refactory corpus, noop-excluded
-\newcommand{\NumEvalCF}{1{,}186}     % Codeforces, noop-excluded
+\newcommand{\NumEval}{2{,}970}   % buggy submissions, both corpora
+\newcommand{\NumEvalRefac}{1{,}783}  % Refactory corpus
+\newcommand{\NumEvalCF}{1{,}187}     % Codeforces
 
 % --- CoEP_L (frozen local tool, zero LLM at deployment), claude-sonnet-5
-\newcommand{\LocalRR}{97.75}     % Refactory corpus
-\newcommand{\LocalRPS}{0.317}    % Refactory corpus, over repaired
-\newcommand{\LocalRRAll}{98.64}  % whole benchmark
-\newcommand{\LocalRPSAll}{0.490} % whole benchmark
+\newcommand{\LocalRR}{97.87}     % Refactory corpus
+\newcommand{\LocalRPS}{0.300}    % Refactory corpus, over repaired
+\newcommand{\LocalRRAll}{98.69}  % whole benchmark
+\newcommand{\LocalRPSAll}{0.474} % whole benchmark
 \newcommand{\LocalRRCF}{99.92}   % Codeforces
-\newcommand{\LocalRPSCF}{0.731}  % Codeforces
+\newcommand{\LocalRPSCF}{0.730}  % Codeforces
 
 % --- CoEP_LF (+ fallback on abstentions and on tau-outlier patches), sonnet
-\newcommand{\HybridRR}{99.23}    % Refactory corpus
-\newcommand{\HybridRPS}{0.289}   % Refactory corpus
-\newcommand{\HybridRRAll}{99.55} % whole benchmark
-\newcommand{\HybridRPSAll}{0.461}
+\newcommand{\HybridRR}{99.27}    % Refactory corpus
+\newcommand{\HybridRPS}{0.273}   % Refactory corpus
+\newcommand{\HybridRRAll}{99.56} % whole benchmark
+\newcommand{\HybridRPSAll}{0.446}
 \newcommand{\HybridRRCF}{100.00} % Codeforces
-\newcommand{\HybridRPSCF}{0.704}
+\newcommand{\HybridRPSCF}{0.703}
 
-% --- baselines (all three complete over the whole benchmark, N=2,872)
-\newcommand{\PydexRRMini}{98.89}     % PyDex gpt-5.4-mini
-\newcommand{\PydexRPSMini}{0.663}
+% --- baselines over the whole benchmark, N=2,970
+\newcommand{\PydexRRMini}{98.92}     % PyDex gpt-5.4-mini
+\newcommand{\PydexRPSMini}{0.670}
 \newcommand{\PydexATTMini}{2.14}
-\newcommand{\PydexUsdMini}{27.48}
-\newcommand{\PydexPCUsdMini}{22.76}
-\newcommand{\RefacRPSAll}{0.500}     % our run, whole benchmark, wrapper stripped
-\newcommand{\RefacRR}{90.8}      % Refactory, its own published corpus result
-\newcommand{\RefacRPS}{0.40}
-\newcommand{\RefacRRCF}{78.59}   % Refactory, our run on Codeforces
-\newcommand{\RefacRPSCF}{0.679}  % recomputed on our footing (wrapper stripped)
-\newcommand{\PydexRR}{98.52}     % PyDex sonnet, Refactory corpus
-\newcommand{\PydexRPS}{0.358}
-\newcommand{\PydexRRAll}{98.89}  % PyDex sonnet, whole benchmark
-\newcommand{\PydexRPSAll}{0.591}
+\newcommand{\PydexUsdMini}{28.42}
+\newcommand{\PydexPCUsdMini}{23.50}
+\newcommand{\PydexRR}{98.60}     % PyDex sonnet, Refactory corpus
+\newcommand{\PydexRPS}{0.382}
+\newcommand{\PydexRRAll}{98.96}  % PyDex sonnet, whole benchmark
+\newcommand{\PydexRPSAll}{0.598}
+% Refactory: published figures on its own five assignments, our run on Codeforces
+\newcommand{\RefacRR}{90.80}     % Refactory corpus, N=1,783
+\newcommand{\RefacRPS}{0.397}
+\newcommand{\RefacRRAll}{85.93}  % whole benchmark
+\newcommand{\RefacRPSAll}{0.500}
+\newcommand{\RefacRRCF}{78.60}   % Codeforces, our run
+\newcommand{\RefacRPSCF}{0.679}
 
 % --- cost (USD totals over the whole benchmark unless noted)
-\newcommand{\PydexUsd}{287.44}       % PyDex sonnet, N=2,872
-\newcommand{\PydexPCUsd}{258.50}     % same queries under prompt caching
-\newcommand{\CacheSavingFrac}{10.1}  % (287.44-258.50)/287.44
-\newcommand{\HybridUsd}{4.15}        % CoEP_LF sonnet: build 2.84 + API 1.31
-\newcommand{\HybridUsdMini}{0.48}    % CoEP_LF gpt-mini: build 0.26 + API 0.22
-\newcommand{\BuildUsdSonnet}{2.84}   % 11 tools, claude-sonnet
-\newcommand{\BuildUsdMini}{0.258}    % 11 tools, gpt-5.4-mini
-\newcommand{\CostRatio}{69}          % PydexUsd / HybridUsd
-\newcommand{\CostRatioMini}{599}     % PydexUsd / HybridUsdMini
+\newcommand{\PydexUsd}{292.81}       % PyDex sonnet, N=2,970
+\newcommand{\PydexPCUsd}{263.09}     % same queries under prompt caching
+\newcommand{\CacheSavingFrac}{10.2}  % (292.81-263.09)/292.81
+\newcommand{\HybridUsd}{6.33}        % CoEP_LF sonnet: build 5.02 + API 1.31
+\newcommand{\HybridUsdMini}{0.71}    % CoEP_LF gpt-mini: build 0.28 + API 0.43
+\newcommand{\BuildUsdSonnet}{5.02}   % 11 tools, claude-sonnet
+\newcommand{\BuildUsdMini}{0.279}    % 11 tools, gpt-5.4-mini
+\newcommand{\CostRatio}{46}          % PydexUsd / HybridUsd
+\newcommand{\CostRatioMini}{412}     % PydexUsd / HybridUsdMini
 
 % --- turnaround (seconds per submission, whole benchmark)
-\newcommand{\HybridATT}{2.28}
-\newcommand{\LocalATT}{1.92}
-\newcommand{\PydexATT}{14.86}
-\newcommand{\RefacATT}{5.63}
+\newcommand{\HybridATT}{2.20}
+\newcommand{\LocalATT}{1.86}
+\newcommand{\PydexATT}{14.64}
+\newcommand{\RefacATT}{5.62}
 
-% --- RQ4 repair-source split (CoEP_L sonnet, 2,833 repairs)
-\newcommand{\RuleShare}{15.8}    % percent of local repairs from named rules
+% --- RQ4 repair-source split (CoEP_L sonnet), over the repairs that edited the
+% program: 2,833 of 2,931, the rest being submissions the tool returned as-is
+\newcommand{\RuleShare}{15.8}    % percent of edited local repairs from named rules
 \newcommand{\RuleRPS}{0.063}     % mean RPS of rule repairs
 \newcommand{\RefShare}{84.2}     % percent from reference transplant
 \newcommand{\RefRPS}{0.570}
 
 % --- RQ5 escalation gate (claude-sonnet)
-\newcommand{\GateFired}{206}     % submissions routed by tau, whole benchmark
-\newcommand{\GateRate}{7.3}      % percent of locally repaired submissions
+\newcommand{\GateFired}{245}     % submissions routed by tau, whole benchmark
+\newcommand{\GateRate}{8.4}      % percent of locally repaired submissions
 \newcommand{\GateWon}{135}       % of those, model returned the smaller patch
-\newcommand{\GateWinFrac}{65.5}  % GateWon / GateFired
+\newcommand{\GateWinFrac}{55.1}  % GateWon / GateFired
 \newcommand{\GateUsd}{1.31}      % total escalation spend, whole benchmark
 
 % --- RQ6 self-learning (frozen augmented tool vs frozen base tool)
@@ -77,7 +80,13 @@
 \newcommand{\SLcfBase}{98.55}    % cf_1011B CoEP_L, sonnet
 \newcommand{\SLcfAug}{100.00}    % cf_1011B CoEP_L+SL, sonnet
 
-% --- prose constants carried over from the cost anatomy
-\newcommand{\PrefixFrac}{55}
-\newcommand{\BaseInTok}{439}
-\newcommand{\BaseOutTok}{94}
+% --- Table 1 cells (whole benchmark). Defined here rather than typed into the
+% table so a re-run updates the table with everything else; hard-coded cells
+% silently kept the previous campaign's figures once already.
+\newcommand{\LocalATTMini}{1.69}
+\newcommand{\HybridATTMini}{1.87}
+\newcommand{\LocalRRAllMini}{98.69}
+\newcommand{\LocalRPSAllMini}{0.476}
+\newcommand{\HybridRRAllMini}{99.53}
+\newcommand{\HybridRPSAllMini}{0.441}
+
