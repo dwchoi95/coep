@@ -20,7 +20,7 @@ from src.utils.metrics import rps
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py repair")
     ap.add_argument("--problem", required=True)
-    ap.add_argument("--model", default="claude-haiku")
+    ap.add_argument("--model", default="claude-sonnet-5")
     ap.add_argument("--file", required=True, help="path to a buggy .py submission")
     ap.add_argument("--no-fallback", action="store_true")
     ap.add_argument("--data-root", default="data")
@@ -33,7 +33,7 @@ def main(argv: list[str]) -> int:
     correct = load_pool(args.problem, "correct", args.data_root)
     index = ReferenceIndex(correct)
 
-    budget = SearchBudget(max_candidates=150, max_combo=2, candidate_timeout=3)
+    budget = SearchBudget()
     res = local_repair(buggy, prob, rules, index, budget)
     if res.repaired:
         via = (f"rules {list(res.rules)}" if res.source == "rules"

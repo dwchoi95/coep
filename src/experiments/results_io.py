@@ -95,6 +95,23 @@ def write_events(ver: str, pid: str, approach_file: str, rows: list[dict]) -> Pa
     return path
 
 
+def read_events(ver: str, pid: str, approach_file: str,
+                model: str | None = None) -> list[dict]:
+    """This arm's rows as already written, optionally for one model only.
+
+    A partial pass must summarize the whole file rather than the handful of
+    rows it happened to produce, or the summary silently narrows to that
+    handful while the event file still holds everything.
+    """
+    path = ROOT / "results" / ver / pid / f"{approach_file}.csv"
+    if not path.exists():
+        return []
+    df = pd.read_csv(path)
+    if model is not None:
+        df = df[df.Model.astype(str) == str(model)]
+    return df.to_dict("records")
+
+
 def summarize_events(approach: str, model: str, rows: list[dict],
                      att_build: float = 0.0, build_usd: float = 0.0,
                      rules_build=(), rules_add=()) -> dict:

@@ -8,11 +8,8 @@ reuse) and ``none`` otherwise; submissions the adapter could not export are
 rows with Fixed=False (shared full denominator). Refactory has no LLM columns
 (ATT_api/InT/OuT/$API/$Build = 0) and no rules.
 
-Submissions that already pass the full suite are excluded, matching what the
-CoEP and PyDex runners do. They are not bugs, and counting them would inflate
-whichever arm's denominator happened to include them -- on cf_125A it was the
-difference between N=38 here and N=37 there, and a rate is not comparable
-across two denominators.
+Every submission the corpus labels buggy is a repair target for every arm, so
+the denominator is the pool as published and is identical across arms.
 
 RPS is recomputed from the returned patch rather than read from their CSV.
 Refactory rewrites each program into ``def main(): try: <body> except _Exit:
@@ -34,12 +31,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.experiments._common import load_problem
 from src.utils.metrics import rps as compute_rps
 from src.experiments.results_io import (build_overall, event_row,
                                         summarize_events, upsert_summary,
                                         write_events)
-from src.runner.testing import run_tests
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -78,20 +73,31 @@ def unwrap(src: str) -> str:
         return src
 
 
+def source_csv(pid: str) -> Path:
+    """Where this problem's Refactory output lives.
+
+    Codeforces problems were run by us into ``data_cf``. The five Refactory
+    assignments ship the authors' own run of their tool on their own data
+    (``data/question_N``), which is the tool at the configuration they report;
+    re-running it could only reproduce that less faithfully. Either way the
+    patch is re-measured here on our footing, which is the whole point.
+    """
+    if pid.startswith("refactory_q"):
+        return (ROOT / "baselines" / "refactory" / "data"
+                / f"question_{pid.rsplit('_q', 1)[1]}" / "refactory_online.csv")
+    return ROOT / "baselines" / "refactory" / "data_cf" / pid / "refactory_online.csv"
+
+
 def collect(pid: str, ver: str = "v2") -> dict:
-    csv = ROOT / "baselines" / "refactory" / "data_cf" / pid / "refactory_online.csv"
+    csv = source_csv(pid)
     df = pd.read_csv(csv, keep_default_na=False)
     by_name = {r["File Name"]: r for _, r in df.iterrows()}
-    prob = load_problem(pid)
     buggy_dir = ROOT / "data" / pid / "buggy"
     all_buggy = sorted(p.name for p in buggy_dir.glob("*.py"))
 
-    rows, noop = [], 0
+    rows = []
     for name in all_buggy:
         stem = name[:-3]
-        if run_tests((buggy_dir / name).read_text(), prob).all_pass:
-            noop += 1                          # not a bug; excluded everywhere
-            continue
         r = by_name.get(name)
         if r is None:                          # adapter could not export it
             rows.append(event_row(stem, "none", "none", False))
@@ -117,7 +123,7 @@ def collect(pid: str, ver: str = "v2") -> dict:
     write_events(ver, pid, "refactory", rows)
     summ = summarize_events("Refactory", "none", rows)
     upsert_summary(ver, pid, summ)
-    print(f"{pid}: {len(rows)} buggy ({noop} noop excluded), "
+    print(f"{pid}: {len(rows)} submissions, "
           f"RR={100*summ['RR']:.2f}% RPS={summ['RPS']:.4f}")
     return summ
 

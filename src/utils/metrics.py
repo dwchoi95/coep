@@ -16,7 +16,6 @@ argument / literal when present, else the AST class name, with ``Module``,
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 try:
     from zss import Node, simple_distance
@@ -132,10 +131,8 @@ def count_tokens(text: str) -> int:
 
 # ------------------------------------------------------------------ cost
 PRICES = {  # USD per million tokens, (input, output)
-    "claude-sonnet": (2.00, 10.00),      # Claude Sonnet 5 (introductory pricing through 2026-08-31)
-    "claude-haiku": (1.00, 5.00),        # Claude Haiku 4.5
-    "gpt-mini": (0.75, 4.50),            # GPT-5.4-mini (cached input $0.075 = 0.1x)
-    "gpt-nano": (0.05, 0.40),            # GPT-5.4-nano
+    "claude-sonnet-5": (2.00, 10.00),    # introductory pricing through 2026-08-31
+    "gpt-5.4-mini": (0.75, 4.50),        # cached input $0.075 = 0.1x
     "gpt-4o": (2.50, 10.00),
     "gpt-4o-mini": (0.15, 0.60),
     "qwen2.5-coder-7b-local": (0.0, 0.0),  # self-hosted: measured separately
@@ -143,7 +140,7 @@ PRICES = {  # USD per million tokens, (input, output)
 CACHE_READ_MULT, CACHE_WRITE_MULT = 0.1, 1.25
 
 
-def cost_usd(in_tokens: int, out_tokens: int, model: str = "claude-sonnet",
+def cost_usd(in_tokens: int, out_tokens: int, model: str = "claude-sonnet-5",
              cache_read: int = 0, cache_write: int = 0) -> float:
     """Provider-aware billing. Anthropic reports input_tokens EXCLUDING cache
     reads/writes (separate fields, write 1.25x / read 0.1x); OpenAI reports
@@ -157,69 +154,3 @@ def cost_usd(in_tokens: int, out_tokens: int, model: str = "claude-sonnet",
             + out_tokens * pout) / 1e6
 
 
-# ------------------------------------------------------------------ arm-level
-@dataclass
-class ArmSummary:
-    """Aggregate of one experimental arm over a problem's evaluation set."""
-    n: int = 0
-    repaired: int = 0
-    rps_sum: float = 0.0
-    seconds_sum: float = 0.0
-    in_tokens: int = 0
-    out_tokens: int = 0
-    usd: float = 0.0
-
-    def add(self, repaired: bool, seconds: float, patch_rps: float | None = None,
-            in_tokens: int = 0, out_tokens: int = 0, usd: float = 0.0) -> None:
-        self.n += 1
-        self.seconds_sum += seconds
-        self.in_tokens += in_tokens
-        self.out_tokens += out_tokens
-        self.usd += usd
-        if repaired:
-            self.repaired += 1
-            if patch_rps is not None:
-                self.rps_sum += patch_rps
-
-    @property
-    def RR(self) -> float:
-        """Repair rate (%): fraction of evaluation programs repaired."""
-        return 100.0 * self.repaired / self.n if self.n else 0.0
-
-    @property
-    def RPS(self) -> float:
-        """Mean relative patch size over repaired programs."""
-        return self.rps_sum / self.repaired if self.repaired else 0.0
-
-    @property
-    def ATT(self) -> float:
-        """Average time taken per buggy program, end to end (local + API), sec."""
-        return self.seconds_sum / self.n if self.n else 0.0
-
-    @property
-    def InT(self) -> float:
-        return self.in_tokens / self.n if self.n else 0.0
-
-    @property
-    def OuT(self) -> float:
-        return self.out_tokens / self.n if self.n else 0.0
-
-    @property
-    def Cost(self) -> float:
-        """USD per buggy program."""
-        return self.usd / self.n if self.n else 0.0
-
-    def as_dict(self) -> dict:
-        return {"n": self.n, "RR": round(self.RR, 2), "RPS": round(self.RPS, 4),
-                "ATT": round(self.ATT, 3), "InT": round(self.InT, 1),
-                "OuT": round(self.OuT, 1), "Cost": self.Cost}
-
-
-def wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
-    if n == 0:
-        return (0.0, 0.0)
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / d
-    return (100 * max(0.0, c - h), 100 * min(1.0, c + h))

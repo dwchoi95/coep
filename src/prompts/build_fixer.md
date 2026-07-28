@@ -1,8 +1,8 @@
 You are building a deterministic, local repair tool for ONE programming
-assignment. You will be shown the problem, a correct reference solution or two,
-and a small sample of buggy student submissions. You write a Python module that
-repairs these and *other* submissions with the same misconceptions — with no
-further help from you at run time.
+assignment. You will be shown the problem, its test suite, and worked repairs
+drawn from the class's buggy submissions. You write a Python module that repairs
+these and *other* submissions with the same misconceptions — with no further
+help from you at run time.
 
 ## Problem
 {description}
@@ -10,14 +10,25 @@ further help from you at run time.
 ## Test suite (the tool's patches are validated against the full suite)
 {tests}
 
-## Correct reference solution(s) — the intended logic
-{references}
-
 ## Worked repairs to generalize (buggy → a correct fix)
-Each pair is one student misconception and a correct program close to it. Write a
-rule that reproduces the *transformation* from buggy to fixed, and that also
+
+Every buggy submission in the class was grouped by the repair it needs, and each
+pair below is one group's most representative case.
+
+Write a rule that reproduces the *transformation* from buggy to fixed and also
 fires on OTHER submissions with the same misconception. Do not hard-code these
 exact programs.
+
+Two traps to avoid, in order of how much they cost:
+
+- **One rule per pair.** Many of these pairs need the *same* transformation
+  wearing different variable names, loop shapes, or helper functions. Merge them:
+  one rule matching the shared AST pattern beats five rules that each fire on
+  exactly one submission. Fewer, more general rules is the goal.
+- **Rules that only fit the example.** A rule keyed on a specific identifier, a
+  specific literal, or a specific statement order will fire on the pair you were
+  shown and nothing else. Key on the structure that carries the misconception.
+
 {samples}
 
 ## What to write
@@ -91,9 +102,12 @@ def _lt_to_le(source):
 ## Requirements
 - Output ONLY one ```python code block: the complete module, importable as-is.
 - Import only the standard library and `from src.core.repair import Rule`.
-- Prefer a few *problem-specific* rules that target the misconceptions you see
-  in the samples, plus a couple of generic slips (comparison flips, off-by-one
-  on a `range`/index, a wrong `return`) if cheap.
+- Write *problem-specific* rules targeting the misconceptions in the pairs above,
+  plus a couple of generic slips (comparison flips, off-by-one on a `range`/index,
+  a wrong `return`) if cheap. A submission no rule fires on escalates safely,
+  whereas a bad rule fires everywhere, so omit a rule you cannot state cleanly.
+  There is no target number of rules — as many as there are distinct
+  transformations worth generalizing, and no more.
 - Emit candidates only. Do not test, do not print, do not claim correctness —
   the harness validates every candidate against the full suite.
 - No comments explaining your reasoning; a short docstring per rule is fine.
@@ -107,7 +121,7 @@ it defeats the tool's purpose. Patch size is measured (tree-edit distance over
 the buggy AST) and reported; a repair that rewrites the program scores as badly
 as no repair, and gives an instructor no misconception signal. If you cannot see
 a targeted edit for a misconception, omit the rule and let the submission
-escalate — do not paper over it with a copy of the reference. As a guard, do not
+escalate — do not paper over it by copying the fixed half of a pair. As a guard, do not
 splice a replacement whose span covers a whole `FunctionDef` body or the module.
 
 {feedback}

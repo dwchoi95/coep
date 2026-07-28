@@ -21,7 +21,7 @@ from src.utils.metrics import rps
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py evaluate")
     ap.add_argument("--problem", required=True)
-    ap.add_argument("--model", default="claude-sonnet")
+    ap.add_argument("--model", default="claude-sonnet-5")
     ap.add_argument("--limit", type=int, default=0, help="0 = all buggy programs")
     ap.add_argument("--fallback", action="store_true", help="escalate abstentions")
     ap.add_argument("--learn", action="store_true", help="absorb fallback fixes")
@@ -37,10 +37,10 @@ def main(argv: list[str]) -> int:
     correct = load_pool(args.problem, "correct", args.data_root)
     fpath = tool_path(args.problem, args.model)
 
-    budget = SearchBudget(max_candidates=150, max_combo=2, candidate_timeout=3)
+    budget = SearchBudget()
     index = ReferenceIndex(correct)        # correct pool prepared once
     prov = ProvenanceLog()
-    n = noop = by_rules = by_ref = fb_fixed = absorbed = 0
+    n = by_rules = by_ref = fb_fixed = absorbed = 0
     rps_sum = seconds = usd = 0.0
     in_tok = out_tok = 0
 
@@ -51,9 +51,6 @@ def main(argv: list[str]) -> int:
             rules = load_fixer(fpath)      # pick up rules learned this run
         t = time.time()
         res = local_repair(src, prob, rules, index, budget)
-        if res.source == "noop":           # already passes: not a buggy program
-            noop += 1
-            continue
         if res.repaired:
             rps_sum += rps(src, res.patch)
             seconds += time.time() - t
@@ -80,8 +77,8 @@ def main(argv: list[str]) -> int:
 
     local = by_rules + by_ref
     repaired = local + fb_fixed
-    buggy_n = n - noop                      # exclude already-passing programs
-    print(f"=== {args.problem} [{args.model}] on {n} programs ({buggy_n} buggy, {noop} noop) ===")
+    buggy_n = n
+    print(f"=== {args.problem} [{args.model}] on {n} submissions ===")
     print(f"RR = {repaired}/{buggy_n} = {repaired/max(1,buggy_n):.2%}  "
           f"(local {local} = rules {by_rules} + reference {by_ref}, fallback {fb_fixed})")
     if repaired:

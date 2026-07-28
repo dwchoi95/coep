@@ -13,14 +13,11 @@ oracle-rejected candidates. ATT_api is the summed call latency; ATT_cpu is the
 remaining wall time (candidate executions, retrieval, selection).
 
 PyDex_PC is a documented-rules UPPER BOUND on what provider caching could
-deliver for these exact queries (empirically, haiku-4-5 refuses prompts below
-its 4,096-token minimum and gpt-5.4-nano's automatic caching did not engage at
-all in our probes): cross-submission reuse is impossible (the buggy-first
+deliver for these exact queries: cross-submission reuse is impossible (the buggy-first
 layout shares a ~13-token leading prefix), so the only cacheable structure is
 the K identical prompts *within* one submission — modeled as first call full
 price, the remaining K-1 prompts read at 0.1x (write 1.25x on Anthropic, free
-on pre-5.6 OpenAI), gated on each provider's cacheable minimum (4,096 tokens
-for claude-haiku-4-5; 1,024 for gpt-5.4-nano). The PyDex arm itself is billed
+on pre-5.6 OpenAI), gated on each provider's 1,024-token cacheable minimum. The PyDex arm itself is billed
 from raw token counts at full rates, so no incidental provider cache hit can
 leak a discount into the uncached baseline.
 """
@@ -30,42 +27,36 @@ import argparse
 import time
 from pathlib import Path
 
-from baselines.pydex.pydex import (K_DEFAULT, ShotBank, repair,
-                                   zero_shot_prompt)
+from baselines.pydex.pydex import K_DEFAULT, ShotBank, repair
 from src.experiments._common import load_env, load_problem
-from src.experiments.results_io import (event_row, summarize_events,
+from src.experiments.results_io import (event_row, read_events, summarize_events,
                                         upsert_summary, write_events)
-from src.runner.testing import run_tests
-from src.utils.metrics import PRICES, count_tokens, rps
+from src.utils.metrics import PRICES, rps
 
-MODEL_LABEL = {"claude-sonnet": "claude-sonnet-5", "gpt-mini": "gpt-5.4-mini",
-               "claude-haiku": "claude-haiku-4-5", "gpt-nano": "gpt-5.4-nano"}
-CACHE_MIN = {"claude-sonnet": 1024, "gpt-mini": 1024,   # provider cacheable minimums
-             "claude-haiku": 4096, "gpt-nano": 1024}
+CACHE_MIN = {"claude-sonnet-5": 1024, "gpt-5.4-mini": 1024}  # cacheable minimums
 CACHE_READ = 0.1
-CACHE_WRITE = {"claude-sonnet": 1.25, "claude-haiku": 1.25,
-               "gpt-mini": 0.0, "gpt-nano": 0.0}        # gpt-5.4 family: writes free
+CACHE_WRITE = {"claude-sonnet-5": 1.25,
+               "gpt-5.4-mini": 0.0}       # gpt-5.4 family: writes free
 
 
-def _shared_prefix_tokens(problem: dict) -> int:
-    """Tokens of the longest submission-independent LEADING segment."""
-    a = zero_shot_prompt("PROBE_A", problem)
-    b = zero_shot_prompt("PROBE_B", problem)
-    i = 0
-    while i < min(len(a), len(b)) and a[i] == b[i]:
-        i += 1
-    return count_tokens(a[:i])
+def _existing_stems(ver: str, pid: str, model_label: str) -> set[str]:
+    """Submissions this model has already been queried on for this problem."""
+    return {str(r["Buggy"]) for r in read_events(ver, pid, "pydex", model_label)}
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py pydex")
     ap.add_argument("--problem", required=True)
-    ap.add_argument("--model", default="claude-sonnet")
+    ap.add_argument("--model", default="claude-sonnet-5")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--k", type=int, default=K_DEFAULT,
                     help="candidates per prompt (paper: 10)")
     ap.add_argument("--data-root", default="data")
     ap.add_argument("--ver", default="v2")
+    ap.add_argument("--only-missing", action="store_true",
+                    help="query only submissions with no row yet for this model, "
+                         "and merge; every query costs, so a widened pool should "
+                         "not repurchase the answers already on disk")
     args = ap.parse_args(argv)
     load_env()
 
@@ -74,7 +65,16 @@ def main(argv: list[str]) -> int:
     files = sorted((data_dir / "buggy").glob("*.py"))
     if args.limit:
         files = files[:args.limit]
-    model_label = MODEL_LABEL.get(args.model, args.model)
+    model_label = args.model
+
+    if args.only_missing:
+        done = _existing_stems(args.ver, args.problem, model_label)
+        skipped = [f for f in files if f.stem in done]
+        files = [f for f in files if f.stem not in done]
+        print(f"{args.problem} [{model_label}]: {len(skipped)} already on disk, "
+              f"{len(files)} to query")
+        if not files:
+            return 0
 
     bank = ShotBank(prob, data_dir)
     mode = "few-shot" if bank.entries else "zero-shot"
@@ -83,12 +83,8 @@ def main(argv: list[str]) -> int:
     w_mult = CACHE_WRITE.get(args.model, 1.25)
 
     rows, rows_pc = [], []
-    noop = 0
     for f in files:
         src = f.read_text()
-        if run_tests(src, prob).all_pass:
-            noop += 1
-            continue
         t0 = time.time()
         res = repair(src, prob, model=args.model, k=args.k, bank=bank)
         wall = time.time() - t0
@@ -116,17 +112,23 @@ def main(argv: list[str]) -> int:
 
     write_events(args.ver, args.problem, "pydex", rows)
     write_events(args.ver, args.problem, "pydex_pc", rows_pc)
+    # Summarize what is on disk, not what this pass happened to query: a
+    # --only-missing run touches a handful of submissions but the arm's result
+    # is still the whole pool.
+    all_rows = read_events(args.ver, args.problem, "pydex", model_label)
+    all_pc = read_events(args.ver, args.problem, "pydex_pc", model_label)
     upsert_summary(args.ver, args.problem,
-                   summarize_events("PyDex", model_label, rows))
+                   summarize_events("PyDex", model_label, all_rows))
     upsert_summary(args.ver, args.problem,
-                   summarize_events("PyDex_PC", model_label, rows_pc))
+                   summarize_events("PyDex_PC", model_label, all_pc))
 
-    n = len(rows)
-    fixed = sum(r["Fixed"] for r in rows)
-    usd = sum(r["$API"] for r in rows)
-    usd_pc = sum(r["$API"] for r in rows_pc)
+    n = len(all_rows)
+    fixed = sum(r["Fixed"] for r in all_rows)
+    usd = sum(r["$API"] for r in all_rows)          # arm total, all on disk
+    usd_pc = sum(r["$API"] for r in all_pc)
+    spent = sum(r["$API"] for r in rows)            # what this pass bought
     print(f"=== {args.problem} PyDex/{mode} [{model_label}] K={args.k} "
-          f"{n} buggy ({noop} noop excluded) ===")
+          f"{n} submissions (this pass queried {len(rows)}, ${spent:.4f}) ===")
     print(f"RR={100*fixed/max(1,n):.2f}%  $API={usd:.4f}  PC $API={usd_pc:.4f} "
           f"(cache minimum {cache_min} tok for {model_label})")
     print(f"results -> results/{args.ver}/{args.problem}/")

@@ -63,14 +63,14 @@ def _render_tests(problem: dict, limit: int = 6) -> str:
 
 
 def fallback_repair(buggy: str, problem: dict, reference_pool: list[str],
-                    model: str = "claude-sonnet", llm_fn=None, rng=None) -> FallbackResult:
+                    model: str = "claude-sonnet-5", llm_fn=None) -> FallbackResult:
     """Escalate one buggy program to the LLM with a strategy-matched reference.
 
     ``llm_fn(prompt, model)`` overrides the real API for testing; it must return
     an object with ``.code``, ``.in_tokens``, ``.out_tokens``, ``.seconds``,
     ``.usd`` (as :class:`src.utils.llm.Completion` does).
     """
-    r = nearest_reference(buggy, reference_pool, rng=rng)
+    r = nearest_reference(buggy, reference_pool)
     prompt = render("fallback",
                     description=problem.get("description", ""),
                     tests=_render_tests(problem),
@@ -108,7 +108,7 @@ def _symptoms(source: str, problem: dict) -> str:
 
 
 def absorb(fixer_path: str | Path, buggy: str, fixed: str, problem: dict,
-           model: str = "claude-haiku", llm_fn=None,
+           model: str = "claude-sonnet-5", llm_fn=None,
            budget: SearchBudget | None = None) -> AbsorbResult:
     """Generalize one fallback repair into a new rule and append it to the tool.
 

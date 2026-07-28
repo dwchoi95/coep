@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from src.core.cluster import structural_features
 from src.runner.testing import run_batch, run_tests
-from src.utils.metrics import ast_size, rps
+from src.utils.metrics import rps
 
 
 @dataclass

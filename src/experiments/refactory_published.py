@@ -1,7 +1,13 @@
 """Enter Refactory's published numbers (its own corpus) into the unified
-summary CSVs, per protocol: on refactory_q1..q5 we do not re-run the tool —
+summary CSVs, per protocol: on refactory_q1..q5 we do not re-run the tool --
 RR/RPS/ATT come verbatim from the paper's strongest configuration
-(per-problem times 3.5/4.8/4.7/8.7/13.1 s; overall 5.5 s).
+(per-problem times 3.5/4.8/4.7/8.7/13.1 s; overall 5.5 s). Quoting the authors
+on their own corpus leaves no room to argue we configured their tool wrongly.
+
+``refactory_results`` can also collect the authors' shipped run of the tool and
+re-measure it on our footing; that output is archived at
+``results/v2/_refactory_ours.json`` and reproduces these published repair rates
+to 0.05 points corpus-wide, but it is not what the paper reports.
 
 Usage: python3 -m src.experiments.refactory_published
 """

@@ -23,6 +23,7 @@ and the evaluation harness apply exactly the same oracle.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -134,20 +135,13 @@ def run_tests(source: str, problem: dict, timeout: float | None = None,
     return res
 
 
-def run_batch(sources: list[str], problem: dict,
-              per_candidate_timeout: float = 3.0,
-              per_test: float = PER_TEST_TIMEOUT,
-              max_pass: int = 1) -> list[bool]:
-    """Test many candidate programs in ONE child process; return all_pass each.
 
-    Spawning a subprocess per candidate dominates repair time when a search
-    tries hundreds of candidates. The child stops once ``max_pass`` candidates
-    have passed every test, so ``max_pass=1`` returns at the first hit (the
-    search wants one), while a larger value collects several passing candidates
-    (e.g. to pick the smallest-RPS among them). Order candidates best-first.
-    """
-    if not sources:
-        return []
+_SHARD_MIN = 64          # below this, one child is cheaper than several
+
+
+def _run_shard(sources: list[str], problem: dict, per_candidate_timeout: float,
+               per_test: float, max_pass: int) -> list[bool]:
+    """Test one shard of candidates in a single child process."""
     payload = {
         "batch": True,
         "sources": sources,
@@ -181,6 +175,54 @@ def run_batch(sources: list[str], problem: dict,
         return [False] * len(sources)
     flags = out.get("pass", [])
     return (flags + [False] * len(sources))[:len(sources)]
+
+
+def run_batch(sources: list[str], problem: dict,
+              per_candidate_timeout: float = 3.0,
+              per_test: float = PER_TEST_TIMEOUT,
+              max_pass: int = 1, workers: int | None = None) -> list[bool]:
+    """Test many candidate programs; return all_pass for each, in order.
+
+    Spawning a subprocess per candidate dominates repair time when a search
+    tries hundreds, so candidates are batched into child processes rather than
+    run one apiece. Without a combination cap a search can produce thousands,
+    which is more than one core should carry, so the batch is split into
+    contiguous shards run concurrently.
+
+    Threads over ``subprocess.run``, not a process pool: the child is already a
+    standalone script, and a ``ProcessPoolExecutor`` would re-import the
+    caller's ``__main__`` in every worker, which turns any unguarded script into
+    a fork bomb. Threads spend their time blocked in ``wait``, so the GIL is
+    not the constraint here.
+
+    Shards are contiguous, so candidate order is preserved and first-hit
+    semantics are unchanged: the caller scans results in order and takes the
+    earliest ``True``. Order candidates best-first.
+    """
+    if not sources:
+        return []
+    if workers is None:
+        workers = max(1, (os.cpu_count() or 2) - 1)
+    if workers <= 1 or len(sources) <= _SHARD_MIN:
+        return _run_shard(sources, problem, per_candidate_timeout, per_test,
+                          max_pass)
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    size = max(1, (len(sources) + workers - 1) // workers)
+    shards = [(i, sources[i:i + size]) for i in range(0, len(sources), size)]
+    out = [False] * len(sources)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_run_shard, part, problem, per_candidate_timeout,
+                               per_test, max_pass): start
+                   for start, part in shards}
+        for fut, start in futures.items():
+            try:
+                flags = fut.result()
+            except Exception:                   # noqa: BLE001 - shard died
+                continue
+            out[start:start + len(flags)] = flags
+    return out
 
 
 def passes(source: str, problem: dict, timeout: float | None = None) -> bool:
