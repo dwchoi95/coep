@@ -104,30 +104,29 @@ them.}
 
 \section{Rule Provenance}
 
-The builders wrote 127 rules that fired, 1{,}216 times between them, against
-the five always-on rules that fired 631 times. The distinction that matters is
-reuse. Exactly one builder-written rule fired on more than one assignment,
-\texttt{add\_missing\_call\_parens}, while \texttt{generic\_flip\_compare}
-alone fired 455 times across 10 of the 11 assignments. The authored layer is
-assignment-specific by construction, which is why it is priced per assignment
-and the always-on layer is not.
+Table~\ref{tab:rules} lists the rules that carry the most submissions, counted
+as distinct submissions rather than as applications, since a repair may compose
+several rules. The distinction that matters is reuse: of the 128 rules the
+builders wrote and that fired, exactly one fired on more than one assignment,
+\texttt{add\_missing\_call\_parens}, which describes a Python trap rather than
+anything about a problem. The always-on rules recur everywhere by construction,
+which is why the builder's layer is priced per assignment and they are not.
 
-The rules that carry the most submissions read as misconceptions rather than as
-patches: \texttt{slice\_case\_check\_to\_equality} (115 repairs on C2),
-\texttt{append\_missing\_return\_len\_after\_loop} (114 on R1),
-\texttt{count\_compare\_relax} (112 on R2), and
-\texttt{strict\_one\_should\_be\_exactly\_one} (96 on R2). On C4 a single rule,
-\texttt{carry\_fix\_two\_value\_print}, repairs 27 of the assignment's 38
-submissions under \texttt{claude-sonnet-5}.
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\input{supp/tab_rules}
+\caption{The eight rules repairing the most submissions.}
+\label{tab:rules}
+\end{table}
 
-The eight rules self-learning absorbed read the same way:
+The eight rules self-learning absorbed read as misconceptions in the same way:
 \texttt{counter\_var\_confusion}, \texttt{uniqueness\_count\_gt1\_to\_neq1},
 \texttt{index\_vs\_count\_and\_uncalled\_bool} and
 \texttt{missing\_else\_false} on R2 with \texttt{claude-sonnet-5};
 \texttt{count\_equality\_for\_uniqueness},
 \texttt{count\_uniqueness\_instead\_of\_direct\_membership} and
-\texttt{missing\_call\_and\_predicate\_fix} on R2 with
-\texttt{gpt-5.4-mini}; and \texttt{binarysearch\_zero\_exit} on C3.
+\texttt{missing\_call\_and\_predicate\_fix} on R2 with \texttt{gpt-5.4-mini};
+and \texttt{binarysearch\_zero\_exit} on C3.
 
 \section{Reproducibility}
 

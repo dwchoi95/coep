@@ -345,6 +345,34 @@ def tab_cost(ver: str) -> str:
             r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out) + "\n"
 
+
+def tab_rules(ver: str) -> str:
+    """The rules that carry the most submissions, counted as submissions."""
+    from collections import defaultdict
+    span, subs = defaultdict(set), defaultdict(set)
+    for m in (FRONTIER, CHEAP):
+        for pid in ORDER:
+            d = pd.read_csv(ROOT / "results" / ver / pid / "coep_l.csv",
+                            keep_default_na=False)
+            d = d[(d.Model == m) & d.Fixed.astype(bool) & (d.Source == "rules")]
+            for _i, r in d.iterrows():
+                for n in set(json.loads(r["Rules_L"])):
+                    span[n].add(IDS[pid]); subs[n].add((pid, str(r["Buggy"])))
+    rows = sorted(subs.items(), key=lambda kv: -len(kv[1]))[:8]
+    out = [r"\begin{tabular}{llrr}", r"\toprule",
+           r"Rule & where & submissions & assignments \\", r"\midrule"]
+    for n, sset in rows:
+        kind = "always-on" if n.startswith("generic_") else ",".join(sorted(span[n]))
+        out.append(f"\\texttt{{{n.replace('_', chr(92)+'_')}}} & {kind} & "
+                   f"{len(sset)} & {len(span[n])} \\\\")
+    au = {n for n in subs if not n.startswith("generic_")}
+    multi = [n for n in au if len(span[n]) > 1]
+    out += [r"\midrule",
+            r"\multicolumn{4}{l}{%d builder-written rules fired, %d on more than "
+            r"one assignment} \\" % (len(au), len(multi)),
+            r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(out) + "\n"
+
 def tab_robust(ver: str) -> str:
     def cell(t):
         return f"{100*t[0]:.1f} / {t[1]:.3f}" if t else "--"
@@ -392,6 +420,7 @@ def main(argv: list[str]) -> int:
         print(f"  spliced {name} into paper/main.tex")
     for name, body in (("tab_source", tab_source(args.ver)),
                        ("tab_cost", tab_cost(args.ver)),
+                       ("tab_rules", tab_rules(args.ver)),
                        ("tab_robust", tab_robust(args.ver)),
                        ):
         (PAPER / "supp" / f"{name}.tex").write_text(body)

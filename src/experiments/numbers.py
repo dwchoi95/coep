@@ -38,7 +38,10 @@ def agg(ver: str, approach: str, model: str | tuple, pids=tuple(ORDER)) -> dict:
             nn = int(c["N"]); r_ = float(c["RR"]); k = round(r_ * nn)
             n += nn; rep += k; rr += r_ * nn
             rps += float(c["RPS"]) * k
-            usd += float(c["$API"]) + float(c["$Build"])
+            if m == models[0]:
+                # cost is never pooled: the two price schedules differ by an
+                # order of magnitude, so a mean of them is a number nobody pays
+                usd += float(c["$API"]) + float(c["$Build"])
     return {"n": n, "rr": 100 * rr / max(n, 1), "rps": rps / max(rep, 1),
             "usd": usd}
 
