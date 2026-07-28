@@ -1,0 +1,135 @@
+\documentclass[letterpaper]{article}
+\usepackage[submission]{aaai2027}
+\usepackage[hyphens]{url}
+\usepackage{graphicx}
+\urlstyle{rm}
+\def\UrlFont{\rm}
+\usepackage{natbib}
+\usepackage{caption}
+\frenchspacing
+\setlength{\pdfpagewidth}{8.5in}
+\setlength{\pdfpageheight}{11in}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{multirow}
+\pdfinfo{/TemplateVersion (2027.1)}
+\setcounter{secnumdepth}{0}
+\renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+\title{Supplementary Document\\
+\large Use LLMs to Build Repair Tools, Not Patch Generation:\\Cost-Effective
+Automated Program Repair}
+\author{Anonymous submission}
+\affiliations{}
+
+\begin{document}
+\maketitle
+
+\noindent This document holds the tables and the figure that the main paper's
+page budget could not carry. Nothing here introduces a claim the paper does not
+already state in prose: each item is the tabular or graphical form of a number
+the Results section gives, provided so a reader can check it against the
+released per-submission logs rather than against a sentence. Assignment ids
+(R1--R5, C1--C6) and all metric definitions are the main paper's.
+
+Every value is generated from \texttt{results/v2/} by the released scripts
+(\texttt{run.py tables}, \texttt{run.py figures}); none is transcribed.
+
+\section{Where the Repairs Come From (RQ3)}
+
+Table~\ref{tab:source} decomposes every repair by the mechanism that produced
+it, with the mean patch size each mechanism leaves and whether its patch carries
+a misconception label. Shares are over repaired submissions under the frontier
+builder; the fallback row belongs to \textsc{CoEP}\textsubscript{LF} and sits
+outside that denominator. The final rows are the framework-only ablation --- the
+identical tool with the LLM-authored rules removed and the generic library and
+transplant left in place, so exactly one layer differs.
+
+\begin{table}[h]
+\centering\small\setlength{\tabcolsep}{5pt}
+\input{supp/tab_source}
+\caption{Repair source, patch size, and diagnosis labelling, with the
+framework-only ablation. The rule layer is the only one that leaves a
+misconception label behind; the transplant is what carries coverage.}
+\label{tab:source}
+\end{table}
+
+\section{What the Conclusion Survives (RQ5)}
+
+Table~\ref{tab:robust} gives the three robustness axes side by side: assignment
+difficulty, the choice of builder, and the escalation threshold. The difficulty
+bands group the eleven assignments as CS1, Codeforces 800--1000, and Codeforces
+1200--2000; the last band folds C6's three submissions in rather than reporting
+them alone.
+
+\begin{table}[h]
+\centering\small\setlength{\tabcolsep}{4pt}
+\input{supp/tab_robust}
+\caption{Difficulty, builder, and escalation threshold. The symbolic baseline
+loses 36 points of repair rate between the easiest and hardest bands while
+\textsc{CoEP}\textsubscript{LF} does not move; the two builders differ by 3\% in
+patch size for an 18-fold difference in build price; and across 29 measured
+threshold settings the repair rate is invariant.}
+\label{tab:robust}
+\end{table}
+
+Figure~\ref{fig:gate} plots every one of those threshold settings against the
+baselines they are compared to. The point of the figure is the emptiness between
+the cluster and the baselines: the entire family of settings spans
+\$12.47--\$15.61 of total spend, so which one is shipped cannot change any
+conclusion the paper draws. The shipped setting --- escalate a passing local
+patch whose $\mathrm{RPS}$ exceeds 1 --- is marked with a star and is the
+canonical \textsc{CoEP}\textsubscript{LF} run, not the sweep's reconstruction of
+it.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_gate.pdf}
+\caption{Mean RPS against total API spend for the benchmark. Each small marker
+is one escalation-threshold setting; the star is the shipped rule. Repair rate
+is identical across all of them, so this plane is the whole trade-off.}
+\label{fig:gate}
+\end{figure}
+
+\section{Rule Provenance}
+
+The builder authored 91 rules that fired at least once, against the shared
+generic library's 5; they fired 789 times against the library's 293. The
+distinction that matters is reuse. Exactly one authored rule fired on more than
+one assignment, while \texttt{generic\_flip\_compare} alone fired 198 times
+across 8 of the 11 assignments, \texttt{generic\_shift\_range} 43 times across
+6, and \texttt{generic\_shift\_index} 16 times across 5. The authored layer is
+assignment-specific by construction, which is why it is priced per assignment
+and the generic layer is not.
+
+The most-fired authored rules are single-assignment and legible as
+misconceptions rather than as patches: \texttt{slice\_case\_check\_to\_equality}
+(115 firings), \texttt{count\_compare\_relax} (112),
+\texttt{append\_missing\_return\_len\_after\_loop} (108),
+\texttt{capitalize\_title\_to\_swapcase} (45), and
+\texttt{undefined\_domain\_var\_rename} (28). On C4 a single rule,
+\texttt{carry\_fix\_two\_value\_print}, repairs 27 of the assignment's 38
+submissions.
+
+The rules self-learning absorbed read the same way:
+\texttt{uniqueness\_count\_gt1\_to\_neq1},
+\texttt{counter\_var\_confusion},
+\texttt{index\_vs\_count\_and\_uncalled\_bool} and
+\texttt{missing\_else\_false} on R2 with the frontier builder;
+\texttt{count\_equality\_for\_uniqueness},
+\texttt{count\_uniqueness\_instead\_of\_direct\_membership} and
+\texttt{missing\_call\_and\_predicate\_fix} on R2 with the cheap one; and
+\texttt{binarysearch\_zero\_exit} on C3.
+
+\section{Released Artifacts}
+
+The repository contains the harness, the dataset-import pipeline, every prompt,
+the synthesized repairers and their build logs, the raw model responses, and the
+per-submission event logs each arm wrote. Four commands regenerate every number
+in both documents from those logs: \texttt{run.py stats} (Wilson intervals and
+exact McNemar), \texttt{run.py tables}, \texttt{run.py numbers}, and
+\texttt{run.py figures}. The 29 measured threshold settings are archived as
+\texttt{results/v2/threshold\_sweep.json}.
+
+\end{document}

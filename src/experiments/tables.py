@@ -1,11 +1,10 @@
-"""`run.py tables` — regenerate every LaTeX table body and macro from results/.
+"""`run.py tables` — regenerate the paper's generated table blocks.
 
-The paper's tables are ``\\input`` bodies rather than hand-written rows, so a
-completed run is one command away from a compiled PDF and no number is ever
-transcribed by hand. Everything here reads results/<ver>/, which the collectors
-own; nothing is recomputed from the tools.
-
-Writes paper/tab_effect.tex, tab_source.tex, tab_robust.tex and numbers.tex.
+Table rows are generated rather than typed, so a completed run is one command
+away from a compiled PDF and no number is transcribed by hand. Everything here
+reads results/<ver>/, which the collectors own; nothing is recomputed from the
+tools. The main paper is a single main.tex, so the rows are spliced into its
+marked block; the supplementary document keeps its own.
 """
 from __future__ import annotations
 
@@ -14,6 +13,8 @@ import json
 from pathlib import Path
 
 import pandas as pd
+
+from src.experiments.splice import splice
 
 ROOT = Path(__file__).resolve().parents[2]
 PAPER = ROOT / "paper"
@@ -220,9 +221,10 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py tables")
     ap.add_argument("--ver", default="v2")
     args = ap.parse_args(argv)
-    for name, body in (("tab_effect", tab_effect(args.ver)),
-                       ("tab_source", tab_source(args.ver)),
+    splice("tab_effect", tab_effect(args.ver), "run.py tables")
+    print("  spliced tab_effect into paper/main.tex")
+    for name, body in (("tab_source", tab_source(args.ver)),
                        ("tab_robust", tab_robust(args.ver))):
-        (PAPER / f"{name}.tex").write_text(body)
-        print(f"  wrote paper/{name}.tex")
+        (PAPER / "supp" / f"{name}.tex").write_text(body)
+        print(f"  wrote paper/supp/{name}.tex")
     return 0
