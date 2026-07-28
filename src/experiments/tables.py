@@ -221,8 +221,10 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py tables")
     ap.add_argument("--ver", default="v2")
     args = ap.parse_args(argv)
-    splice("tab_effect", tab_effect(args.ver), "run.py tables")
-    print("  spliced tab_effect into paper/main.tex")
+    for name, body in (("tab_effect", tab_effect(args.ver)),
+                       ("tab_source", tab_source(args.ver))):
+        splice(name, body, "run.py tables")
+        print(f"  spliced {name} into paper/main.tex")
     for name, body in (("tab_source", tab_source(args.ver)),
                        ("tab_robust", tab_robust(args.ver))):
         (PAPER / "supp" / f"{name}.tex").write_text(body)
