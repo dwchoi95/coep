@@ -183,7 +183,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--tools-root", default="tools",
                     help="read tools from this root; pair with build's "
                          "--tools-root to evaluate an alternate configuration")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     ap.add_argument("--gate-mode", default="pool", choices=["pool", "crossfit"],
                     help="pool: one threshold fitted on every calibration "
                          "patch (what a deployment ships). crossfit: each "

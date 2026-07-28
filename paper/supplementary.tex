@@ -26,110 +26,123 @@ Automated Program Repair}
 \begin{document}
 \maketitle
 
-\noindent This document holds the tables and the figure that the main paper's
-page budget could not carry. Nothing here introduces a claim the paper does not
-already state in prose: each item is the tabular or graphical form of a number
-the Results section gives, provided so a reader can check it against the
-released per-submission logs rather than against a sentence. Assignment ids
-(R1--R5, C1--C6) and all metric definitions are the main paper's.
-
-Every value is generated from \texttt{results/v2/} by the released scripts
+\noindent This document carries what the main paper's page budget could not.
+Nothing here introduces a claim the paper does not already make: each item is
+the tabular or graphical form of a number the Results section gives, or a
+measurement the paper cites without room to print. Assignment ids (R1--R5,
+C1--C6), the arm names, and every metric definition are the main paper's.
+Values are generated from \texttt{results/} by the released scripts
 (\texttt{run.py tables}, \texttt{run.py figures}); none is transcribed.
 
-\section{Where the Repairs Come From (RQ3)}
+\section{Where the Repairs Come From}
 
-Table~\ref{tab:source} decomposes every repair by the mechanism that produced
-it, with the mean patch size each mechanism leaves and whether its patch carries
-a misconception label. Shares are over repaired submissions under the frontier
-builder; the fallback row belongs to \textsc{CoEP}\textsubscript{LF} and sits
-outside that denominator. The final rows are the framework-only ablation --- the
-identical tool with the LLM-authored rules removed and the generic library and
-transplant left in place, so exactly one layer differs.
+Table~\ref{tab:source} decomposes every repair by the strategy that produced
+it, with the mean patch each leaves and whether it carries a misconception
+label, pooled over both builders. Shares are over repaired submissions; the LLM
+row belongs to \textsc{CoEP}\textsubscript{LF} and sits outside that
+denominator. The last rows are the framework-only ablation, the identical tool
+with the builder's rules removed, which is the same artifact under either
+builder because nothing the model wrote survives in it.
 
 \begin{table}[h]
 \centering\small\setlength{\tabcolsep}{5pt}
 \input{supp/tab_source}
-\caption{Repair source, patch size, and diagnosis labelling, with the
-framework-only ablation. The rule layer is the only one that leaves a
-misconception label behind; the transplant is what carries coverage.}
+\caption{Repair source, patch size, and labelling, with the framework-only
+ablation.}
 \label{tab:source}
 \end{table}
 
-\section{What the Conclusion Survives (RQ5)}
+\section{What Escalation Costs, Assignment by Assignment}
 
-Table~\ref{tab:robust} gives the three robustness axes side by side: assignment
-difficulty, the choice of builder, and the escalation threshold. The difficulty
-bands group the eleven assignments as CS1, Codeforces 800--1000, and Codeforces
-1200--2000; the last band folds C6's three submissions in rather than reporting
-them alone.
+The main paper reports the escalation rate $e$ as a corpus figure. It is not
+uniform: Table~\ref{tab:cost} gives it per assignment alongside the calls it
+implies, the local CPU each submission spends, and the one-off build wall
+clock. Two readings matter for a department sizing this. The assignments that
+escalate most are the ones whose local patches are largest rather than the
+hardest ones, and the compute is not free: 5{,}940 submissions cost 4.8 core
+hours of local search, on top of roughly 22 minutes of build per assignment per
+builder. Neither figure appears in the dollar totals, which price model tokens
+alone.
 
 \begin{table}[h]
-\centering\small\setlength{\tabcolsep}{4pt}
+\centering\small\setlength{\tabcolsep}{5pt}
+\input{supp/tab_cost}
+\caption{Escalation rate, calls, local CPU per submission, and build wall clock
+per assignment, over both builders.}
+\label{tab:cost}
+\end{table}
+
+\section{Robustness}
+
+Table~\ref{tab:robust} puts three axes side by side: assignment difficulty, the
+choice of builder, and the escalation threshold. The difficulty bands group the
+eleven assignments as CS1, Codeforces 800--1000, and Codeforces 1200--2000, the
+last folding C6's three submissions in rather than reporting them alone.
+
+\begin{table}[h]
+\centering\footnotesize\setlength{\tabcolsep}{1pt}
 \input{supp/tab_robust}
-\caption{Difficulty, builder, and escalation threshold. The symbolic baseline
-loses 36 points of repair rate between the easiest and hardest bands while
-\textsc{CoEP}\textsubscript{LF} does not move; the two builders differ by 3\% in
-patch size for an 18-fold difference in build price; and across 29 measured
-threshold settings the repair rate is invariant.}
+\caption{Difficulty, builder, and escalation threshold.}
 \label{tab:robust}
 \end{table}
 
-Figure~\ref{fig:gate} plots every one of those threshold settings against the
-baselines they are compared to. The point of the figure is the emptiness between
-the cluster and the baselines: the entire family of settings spans
-\$12.47--\$15.61 of total spend, so which one is shipped cannot change any
-conclusion the paper draws. The shipped setting --- escalate a passing local
-patch whose $\mathrm{RPS}$ exceeds 1 --- is marked with a star and is the
-canonical \textsc{CoEP}\textsubscript{LF} run, not the sweep's reconstruction of
-it.
+Figure~\ref{fig:gate} plots every measured threshold setting against the
+baselines it is compared to. The point is the emptiness between the cluster and
+the baselines: the whole family spans \$12.47--\$15.61 of total spend, so which
+setting ships cannot change a conclusion. The shipped rule, escalate a passing
+local patch whose $\mathrm{RPS}$ exceeds 1, is marked with a star and is the
+canonical run rather than the sweep's reconstruction of it.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_gate.pdf}
-\caption{Mean RPS against total API spend for the benchmark. Each small marker
-is one escalation-threshold setting; the star is the shipped rule. Repair rate
-is identical across all of them, so this plane is the whole trade-off.}
+\caption{Mean RPS against total spend. Each small marker is one threshold
+setting; the star is the shipped rule. Repair rate is identical across all of
+them.}
 \label{fig:gate}
 \end{figure}
 
 \section{Rule Provenance}
 
-The builder authored 91 rules that fired at least once, against the shared
-generic library's 5; they fired 789 times against the library's 293. The
-distinction that matters is reuse. Exactly one authored rule fired on more than
-one assignment, while \texttt{generic\_flip\_compare} alone fired 198 times
-across 8 of the 11 assignments, \texttt{generic\_shift\_range} 43 times across
-6, and \texttt{generic\_shift\_index} 16 times across 5. The authored layer is
+The builders wrote 127 rules that fired, 1{,}216 times between them, against
+the five always-on rules that fired 631 times. The distinction that matters is
+reuse. Exactly one builder-written rule fired on more than one assignment,
+\texttt{add\_missing\_call\_parens}, while \texttt{generic\_flip\_compare}
+alone fired 455 times across 10 of the 11 assignments. The authored layer is
 assignment-specific by construction, which is why it is priced per assignment
-and the generic layer is not.
+and the always-on layer is not.
 
-The most-fired authored rules are single-assignment and legible as
-misconceptions rather than as patches: \texttt{slice\_case\_check\_to\_equality}
-(115 firings), \texttt{count\_compare\_relax} (112),
-\texttt{append\_missing\_return\_len\_after\_loop} (108),
-\texttt{capitalize\_title\_to\_swapcase} (45), and
-\texttt{undefined\_domain\_var\_rename} (28). On C4 a single rule,
+The rules that carry the most submissions read as misconceptions rather than as
+patches: \texttt{slice\_case\_check\_to\_equality} (115 repairs on C2),
+\texttt{append\_missing\_return\_len\_after\_loop} (114 on R1),
+\texttt{count\_compare\_relax} (112 on R2), and
+\texttt{strict\_one\_should\_be\_exactly\_one} (96 on R2). On C4 a single rule,
 \texttt{carry\_fix\_two\_value\_print}, repairs 27 of the assignment's 38
-submissions.
+submissions under \texttt{claude-sonnet-5}.
 
-The rules self-learning absorbed read the same way:
-\texttt{uniqueness\_count\_gt1\_to\_neq1},
-\texttt{counter\_var\_confusion},
+The eight rules self-learning absorbed read the same way:
+\texttt{counter\_var\_confusion}, \texttt{uniqueness\_count\_gt1\_to\_neq1},
 \texttt{index\_vs\_count\_and\_uncalled\_bool} and
-\texttt{missing\_else\_false} on R2 with the frontier builder;
+\texttt{missing\_else\_false} on R2 with \texttt{claude-sonnet-5};
 \texttt{count\_equality\_for\_uniqueness},
 \texttt{count\_uniqueness\_instead\_of\_direct\_membership} and
-\texttt{missing\_call\_and\_predicate\_fix} on R2 with the cheap one; and
-\texttt{binarysearch\_zero\_exit} on C3.
+\texttt{missing\_call\_and\_predicate\_fix} on R2 with
+\texttt{gpt-5.4-mini}; and \texttt{binarysearch\_zero\_exit} on C3.
 
-\section{Released Artifacts}
+\section{Reproducibility}
 
-The repository contains the harness, the dataset-import pipeline, every prompt,
-the synthesized repairers and their build logs, the raw model responses, and the
-per-submission event logs each arm wrote. Four commands regenerate every number
-in both documents from those logs: \texttt{run.py stats} (Wilson intervals and
-exact McNemar), \texttt{run.py tables}, \texttt{run.py numbers}, and
-\texttt{run.py figures}. The 29 measured threshold settings are archived as
-\texttt{results/v2/threshold\_sweep.json}.
+The repository contains the harness, every prompt, the 22 synthesized
+repairers with their build costs, and the per-submission event log each arm
+wrote. Four commands regenerate every number in both documents from those logs
+without touching a model: \texttt{run.py tables}, \texttt{run.py figures},
+\texttt{run.py numbers}, which recomputes each quantity and reports whether the
+string still occurs in the paper, and \texttt{run.py stats}. The measured
+threshold settings are archived as \texttt{results/threshold\_sweep.json}.
+
+Two dependencies are outside our control and worth stating. Both builders are
+closed commodity models reached through their providers' APIs, so a rebuild
+cannot be guaranteed to reproduce the same rules; what is released is the tools
+those builds produced, which are ordinary Python and run offline. Refactory's
+replication package is its authors' and is cloned rather than vendored.
 
 \end{document}

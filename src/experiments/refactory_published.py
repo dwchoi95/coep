@@ -6,7 +6,7 @@ on their own corpus leaves no room to argue we configured their tool wrongly.
 
 ``refactory_results`` can also collect the authors' shipped run of the tool and
 re-measure it on our footing; that output is archived at
-``results/v2/_refactory_ours.json`` and reproduces these published repair rates
+``results/_refactory_ours.json`` and reproduces these published repair rates
 to 0.05 points corpus-wide, but it is not what the paper reports.
 
 Usage: python3 -m src.experiments.refactory_published
@@ -27,7 +27,7 @@ PUBLISHED = {
 
 def main(argv=None) -> int:
     for pid, (n, rr, rps, att) in PUBLISHED.items():
-        upsert_summary("v2", pid, {
+        upsert_summary("", pid, {
             "Approach": "Refactory", "Model": "none", "N": n,
             "RR": rr, "RPS": rps,
             "ATT_all": att, "ATT_cpu": att, "ATT_api": 0.0,
@@ -36,7 +36,7 @@ def main(argv=None) -> int:
             "Rules_build": "[]", "Rules_add": "[]", "Rules_used": "{}",
         })
         print(f"[{pid}] Refactory published: RR={rr} RPS={rps}")
-    build_overall("v2")
+    build_overall("")
     return 0
 
 

@@ -47,7 +47,9 @@ def _outcomes(path: Path, model: str) -> dict[str, bool]:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py stats")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     ap.add_argument("--model", default=["claude-sonnet-5", "gpt-5.4-mini"],
                     nargs="+")
     args = ap.parse_args(argv)

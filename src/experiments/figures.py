@@ -302,7 +302,9 @@ def fig_gate(ver: str, sweep: Path | None) -> Path:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py figures")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     ap.add_argument("--sweep", default="", help="JSON of threshold-sweep points")
     args = ap.parse_args(argv)
     print(" ", fig_cost(args.ver))

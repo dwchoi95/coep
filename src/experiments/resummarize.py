@@ -62,7 +62,9 @@ def _authored(pid: str, model: str, tools_root: str) -> list[str]:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py resummarize")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     ap.add_argument("--tools-root", default="tools")
     ap.add_argument("--only", nargs="*", default=list(DEFAULT),
                     help="event file stems to rebuild; the baseline arms are "

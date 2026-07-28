@@ -316,6 +316,35 @@ def tab_learn(ver: str) -> str:
     return "\n".join(out) + "\n"
 
 
+
+def tab_cost(ver: str) -> str:
+    """Escalation and what it costs, per assignment, over both builders."""
+    out = [r"\begin{tabular}{lrrrr}", r"\toprule",
+           r"& $e$ (\%) & calls & $\mathrm{ATT}_{\mathrm{cpu}}$ (s) &"
+           r" build (min) \\", r"\midrule"]
+    tn = tc = 0
+    tcpu = tb = 0.0
+    for pid in ORDER:
+        n = calls = 0
+        cpu = bmin = 0.0
+        for m in (FRONTIER, CHEAP):
+            d = pd.read_csv(ROOT / "results" / ver / pid / "coep_lf.csv",
+                            keep_default_na=False)
+            d = d[d.Model == m]
+            n += len(d)
+            calls += int((pd.to_numeric(d["$API"], errors="coerce").fillna(0) > 0).sum())
+            c = _cell(_summary(ver, pid), "CoEP_LF", m)
+            cpu += float(c["ATT_cpu"]) * len(d)
+            bmin += float(c["ATT_build"]) / 60
+        out.append(f"{IDS[pid]} & {100 * calls / n:.1f} & {calls} & "
+                   f"{cpu / n:.2f} & {bmin / 2:.0f} \\\\")
+        tn += n; tc += calls; tcpu += cpu; tb += bmin
+    out += [r"\midrule",
+            r"\textbf{All} & \textbf{%.1f} & \textbf{%d} & \textbf{%.2f} & "
+            r"\textbf{%.0f} \\" % (100 * tc / tn, tc, tcpu / tn, tb / 2),
+            r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(out) + "\n"
+
 def tab_robust(ver: str) -> str:
     def cell(t):
         return f"{100*t[0]:.1f} / {t[1]:.3f}" if t else "--"
@@ -351,7 +380,9 @@ def tab_robust(ver: str) -> str:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py tables")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     args = ap.parse_args(argv)
     for name, body in (("tab_data", tab_data(args.ver)),
                        ("tab_effect", tab_effect(args.ver)),
@@ -360,6 +391,8 @@ def main(argv: list[str]) -> int:
         splice(name, body, "run.py tables")
         print(f"  spliced {name} into paper/main.tex")
     for name, body in (("tab_source", tab_source(args.ver)),
+                       ("tab_cost", tab_cost(args.ver)),
+                       ("tab_robust", tab_robust(args.ver)),
                        ):
         (PAPER / "supp" / f"{name}.tex").write_text(body)
         print(f"  wrote paper/supp/{name}.tex")

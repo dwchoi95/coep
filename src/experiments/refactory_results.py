@@ -88,7 +88,7 @@ def source_csv(pid: str) -> Path:
     return ROOT / "baselines" / "refactory" / "data_cf" / pid / "refactory_online.csv"
 
 
-def collect(pid: str, ver: str = "v2") -> dict:
+def collect(pid: str, ver: str = "") -> dict:
     csv = source_csv(pid)
     df = pd.read_csv(csv, keep_default_na=False)
     by_name = {r["File Name"]: r for _, r in df.iterrows()}
@@ -131,7 +131,9 @@ def collect(pid: str, ver: str = "v2") -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("pids", nargs="+")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     args = ap.parse_args(argv)
     for pid in args.pids:
         try:

@@ -43,7 +43,7 @@ src/runner/        sandboxed test execution
 data/<problem>/    buggy/, correct/, problem.json (tests + description)
 tools/<problem>/<model>/     the synthesized repairer: fixer.py, cost.json,
                              and sl/learned.py for the self-learned rules
-results/v2/        one row per (submission, arm, model), plus the summaries
+results/        one row per (submission, arm, model), plus the summaries
                    built from those rows; everything the paper reports
 paper/             main.tex, references.bib, generated tables and figures
 ```
@@ -51,7 +51,7 @@ paper/             main.tex, references.bib, generated tables and figures
 ## Recomputing the paper
 
 Nothing below touches a model. Every number the paper reports is derived from
-the committed logs in `results/v2/`:
+the committed logs in `results/`:
 
 ```bash
 pip install -r requirements.txt

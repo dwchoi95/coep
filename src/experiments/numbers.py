@@ -71,7 +71,9 @@ def gate_stats(ver: str, model: str) -> tuple[int, float, int, float, float]:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py numbers")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     args = ap.parse_args(argv)
     v = args.ver
 

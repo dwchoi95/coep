@@ -52,7 +52,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--k", type=int, default=K_DEFAULT,
                     help="candidates per prompt (paper: 10)")
     ap.add_argument("--data-root", default="data")
-    ap.add_argument("--ver", default="v2")
+    ap.add_argument("--ver", default="",
+                    help="optional subdirectory under results/; empty means "
+                         "results/ itself, which is where the campaign wrote")
     ap.add_argument("--only-missing", action="store_true",
                     help="query only submissions with no row yet for this model, "
                          "and merge; every query costs, so a widened pool should "
