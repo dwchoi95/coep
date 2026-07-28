@@ -26,6 +26,10 @@ TITLE = {"refactory_q1": "Sequential search",
          "refactory_q3": "Duplicate elimination",
          "refactory_q4": "Sorting tuples",
          "refactory_q5": "Top-$k$ elements"}
+# Short ids the rest of the paper refers to, so a figure axis or an inline
+# mention costs four characters instead of a title. R for the CS1 corpus, C for
+# Codeforces in rating order, which is the order Table 2 lists them in.
+IDS = {p: (f"R{i+1}" if i < 5 else f"C{i-4}") for i, p in enumerate(ORDER)}
 BANDS = [("CS1 (Refactory)", ORDER[:5]),
          ("CF 800--1000", ["cf_110A", "cf_131A"]),
          ("CF 1200--2000", ["cf_1011B", "cf_125A", "cf_11B", "cf_10C"])]
@@ -54,11 +58,11 @@ def tab_effect(ver: str) -> str:
             ("CoEP_L", FRONTIER), ("CoEP_LF", FRONTIER)]
     head = " & ".join(["Refactory", "PyDex", r"\textsc{CoEP}\textsubscript{L}",
                        r"\textsc{CoEP}\textsubscript{LF}"])
-    out = [r"\begin{tabular}{clc rrrr c rrrr}", r"\toprule",
-           r"& & & \multicolumn{4}{c}{\textbf{RR} (\%)} & & "
+    out = [r"\begin{tabular}{crlc rrrr c rrrr}", r"\toprule",
+           r"& & & & \multicolumn{4}{c}{\textbf{RR} (\%)} & & "
            r"\multicolumn{4}{c}{\textbf{RPS}} \\",
-           r"\cmidrule(lr){4-7}\cmidrule(lr){9-12}",
-           r"& Assignment & Rating & " + head + " & & " + head + r" \\",
+           r"\cmidrule(lr){5-8}\cmidrule(lr){10-13}",
+           r"& ID & Assignment & Rating & " + head + " & & " + head + r" \\",
            r"\midrule"]
     acc = {a: [0.0, 0.0, 0, 0] for a, _m in arms}      # rr*n, rps*rep, n, rep
     for gname, pids in (("Refactory", ORDER[:5]), ("Codeforces", ORDER[5:])):
@@ -79,12 +83,12 @@ def tab_effect(ver: str) -> str:
                 rr.append(f"{100*r_:.1f}"); rps.append(f"{p_:.3f}")
                 acc[a][0] += r_ * n; acc[a][1] += p_ * rep
                 acc[a][2] += n; acc[a][3] += rep
-            out.append(f"{spine} & {title} & {rating} & " + " & ".join(rr)
-                       + " & & " + " & ".join(rps) + r" \\")
+            out.append(f"{spine} & {IDS[pid]} & {title} & {rating} & "
+                       + " & ".join(rr) + " & & " + " & ".join(rps) + r" \\")
     out.append(r"\midrule")
     rr = " & ".join(f"\\textbf{{{100*acc[a][0]/acc[a][2]:.1f}}}" for a, _m in arms)
     rps = " & ".join(f"\\textbf{{{acc[a][1]/acc[a][3]:.3f}}}" for a, _m in arms)
-    out.append(r"& \multicolumn{2}{l}{\textbf{Corpus} (%s submissions)} & %s & & %s \\"
+    out.append(r"& \multicolumn{3}{l}{\textbf{Corpus} (%s submissions)} & %s & & %s \\"
                % (f"{acc['CoEP_L'][2]:,}".replace(",", "{,}"), rr, rps))
     out += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out) + "\n"

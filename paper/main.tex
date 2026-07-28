@@ -191,7 +191,7 @@ We answer the five research questions stated in the Experimental Setup; together
 \begin{table*}[t]
 \centering\small\setlength{\tabcolsep}{4pt}
 \input{tab_effect}
-\caption{Per-assignment repair rate and mean relative patch size, Claude Sonnet 5 as builder, on \NumEval{} buggy submissions. RPS is averaged over the submissions each arm repairs, so a lower rate and a lower RPS in the same row mean the arm is measured on an easier subset. Every arm is given the same \NumEval{} inputs, including the 98 submissions that already pass; \textsc{CoEP} returns those unedited, at $\mathrm{RPS}=0$, while both baselines rewrite them. PyDex\textsubscript{PC} is omitted: prompt caching changes price, not output, so its RR and RPS equal PyDex's to four decimals. Refactory's CS1 rows are its published per-assignment results; its Codeforces rows are our run of the released tool. Codeforces rows carry the problem's difficulty rating; the CS1 assignments are unrated. The GPT-5.4-mini builder is reported in RQ5.}
+\caption{Per-assignment repair rate and mean relative patch size, Claude Sonnet 5 as builder, on \NumEval{} buggy submissions. RPS is averaged over the submissions each arm repairs, so a lower rate and a lower RPS in the same row mean the arm is measured on an easier subset. Every arm is given the same \NumEval{} inputs, including the 98 submissions that already pass; \textsc{CoEP} returns those unedited, at $\mathrm{RPS}=0$, while both baselines rewrite them. PyDex\textsubscript{PC} is omitted: prompt caching changes price, not output, so its RR and RPS equal PyDex's to four decimals. Refactory's CS1 rows are its published per-assignment results; its Codeforces rows are our run of the released tool. Codeforces rows carry the problem's difficulty rating; the CS1 assignments are unrated. The ID column is how the rest of the paper refers to an assignment. The GPT-5.4-mini builder is reported in RQ5.}
 \label{tab:effect}
 \end{table*}
 
@@ -232,7 +232,7 @@ Fig.~\ref{fig:cost}(b) turns that into the quantity a department actually decide
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_source.pdf}
-\caption{What produced each repair, assignment by assignment.}
+\caption{What produced each repair, assignment by assignment (IDs as in Table~\ref{tab:effect}; the dotted rule separates the CS1 corpus from Codeforces).}
 \label{fig:source}
 \end{figure}
 
@@ -245,7 +245,7 @@ Fig.~\ref{fig:cost}(b) turns that into the quantity a department actually decide
 
 \textbf{Two complementary local mechanisms.} \textsc{CoEP}'s local repair combines named rules (problem-specific plus the shared generic library) with reference-guided transplant, and the two carry different loads. The rules make small, labelled edits for the common misconceptions --- a relaxed comparison, an off-by-one bound --- and they are surgical: \RuleShare\% of repaired submissions at mean RPS \RuleRPS, with the always-on generic library alone at 0.025. Most student bugs are not single-token slips, though; they need a medium, structural edit no token-level rule expresses, and the transplant supplies it by adopting the smallest set of differing hunks from a structurally-matched correct program, variable-renamed to fit. It carries \RefShare\% of repairs at \RefRPS, five and a half times more of the student's program disturbed. The transplant is what lifts a rule-only tool to competitive coverage; the rules keep the common cases at near-minimal patch size and are the only layer that leaves a diagnosis behind.
 
-Fig.~\ref{fig:source} shows the division is not uniform. Where the correct pool is deep and the assignment small, the transplant dominates and the authored rules take a fifth of the work; where a single misconception dominates a class --- \texttt{cAPS lOCK}, whose bug is almost always a case-handling slip --- the authored rules take 71\% of the submissions on their own. That is the shape the once-per-assignment build is meant to exploit: the LLM's contribution is largest exactly where the class shares one mistake.
+Fig.~\ref{fig:source} shows the division is not uniform. Where the correct pool is deep and the assignment small, the transplant dominates and the authored rules take a fifth of the work; where one misconception dominates a class the authored layer takes it over: on C4 a single rule, \texttt{carry\_fix\_two\_value\_print}, repairs 27 of the assignment's 38 submissions, and the authored layer accounts for 78.9\% of them. That is the shape the once-per-assignment build is meant to exploit: the LLM's contribution is largest exactly where the class shares one mistake.
 
 \textbf{What the LLM layer buys.} A \emph{framework-only} ablation, the identical tool with the LLM-authored rules removed and the generic library and transplant left in place, isolates it. \emph{[Ablation cells from the running pass.]} The provenance logs say what to expect and why. The builder authored 91 rules that fired at all, against the generic library's 5, and they fired 789 times against the library's 293 --- but only one authored rule fired on more than one assignment, while \texttt{generic\_flip\_compare} alone fired 198 times across 8 of the 11. The authored layer is assignment-specific by construction, which is the point: it is bought once per assignment and encodes what \emph{this} class got wrong.
 

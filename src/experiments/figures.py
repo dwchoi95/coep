@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.experiments.tables import (BANDS, CHEAP, FRONTIER, ORDER, PAPER, ROOT,
-                                    _cell, _meta, _summary)
+from src.experiments.tables import (BANDS, CHEAP, FRONTIER, IDS, ORDER,
+                                    PAPER, ROOT, _cell, _meta, _summary)
 
 OUT = PAPER / "figures"
 # colour-blind safe, and legible in grayscale by ordering lightness
@@ -147,7 +147,7 @@ def fig_source(ver: str) -> Path:
     mat = {k: [] for k in keys}
     labels = []
     for pid in ORDER:
-        labels.append(_meta(pid)[0])
+        labels.append(IDS[pid])
         authored = set(json.loads(_cell(_summary(ver, pid), "CoEP_L",
                                         FRONTIER)["Rules_build"]))
         lf = pd.read_csv(ROOT / "results" / ver / pid / "coep_lf.csv",
@@ -174,7 +174,7 @@ def fig_source(ver: str) -> Path:
         bottom += v
     ax.axvline(4.5, color="#555555", lw=0.7, ls=":")
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, rotation=42, ha="right", fontsize=5.6)
+    ax.set_xticklabels(labels, fontsize=6.5)
     ax.set_ylabel("share of submissions (\\%)")
     ax.set_ylim(0, 100)
     ax.legend(fontsize=5.6, frameon=False, ncol=3, loc="lower center",
