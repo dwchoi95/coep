@@ -54,30 +54,7 @@ def _tot(ver, approach, model):
 
 def fig_cost(ver: str) -> Path:
     plt = _mpl()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.0, 2.5))
-
-    arms = [("Refactory", "none", "Refactory", "o", "#444444"),
-            ("PyDex", FRONTIER, "PyDex (Sonnet)", "s", "#c0392b"),
-            ("PyDex_PC", FRONTIER, "PyDex$_{PC}$ (Sonnet)", "D", "#e07b6a"),
-            ("PyDex", CHEAP, "PyDex (mini)", "s", "#7b3f9e"),
-            ("PyDex_PC", CHEAP, "PyDex$_{PC}$ (mini)", "D", "#b18ad0"),
-            ("CoEP_L", FRONTIER, r"CoEP$_L$ (Sonnet)", "^", "#1f4e79"),
-            ("CoEP_LF", FRONTIER, r"CoEP$_{LF}$ (Sonnet)", "v", "#2e86c1"),
-            ("CoEP_L", CHEAP, r"CoEP$_L$ (mini)", "^", "#1e8449"),
-            ("CoEP_LF", CHEAP, r"CoEP$_{LF}$ (mini)", "v", "#58d68d")]
-    for approach, model, label, mk, col in arms:
-        att, usd, n = _tot(ver, approach, model)
-        if not n:
-            continue
-        ax1.scatter(max(usd, 0.05), att, marker=mk, s=42, color=col,
-                    label=label, zorder=3, edgecolor="white", linewidth=0.4)
-    ax1.set_xscale("log")
-    ax1.set_xlabel("total API spend for the benchmark (USD, log)")
-    ax1.set_ylabel(r"$\mathrm{ATT}_{\mathrm{all}}$ (s / submission)")
-    ax1.grid(alpha=0.25, linewidth=0.4, zorder=0)
-    ax1.legend(fontsize=5.6, frameon=False, loc="upper left", ncol=1,
-               handletextpad=0.2, labelspacing=0.25)
-    ax1.set_title("(a) turnaround against spend", fontsize=8, loc="left")
+    fig, ax2 = plt.subplots(figsize=(3.35, 2.15))
 
     # --- break-even: cumulative dollars against submissions per assignment
     n_probs = len(ORDER)
@@ -126,8 +103,7 @@ def fig_cost(ver: str) -> Path:
     ax2.set_yscale("log")
     ax2.set_ylim(0.02, 200)
     ax2.grid(alpha=0.25, linewidth=0.4)
-    ax2.legend(fontsize=6.5, frameon=False, loc="upper left")
-    ax2.set_title("(b) break-even per assignment", fontsize=8, loc="left")
+    ax2.legend(fontsize=6.5, frameon=False, loc="lower right")
 
     OUT.mkdir(parents=True, exist_ok=True)
     p = OUT / "fig_cost.pdf"
@@ -214,6 +190,8 @@ def fig_gate(ver: str, sweep: Path | None) -> Path:
     for approach, model, label, col, mk in (
             ("PyDex", FRONTIER, "PyDex", "#c0392b", "s"),
             ("PyDex_PC", FRONTIER, r"PyDex$_{PC}$", "#e07b6a", "D"),
+            ("PyDex", CHEAP, "PyDex (mini)", "#7b3f9e", "s"),
+            ("CoEP_L", FRONTIER, r"CoEP$_L$", "#1e8449", "^"),
             ("Refactory", "none", "Refactory", "#444444", "o")):
         _a, usd, n = _tot(ver, approach, model)
         c = None
