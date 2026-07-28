@@ -83,19 +83,23 @@ Large language models (LLMs) repair buggy submissions to programming assignments
 
 \section{Introduction}
 
-Timely, individualized feedback is the scarcest resource in programming education: introductory courses enroll hundreds of students on campus and tens of thousands online, each producing buggy submissions no instructor can examine one by one. Automated program repair (APR) has therefore long been proposed as a feedback engine for programming assignments: given a buggy submission and the assignment's test suite, produce a small patch that makes it correct while preserving the student's own approach \citep{itsp2017,clara2018,sarfgen2018,refactory2019,verifix2022}.
+Timely, individualized feedback is the scarcest resource in programming education: introductory courses enroll hundreds of students on campus and tens of thousands online, each producing buggy submissions no instructor can examine one by one. Automated program repair (APR) has therefore long been proposed as a feedback engine: given a buggy submission and the assignment's tests, produce a small patch that makes it correct while preserving the student's own approach \citep{itsp2017,clara2018,sarfgen2018,refactory2019,verifix2022}. Early systems established that the patch must stay close to the student's program, because an unrelated rewrite passes the tests but teaches nothing \citep{itsp2017}; a second generation mined the class's own accepted solutions, which repairs cheaply but fails whenever a submission matches no reference \citep{clara2018,sarfgen2018,refactory2019,verifix2022,orvalho2025}; LLM-based repair removed that constraint and now fixes most real student programs at modest per-bug prices \citep{pydex2024,mmapr2022,chatrepair2024,fastfixer2024}.
 
-Three generations of systems have pursued this goal. Early systems established the setting: test-driven repair whose patch must stay close to the student's program, because an unrelated rewrite passes the tests but teaches nothing \citep{itsp2017}. A second generation mined the class's own solution space, matching each buggy program against previously accepted solutions \citep{clara2018,sarfgen2018,refactory2019,verifix2022}. This repairs cheaply, but it requires a large solution pool and fails whenever a submission matches no reference \citep{orvalho2025}. LLM-based repair removed both constraints and now fixes most real student programs at modest per-bug prices \citep{pydex2024,mmapr2022,chatrepair2024,fastfixer2024}.
+What the third generation fixed in coverage, it broke in cost structure. The deployment default is one model query per buggy submission, so spending grows with enrollment and restarts every term --- and the queries are massively redundant. A single assignment is attempted by hundreds of students whose failures cluster into a few recurring misconceptions \citep{clara2018,refactory2019}, and about two thirds of a query's input tokens are byte-identical across submissions to the same assignment. Paying a model to rediscover the same off-by-one for the three-hundredth time is not intelligence at work; it is a billing artifact. The standard remedies do not change the shape: cheaper tiers and provider caching shrink the constant \citep{anthropiccaching,openaicaching} --- and caching serves this redundancy at the wrong granularity, paying only for a shared leading prefix while the variable program comes first --- and retrieval enriches each query \citep{lsgen2026}, but every submission still triggers a round trip with its marginal cost, latency, and data egress. The question is not what a call costs, but where in the pipeline the LLM is invoked.
 
-What the third generation fixed in coverage, it broke in cost structure. The deployment default is one model query per buggy submission, so spending grows with enrollment and restarts every term. The queries themselves are massively redundant. A single assignment is attempted by hundreds of students whose failures cluster into a few recurring misconceptions \citep{clara2018,refactory2019}, and decomposing our PyDex reproduction's prompts shows about two thirds of a query's input tokens are byte-identical across submissions to the same assignment --- the assignment text, the tests, and the retrieved exemplars --- while provider caching serves that redundancy at the wrong granularity, since it pays only for a shared leading prefix and the variable program comes first. Paying a model to rediscover the same off-by-one for the three-hundredth time is not intelligence at work; it is a billing artifact. The standard remedies do not change this shape. Cheaper models and provider caching shrink the constant \citep{anthropiccaching,openaicaching}, and retrieval enriches each query \citep{lsgen2026}, but every submission still triggers a model round trip with its marginal cost, latency, and data egress. The question is not how much a call costs, but where in the pipeline the LLM is invoked.
+Our answer is to spend the LLM once per assignment. Agent research has shown LLMs can author reusable code and amortize it across uses \citep{toolmakers2024,voyager2024}, and classical synthesis has learned per-assignment fix rules from examples \citep{refazer2017}. \textsc{CoEP} (\underline{Co}st-\underline{E}ffective \underline{P}rogram repair) instantiates this for assignment repair: an LLM agent reads the assignment once and authors its problem-specific layer, AST rewrite rules named after the misconceptions they fix, running on a shared substrate of generic edits and reference-guided transplant from the class's correct pool. Every candidate patch must pass the instructor's tests before it is kept, so a tool can never self-report success. The frozen tool repairs locally in about a second at zero marginal LLM cost, and the few submissions it abstains on escalate to a conventional per-submission call.
 
-Our answer is to spend the LLM once per assignment, not once per submission. Agent research has shown that LLMs can author reusable code and amortize it across many uses \citep{toolmakers2024,voyager2024}, and classical synthesis has learned per-assignment fix rules from examples \citep{refazer2017}. \textsc{CoEP} (\underline{Co}st-\underline{E}ffective \underline{P}rogram repair) instantiates this idea for assignment repair. An LLM agent reads the assignment once and authors its problem-specific layer: AST rewrite rules named after the misconceptions they fix. These rules run on a shared symbolic substrate, a generic edit library plus reference-guided transplant from the class's correct pool. Every candidate patch must pass the instructor's tests before it is kept, so a tool can never self-report success. The frozen tool then repairs submissions locally in about a second at zero marginal LLM cost, and the few it abstains on escalate to a conventional per-submission call.
+The resulting artifact beats the hand-built state of the art on its own benchmark and metric --- \LocalRR\% repair rate at \LocalRPS{} mean relative patch size against Refactory's \RefacRR\% at \RefacRPS{} over \NumEvalRefac{} real student programs --- and against per-submission LLM repair on the full \NumEval-submission benchmark, coverage is at parity while the patch is a third smaller, for \$\HybridUsd{} against \$\PydexUsd. We are explicit about attribution: the rule layer produces \RuleShare\% of local fixes at a fifth the transplant's patch size and with a misconception label each, and the transplant produces the rest and is what carries coverage. The claim is not that an LLM wrote a state-of-the-art repairer. It is the invocation structure --- one cheap build plus a small escalation tail replaces an inference per submission, breaking even at eleven submissions per assignment --- and the artifact it feeds exceeds the hand-built tool.
 
-The resulting artifact beats the hand-built state of the art on its own benchmark and metric: \LocalRR\% repair rate at \LocalRPS{} mean relative patch size, against Refactory's \RefacRR\% at \RefacRPS, over \NumEvalRefac{} real student programs. Against per-submission LLM repair on the full \NumEval-submission benchmark, coverage is at parity and the patch is a third smaller, for \$\HybridUsd{} against \$\PydexUsd. We are explicit about attribution. The rule layer produces \RuleShare\% of local fixes, at a fifth the transplant's patch size and with a misconception label each; the transplant engine produces the rest and is what carries coverage. The claim is therefore not that an LLM wrote a state-of-the-art repairer. The claim is the invocation structure: one cheap build plus a small escalation tail replaces an inference per submission, breaking even at eleven submissions per assignment, and the artifact it feeds exceeds the hand-built tool.
+The stakes scale with deployment. In one course the per-submission bill is dollars; on an online judge it is not. The public Codeforces dump our benchmark draws from aggregates 12.6M submissions to over 10{,}000 problems \citep{penedo2025codeforces}, and at the standard \$3/\$15 per Mtok rate our measured per-submission repair costs about \$125 per thousand, re-paid as every new submission arrives. The artifact also offers what per-submission inference cannot at any price: every patch is re-executed against the instructor's tests before it is emitted, it is deterministic and runs offline so student code never leaves the institution, and its rule-fired repairs aggregate into a per-class misconception profile that no API call returns.
 
-The stakes scale with deployment. In one course the per-submission bill is dollars; on an online judge it is not. The public Codeforces dump our benchmark draws from aggregates 12.6M submissions to over 10{,}000 problems \citep{penedo2025codeforces}. At the standard \$3/\$15 per Mtok rate, our measured per-submission repair costs about \$125 per thousand submissions, re-paid as every new submission arrives. The comparison is robust to pricing: if a build costs $C_{\text{build}}$ and locally resolves a fraction $(1{-}f)$ of submissions that would each have cost $\Delta$, amortization wins past $N^{*} = C_{\text{build}} / (\Delta(1{-}f))$ --- eleven submissions per assignment at our measured build cost and escalation rate --- and $N^{*}$ is invariant to token price when build and query spending follow the same schedule. The artifact also offers what per-submission inference cannot at any price: every patch is re-executed against the instructor's tests before it is emitted, it is deterministic and runs offline so student code never leaves the institution, and its rule-fired repairs aggregate into a per-class misconception profile that no API call returns.
-
-Our contributions are a cost-structure reformulation of assignment repair, moving the LLM from per-submission marginal cost to per-assignment fixed cost under a price-invariant break-even $N^{*} = C_{\text{build}}/(\Delta(1{-}f))$; the \textsc{CoEP} system, whose builder agent synthesizes misconception-named AST rewrite rules through a generate--validate--refine loop \citep{selfrefine2023,reflexion2023} atop a shared substrate of generic edits and reference-guided transplant, with every patch independently test-validated; an empirical result on the baseline's own corpus and metric, with an honest mechanism attribution and a framework-only ablation isolating the LLM layer; and released artifacts --- harness, import pipeline, prompts, synthesized repairers, and all raw model outputs.\footnote{Anonymized repository submitted as supplementary material.}
+\noindent This paper contributes:
+\begin{itemize}\itemsep2pt \parskip0pt
+\item \textbf{A cost-structure reformulation.} The LLM moves from per-submission marginal cost to per-assignment fixed cost, with a break-even $N^{*} = C_{\text{build}}/(\Delta(1{-}f))$ that is invariant to token price, so amortization is a structural advantage rather than one cheaper models erase.
+\item \textbf{The \textsc{CoEP} system.} A builder agent synthesizes misconception-named AST rewrite rules through a generate--validate--refine loop \citep{selfrefine2023,reflexion2023}, atop generic edits and reference-guided minimal-hunk transplant, with every patch independently test-validated and abstentions escalated.
+\item \textbf{An empirical result on the baseline's own corpus and metric,} with mechanism attribution, a framework-only ablation isolating the LLM layer, and agreement across two commodity builders.
+\item \textbf{Artifacts.} Harness, import pipeline, prompts, synthesized repairers, per-submission logs, and all raw model outputs.\footnote{Anonymized repository submitted as supplementary material.}
+\end{itemize}
 
 \section{Approach}
 \label{sec:approach}
@@ -130,7 +134,9 @@ Our contributions are a cost-structure reformulation of assignment repair, movin
 \draw[arr] (rho2.south) -- node[lbl, right=1pt]{$\bot$} (fb.north);
 \draw[arr] (fb.east) -| (patch.south);
 \end{tikzpicture}}
-\caption{\textsc{CoEP}. LLM effort (blue) is spent once per assignment to synthesize a local repairer (red); at deployment, the large majority of submissions never touch a model.}
+\caption{\textsc{CoEP}. LLM effort (blue) is spent once per assignment to
+synthesize a local repairer (red); at deployment most submissions never touch a
+model.}
 \label{fig:arch}
 \end{figure}
 
@@ -161,16 +167,26 @@ The threshold is a constant rather than a calibrated quantity, and that is a fin
 
 The local path runs on a CPU in ${\sim}1$--$2$\,s per submission, deterministically and offline; a defective tool degrades to $\bot$, never to a wrong ``repair'', because the harness re-validates every patch before a student sees it.
 
+\section{Related Work}
+\label{sec:related}
+
+\textbf{APR for programming assignments.} The pre-LLM systems \citep{itsp2017,clara2018,sarfgen2018,refactory2019,verifix2022} exploit per-assignment structure, and the reference-reuse ones depend on finding a structurally matching correct solution; our transplant stands in that lineage at hunk rather than block granularity and exceeds the strongest of them on both coverage and patch size. Closest to our synthesis layer, Refazer learns per-assignment transformations from (buggy, fixed) pairs with PROSE \citep{refazer2017}; \textsc{CoEP} replaces the example-driven synthesizer with a cheapest-tier LLM that \emph{names} the misconception behind each rule, and surrounds it with generic search, transplant, and harness-gated escalation.
+
+\textbf{LLM-based repair.} Repair-as-generation \citep{alpharepair2022}, conversational test feedback \citep{chatrepair2024}, student-program repair \citep{pydex2024,mmapr2022}, faster per-query inference \citep{fastfixer2024}, a tutor in the loop \citep{cref2024}, counterexample-guided minimal repair \citep{orvalho2025} and retrieval-guided learner-tailored repair \citep{dai2026} are all per-submission, and complementary --- any can serve as \textsc{CoEP}'s fallback --- but \textsc{CoEP} shifts the primary cost to the assignment.
+
+\textbf{Templates and tool synthesis.} Fixed libraries of human-curated fix templates repair a surprising share of real bugs \citep{par2013,tbar2019}; \textsc{CoEP}'s generic layer inverts the mutation-operator space \citep{mutants2014} and its novelty is the \emph{synthesized, assignment-specific} layer. Cascades, cheap pipelines and caching \citep{frugalgpt2024,srepair2024,anthropiccaching,openaicaching} optimize \emph{within} pay-per-query, and agent tool-making amortizes written code across episodes \citep{voyager2024,toolmakers2024,selfrefine2023,reflexion2023}. \textsc{CoEP} removes queries instead.
+
+\smallskip\noindent\textbf{Ethical statement.} \textsc{CoEP} automates feedback, not grading; unhandled submissions take the full-LLM path; repairs are auditable and the data public.
+
 \section{Experiments}
 
 \subsubsection{Research Questions.}
-The primary research questions (RQs) addressed by our evaluation are as follows:
-\begin{itemize}
-\item \textbf{RQ1} (\emph{repair effectiveness}): Assignment by assignment, how many submissions does \textsc{CoEP} repair and how much of each program does it edit, against a state-of-the-art symbolic tool and a per-submission LLM repairer?
-\item \textbf{RQ2} (\emph{cost effectiveness}): How much does the once-per-assignment invocation structure reduce turnaround time and dollars, past what submission volume does the one-off build pay off, and can provider prompt caching or cheaper model tiers close the gap?
-\item \textbf{RQ3} (\emph{where the repairs come from}): How do the LLM-authored rules, the shared symbolic substrate, the reference transplant, and the fallback each contribute to the repairs and to the misconception labels the tool reports?
-\item \textbf{RQ4} (\emph{learning from its own escalations}): Do the rules \textsc{CoEP} induces from its own fallback fixes improve the frozen tool on submissions they were not induced from?
-\item \textbf{RQ5} (\emph{what the conclusion survives}): Does the advantage hold across assignment difficulty, from CS1 to Codeforces problems rated 800 to 2000, across both LLM providers, and across the choice of escalation threshold?
+\begin{itemize}\itemsep2pt \parskip0pt
+\item \textbf{RQ1}: Assignment by assignment, how many submissions does \textsc{CoEP} repair, and how much of each program does it edit?
+\item \textbf{RQ2}: How much does the once-per-assignment structure reduce turnaround and dollars, past what enrollment does the build pay off, and can caching or cheaper tiers close the gap?
+\item \textbf{RQ3}: What produces the repairs, and what does the LLM-authored layer add over the symbolic substrate?
+\item \textbf{RQ4}: Do rules induced from \textsc{CoEP}'s own escalations improve the frozen tool on submissions they were not induced from?
+\item \textbf{RQ5}: Does the advantage hold across assignment difficulty, LLM provider, and the escalation threshold?
 \end{itemize}
 
 \subsubsection{Baselines.}
@@ -184,13 +200,11 @@ We evaluate on 11 problems and \NumEval{} buggy submissions drawn from two real-
 Every LLM arm runs on two models, one per provider: \textbf{GPT-5.4-mini} (\$0.75/\$4.50 per Mtok) and \textbf{Claude Sonnet 5} (\$2/\$10 per Mtok). We select each provider's cheapest tier at which prompt caching is functional, in fairness to the caching baseline: PyDex\textsubscript{PC} only competes if caching can engage, and we verified that the absolute cheapest tiers rule it out --- Haiku 4.5 refuses to cache below its 4{,}096-token minimum, above these prompts, and GPT-5.4-nano's automatic caching did not engage on identical 1{,}200-token prompts, whereas both selected models cache at their documented 1{,}024-token minimums. Cheap tiers also keep every measured dollar gap a conservative floor.
 
 \subsubsection{Evaluation Metrics.}
-Metrics are grouped by the research question they serve.
+\textbf{Repair rate (RR)} is the percentage of buggy submissions for which a system produces a program passing the full test suite. \textbf{Relative patch size (RPS)} is the tree-edit distance between buggy and repaired ASTs normalized by buggy program size, reimplemented from Refactory's definition \citep{refactory2019}; smaller patches preserve the student's approach and are pedagogically preferable. RPS never \emph{claims} a repair the tests do not support --- it enters the pipeline only in \textsc{CoEP}\textsubscript{LF}, where a value above 1 routes a submission to the fallback and the smaller patch is kept, so the gate can add a call but cannot manufacture a repair or enlarge a patch.
 
-\textbf{RQ1 and RQ5 (repair effectiveness).} \textbf{Repair rate (RR)}: percentage of buggy submissions for which the system produces a program passing the full test suite. \textbf{Relative patch size (RPS)}: tree-edit distance between buggy and repaired ASTs normalized by buggy program size, reimplemented from Refactory's definition \citep{refactory2019}; smaller patches preserve the student's approach and are pedagogically preferable. RPS never \emph{claims} a repair the tests do not support: it enters the pipeline only in \textsc{CoEP}\textsubscript{LF}, where a value above 1 routes a submission to the fallback and the smaller patch is kept, so the gate can add a call but cannot manufacture a repair or enlarge a patch. Repair rates carry 95\% Wilson intervals, and comparisons between arms we ran ourselves are paired by submission and tested with exact McNemar --- exact rather than chi-square because the discordant counts are often single-digit. The one exception is Refactory on its own corpus, where we quote published per-assignment results and have no per-submission outcomes to pair; that comparison is marked unpaired wherever it appears.
+\textbf{Average turnaround time (ATT)} is mean wall-clock seconds per submission, split into $\mathrm{ATT}_{\mathrm{cpu}}$ (local search) and $\mathrm{ATT}_{\mathrm{api}}$ (model latency); a system's one-off build wall-clock is an intercept and is reported per assignment. \textbf{API cost} is USD of inference over the whole benchmark, including that build, priced at the tiers above from exact token counts. The \textbf{escalation rate} $f$, the fraction of submissions taking a model call, is what the break-even $N^{*}=C_{\text{build}}/(\Delta(1-f))$ consumes.
 
-\textbf{RQ2 (cost).} \textbf{Average turnaround time (ATT)}: mean wall-clock seconds per submission, split into $\mathrm{ATT}_{\mathrm{cpu}}$ (local search) and $\mathrm{ATT}_{\mathrm{api}}$ (model latency); the one-off build wall-clock is an intercept, reported per assignment. \textbf{API cost}: USD of inference over the whole benchmark including a system's build, priced at the tiers above from exact token counts. The \textbf{abstention rate} $f$ is what the break-even $N^{*}=C_{\text{build}}/(\Delta(1-f))$ consumes; RQ5 adds the \textbf{gate rate}, the fraction of \emph{repaired} submissions the threshold escalates.
-
-\textbf{RQ3 and RQ4 (component contributions).} The \textbf{repair-source split} attributes every fix to the mechanism that produced it (authored rule, generic rule, transplant, fallback), and \textbf{rule provenance} counts what the builder authored, what self-learning added, what fired, and what recurs across problems. \textbf{Diagnosis coverage} is the fraction of repairs whose patch carries a misconception label. For RQ4 the comparison is \textsc{CoEP}\textsubscript{L} against \textsc{CoEP}\textsubscript{L+SL} on identical submissions, reported with and without the few each rule was induced from.
+Repair rates carry 95\% Wilson intervals, and comparisons between arms we ran ourselves are paired by submission and tested with exact McNemar --- exact rather than chi-square because the discordant counts are often single-digit. The one exception is Refactory on its own corpus, where we quote published per-assignment results and have no per-submission outcomes to pair; that comparison is marked unpaired wherever it appears.
 
 \subsubsection{Setup.}
 All experiments run on one Apple M1 Ultra workstation (64\,GB RAM) under Python\,3.13, CPU only but for the API calls, and evaluations run without concurrency so ATT is a measurement rather than a contention artifact. PyDex uses $K{=}10$ sampled candidates per submission, every call billed and timed. \textsc{CoEP}\textsubscript{L} and \textsc{CoEP}\textsubscript{LF} come from a single pass with no duplicated calls. Refactory runs with its original algorithm unchanged, ported to Python\,3.
@@ -228,7 +242,12 @@ We answer the five research questions stated in the Experimental Setup; together
 \bottomrule
 \end{tabular}
 % END GENERATED tab_effect
-\caption{Per-assignment repair rate and mean relative patch size, Claude Sonnet 5 as builder, on \NumEval{} buggy submissions. RPS is averaged over the submissions each arm repairs, so a lower rate and a lower RPS in the same row mean the arm is measured on an easier subset. Every arm is given the same \NumEval{} inputs, including the 98 submissions that already pass; \textsc{CoEP} returns those unedited, at $\mathrm{RPS}=0$, while both baselines rewrite them. PyDex\textsubscript{PC} is omitted: prompt caching changes price, not output, so its RR and RPS equal PyDex's to four decimals. Refactory's CS1 rows are its published per-assignment results; its Codeforces rows are our run of the released tool. Codeforces rows carry the problem's difficulty rating; the CS1 assignments are unrated. The ID column is how the rest of the paper refers to an assignment. The GPT-5.4-mini builder is reported in RQ5.}
+\caption{Per-assignment RR and mean RPS on \NumEval{} submissions, Sonnet 5 as
+builder. RPS is averaged over what each arm repairs, so a lower rate beside a
+lower RPS means an easier subset. All arms see the same inputs, including the 98
+that already pass, which \textsc{CoEP} returns unedited. PyDex\textsubscript{PC}
+is omitted: caching changes price, not output. Refactory's CS1 rows are
+published; its Codeforces rows are our run. GPT-5.4-mini is in RQ5.}
 \label{tab:effect}
 \end{table*}
 
@@ -246,8 +265,8 @@ Table~\ref{tab:effect} is per-assignment because corpus means hide two things. R
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_cost.pdf}
-\caption{Where amortization overtakes per-submission inference. Ticks on the
-axis mark the eleven assignments' actual sizes; ten clear $N^{*}$.}
+\caption{Where amortization overtakes per-submission inference. Ticks mark the
+eleven assignments' sizes; ten clear $N^{*}$.}
 \label{fig:cost}
 \end{figure}
 
@@ -264,13 +283,48 @@ Fig.~\ref{fig:cost} turns that into the quantity a department decides on. With $
 
 \subsubsection{RQ3: Where the Repairs Come From}
 
-\textbf{Two complementary local mechanisms.} Named rules make small, labelled edits for the common misconceptions --- a relaxed comparison, an off-by-one bound --- and are surgical: \RuleShare\% of repaired submissions at mean RPS \RuleRPS, the always-on generic library alone at 0.025. Most student bugs are not single-token slips; they need a structural edit no token-level rule expresses, and the transplant supplies it by adopting the smallest set of differing hunks from a structurally-matched correct program. It carries \RefShare\% at \RefRPS, five times more of the program disturbed; the 3.3\% of submissions that already pass are returned unedited, and \textsc{CoEP}\textsubscript{LF}'s fallback contributes a further 8.5\% at 0.775. The transplant is what lifts a rule-only tool to competitive coverage; the rules keep common cases near-minimal and are the only layer that leaves a diagnosis behind. The division is not uniform: where the pool is deep the transplant dominates, but where one misconception dominates a class the authored layer takes it over --- on C4 a single rule, \texttt{carry\_fix\_two\_value\_print}, repairs 27 of 38 submissions and the authored layer accounts for 78.9\%.
+\textbf{Two complementary local mechanisms.} Named rules make small, labelled edits for common misconceptions --- a relaxed comparison, an off-by-one bound --- and are surgical, at \RuleShare\% of repaired submissions and mean RPS \RuleRPS{} (Table~\ref{tab:source}). Most student bugs are not single-token slips; they need a structural edit no token-level rule expresses, and the transplant supplies it by adopting the smallest set of differing hunks from a structurally-matched correct program, disturbing five times more of the student's code. The transplant lifts a rule-only tool to competitive coverage; the rules keep common cases near-minimal and are the only layer leaving a diagnosis behind. The division is not uniform (Fig.~\ref{fig:source}): where the pool is deep the transplant dominates, but where one misconception dominates a class the authored layer takes over --- on C4 a single rule, \texttt{carry\_fix\_two\_value\_print}, repairs 27 of 38 submissions.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_source.pdf}
+\caption{What produced each repair, assignment by assignment. The dotted rule
+separates the CS1 corpus from Codeforces.}
+\label{fig:source}
+\end{figure}
+
+\begin{table}[t]
+\centering\small\setlength{\tabcolsep}{5pt}
+% BEGIN GENERATED tab_source -- rewritten by `run.py tables`; do not edit
+\begin{tabular}{lrrc}
+\toprule
+Repair source & share (\%) & mean RPS & labelled \\
+\midrule
+LLM-authored rules & 0.0 & 0.000 & $\bullet$ \\
+Generic-library rules & 25.9 & 0.108 & $\bullet$ \\
+Reference transplant & 70.8 & 0.595 & -- \\
+Already passing (no edit) & 3.3 & 0.000 & -- \\
+\midrule
+LLM fallback (\textsc{CoEP}\textsubscript{LF}) & 8.5 & 0.775 & -- \\
+\midrule
+\multicolumn{4}{l}{\emph{Framework-only ablation (authored rules removed)}}\\
+\quad ablated & 98.69 & 0.485 & -- \\
+\quad full tool & 99.06 & 0.449 & -- \\
+\bottomrule
+\end{tabular}
+% END GENERATED tab_source
+\caption{What produced each repair, its patch size, and whether it carries a
+misconception label. Shares are over repaired submissions; the fallback row is
+\textsc{CoEP}\textsubscript{LF}'s and sits outside that denominator. The last
+rows are the framework-only ablation.}
+\label{tab:source}
+\end{table}
 
 \textbf{What the LLM layer buys.} A \emph{framework-only} ablation --- the identical tool with the authored rules removed, generic library and transplant left in place --- isolates it. Removing them costs \textbf{0.37} points of repair rate (99.06 to 98.69) and inflates the mean patch \textbf{8\%} (0.449 to 0.485). Coverage barely moves because the transplant absorbs what the rules handled, but it absorbs them with a structural edit rather than a targeted one, and the cost lands where the rules were doing real work: C6's patches grow 0.250, C2's 0.110, and R2 is the only assignment losing coverage, by 2.53 points. C4 moves the other way ($-0.087$), where the transplant finds a smaller edit than the rule that fires there. On a dense correct pool the build therefore buys patch quality and diagnosis rather than reach; the sparse-pool half is RQ5.
 
 The provenance logs say where the effect comes from. The builder authored 91 rules that fired against the library's 5, firing 789 times against 293 --- but only one authored rule fired on more than one assignment, while \texttt{generic\_flip\_compare} alone fired 198 times across 8 of the 11. The authored layer is assignment-specific by construction: it is bought once per assignment and encodes what \emph{this} class got wrong. A fourth producer sits above both --- the threshold fires on \GateFired{} submissions, \GateRate\% of those repaired locally, returning the smaller patch on \GateWon{} (\GateWinFrac\%) for \$\GateUsd.
 
-\textbf{Diagnosis for free.} Every rule-produced patch carries the rule names behind it, so aggregated over a class the tool yields a misconception profile: how often each named mistake occurred, and on which programs. The names read as misconceptions rather than patches --- \texttt{append\_missing\_return\_len\_after\_loop}, \texttt{count\_compare\_relax} --- and an instructor gets the report at no extra cost from an artifact that can be read and edited. Diagnosis coverage is \RuleShare\%; a per-submission API emits none of it at any price.
+\textbf{Diagnosis for free.} Every rule-produced patch carries the rule names behind it, so aggregated over a class the tool yields a misconception profile: how often each named mistake occurred, and on which programs. The names read as misconceptions rather than patches --- \texttt{append\_missing\_return\_len\_after\_loop}, \texttt{count\_compare\_relax} --- and an instructor gets the report at no extra cost from an artifact that can be read and edited. Diagnosis coverage is \RuleShare\% (Table~\ref{tab:source}); a per-submission API emits none of it at any price.
 
 \smallskip
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ3.} Named rules produce \RuleShare\% of local repairs at mean RPS \RuleRPS, five times smaller than the transplant's \RefRPS{} and each carrying a misconception label; the transplant produces \RefShare\% and carries coverage. Removing the authored rules costs 0.37 points of coverage and inflates the patch 8\%, so on a dense pool the build buys patch quality and diagnosis rather than reach. One of 91 authored rules recurs across assignments while the generic library recurs everywhere --- which is why the build is priced per assignment.}}
@@ -279,7 +333,7 @@ The provenance logs say where the effect comes from. The builder authored 91 rul
 
 \textsc{CoEP}\textsubscript{L+SL} is the frozen tool re-run with the rules absorbed from its own fallback fixes. Absorption happens outside the evaluated pass and the augmented tool is frozen before this arm runs, so the comparison against \textsc{CoEP}\textsubscript{L} is order-independent: the same submissions, the same acceptance rule, two rule sets. Absorption learns only from submissions the local tool fails outright, never from threshold escalations, so its supply of material is exactly the abstention set.
 
-\textbf{The first result is how little there is to learn from.} Across the 22 (assignment, builder) cells the frozen tool abstains on 28 submissions in total, and 19 cells leave nothing to absorb. That is not a failure of the mechanism; it is what a 99.06\% local repair rate means. Where it does abstain, absorption fires: four rules on R2 with the frontier builder, three on R2 with the cheap one, one on C3.
+\textbf{The first result is how little there is to learn from.} Across the 22 (assignment, builder) cells the frozen tool abstains on 28 submissions and 19 cells leave nothing to absorb --- not a failure of the mechanism but what a 99.06\% local repair rate means. Where it does abstain, absorption fires: four rules on R2 with the frontier builder, three on R2 with the cheap one, one on C3.
 
 \textbf{Where it fires, the rules transfer.} R2 moves from 93.79\% to \textbf{95.40\%} on the four, and to \textbf{96.55\%} on the cheap builder's three; on C3 a single rule, \texttt{binarysearch\_zero\_exit}, closes the last gap to 100\%. Paired, both are significant: $b{=}9$, $c{=}1$, $p{=}0.021$ at the frontier tier and $b{=}12$, $c{=}0$, $p{=}4.9{\times}10^{-4}$ at the cheap one. The cheap builder learning \emph{more} is worth stating --- the material is the same 27 abstentions, and what differs is how general a rule the model writes from one fix. Eight submissions induced these rules out of 504 evaluated, so the gain is measured almost entirely on programs the rules were never validated against, for \$0.76 of induction priced to the artifact. The names again read as misconceptions: \texttt{uniqueness\_count\_gt1\_to\_neq1}, \texttt{counter\_var\_confusion}.
 
@@ -290,25 +344,14 @@ The provenance logs say where the effect comes from. The builder authored 91 rul
 
 \textbf{Difficulty.} As the six Codeforces problems climb from rating 800 to 2000 the deep CS1 solution pools give way to sparser ones, and the symbolic baseline tracks that: 90.8\% on CS1, 83.1\% on the 800--1000 band, \textbf{54.3\%} on 1200--2000, against \textsc{CoEP}\textsubscript{LF}'s 99.4/100.0/100.0. But the per-assignment rows say difficulty is not the driver. Refactory repairs all of C6 (rating 2000) and four in ten of C5 (rating 1600); its rate is not monotone in rating. What predicts the collapse is whether the pool holds a structurally matching reference, since block-level reuse starves when strategies diverge --- C5's 77 submissions draw on a pool of two correct solutions. Every arm's RPS roughly doubles from CS1 to the hard band, so the ordering survives while the absolute numbers do not.
 
-\textbf{Provider.} \textsc{CoEP}\textsubscript{LF} reaches 99.7\% at 0.398 RPS with the frontier builder and 99.7\% at 0.411 with the cheap one --- a 3\% difference in patch size for an 18-fold difference in build price (\$\BuildUsdSonnet{} against \$\BuildUsdMini). The ordering against both baselines is identical either way, and RQ4 showed the cheap builder can learn the \emph{better} rule.
+\textbf{Provider.} \textsc{CoEP}\textsubscript{LF} reaches 99.7\% at 0.398 RPS with the frontier builder and 99.7\% at 0.411 with the cheap one --- 3\% in patch size for an 18-fold difference in build price (\$\BuildUsdSonnet{} against \$\BuildUsdMini) --- with the ordering against both baselines identical either way.
 
 \textbf{Threshold.} We swept 38 candidate rules --- median- or mean-anchored with MAD, standard-deviation or interquartile spread, bare quantiles, multiples of the assignment's median, corpus-wide variants, and constants --- of which 29 give distinct settings inside the cached escalation prefix and are measured exactly. Three things hold across all. Repair rate is \emph{identical} to four decimals at 99.66\%, because the gate re-examines only patches the tests already passed and keeps the smaller. Mean RPS falls monotonically with the escalation rate, 0.451 to 0.378, with no interior optimum, so the setting is a budget rather than a value to discover. And total spend stays within \$12.47--\$15.61, so every one of the 29 beats all three baselines on repair rate, patch size, turnaround and dollars at once.
 
-Two findings inside the sweep are negative and worth stating. Making the threshold \emph{relative to the assignment} does not pay: a single corpus-wide cutoff sits on the same frontier or better, since RPS is already normalized by program size and normalizing again per assignment directs calls to assignments the tool already handles. And the median-plus-MAD family we began with is Pareto-dominated inside the sweep. What we ship is therefore the setting whose value is a definition rather than a fitted constant; its honest cost is being nearly inert where local patches are uniformly small --- it fires on 0.0\% of R3 against 22.3\% of C2.
+Two findings inside the sweep are negative. Making the threshold \emph{relative to the assignment} does not pay --- a single corpus-wide cutoff sits on the same frontier or better, since RPS is already normalized by program size and normalizing again directs calls to assignments the tool already handles --- and the median-plus-MAD family we began with is Pareto-dominated. We therefore ship the setting whose value is a definition rather than a fitted constant, at the honest cost of being nearly inert where local patches are uniformly small: it fires on 0.0\% of R3 against 22.3\% of C2.
 
 \smallskip
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ5.} Yes on all three. The symbolic baseline falls 90.8\% to 54.3\% between the CS1 corpus and the hardest Codeforces band while \textsc{CoEP}\textsubscript{LF} holds 100\%; the builders agree to 3\% in patch size for an 18-fold price difference; and across 29 thresholds the repair rate is invariant while patch size spans 0.378--0.451 and spend \$12.47--\$15.61, so every setting beats every baseline on all four metrics.}}
-
-\section{Related Work}
-\label{sec:related}
-
-\textbf{APR for programming assignments.} The pre-LLM systems \citep{itsp2017,clara2018,sarfgen2018,refactory2019,verifix2022} exploit per-assignment structure, and the reference-reuse ones depend on finding a structurally matching correct solution; our transplant stands in that lineage at hunk rather than block granularity and exceeds the strongest of them on both coverage and patch size. Closest to our synthesis layer, Refazer learns per-assignment transformations from (buggy, fixed) pairs with PROSE \citep{refazer2017}; \textsc{CoEP} replaces the example-driven synthesizer with a cheapest-tier LLM that \emph{names} the misconception behind each rule, and surrounds it with generic search, transplant, and harness-gated escalation.
-
-\textbf{LLM-based repair.} Repair-as-generation \citep{alpharepair2022}, conversational test feedback \citep{chatrepair2024}, student-program repair \citep{pydex2024,mmapr2022}, faster per-query inference \citep{fastfixer2024}, a tutor in the loop \citep{cref2024}, counterexample-guided minimal repair \citep{orvalho2025} and retrieval-guided learner-tailored repair \citep{dai2026} are all per-submission, and complementary --- any can serve as \textsc{CoEP}'s fallback --- but \textsc{CoEP} shifts the primary cost to the assignment.
-
-\textbf{Templates and tool synthesis.} Fixed libraries of human-curated fix templates repair a surprising share of real bugs \citep{par2013,tbar2019}; \textsc{CoEP}'s generic layer is a mutation-inversion instance \citep{mutants2014} and its novelty is the \emph{synthesized, assignment-specific} layer. Cascades, cheap pipelines and provider caching \citep{frugalgpt2024,srepair2024,anthropiccaching,openaicaching} optimize \emph{within} the pay-per-query paradigm; agent tool-making amortizes written code across episodes \citep{voyager2024,toolmakers2024,selfrefine2023,reflexion2023}. \textsc{CoEP} removes queries instead, and adds the verifiability education forces.
-
-\smallskip\noindent\textbf{Ethical statement.} \textsc{CoEP} automates feedback, not grading, under instructor oversight; unhandled students get full-LLM treatment; repairs are auditable; data are public.
 
 \bibliography{references}
 
