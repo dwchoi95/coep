@@ -1,7 +1,9 @@
-"""`run.py numbers` — regenerate the paper's \\newcommand block from results/.
+"""`run.py numbers` — recompute every number the paper quotes, from results/.
 
-Only the macros main.tex actually cites are emitted, so an orphaned macro is a
-build error rather than a stale number nobody noticed. Every value is read from
+The paper used to hold a spliced \\newcommand block; it now carries the values
+literally, so this command no longer writes to main.tex. It prints each
+quantity next to whether that exact string still occurs in main.tex, which is
+how a number that drifted from the logs gets caught. Every value is read from
 results/<ver>/, never recomputed.
 """
 from __future__ import annotations
@@ -21,17 +23,22 @@ CS1 = ORDER[:5]
 CF = ORDER[5:]
 
 
-def agg(ver: str, approach: str, model: str, pids=tuple(ORDER)) -> dict:
+def agg(ver: str, approach: str, model: str | tuple, pids=tuple(ORDER)) -> dict:
+    """Aggregate one arm. `model` may be a tuple, in which case the builders are
+    pooled exactly as the paper's effectiveness tables pool them; cost is never
+    pooled, since the two price schedules differ by an order of magnitude."""
+    models = (model,) if isinstance(model, str) else tuple(model)
     n = rep = 0
     rr = rps = usd = 0.0
-    for pid in pids:
-        c = _cell(_summary(ver, pid), approach, model)
-        if c is None:
-            continue
-        nn = int(c["N"]); r_ = float(c["RR"]); k = round(r_ * nn)
-        n += nn; rep += k; rr += r_ * nn
-        rps += float(c["RPS"]) * k
-        usd += float(c["$API"]) + float(c["$Build"])
+    for m in models:
+        for pid in pids:
+            c = _cell(_summary(ver, pid), approach, m)
+            if c is None:
+                continue
+            nn = int(c["N"]); r_ = float(c["RR"]); k = round(r_ * nn)
+            n += nn; rep += k; rr += r_ * nn
+            rps += float(c["RPS"]) * k
+            usd += float(c["$API"]) + float(c["$Build"])
     return {"n": n, "rr": 100 * rr / max(n, 1), "rps": rps / max(rep, 1),
             "usd": usd}
 
@@ -68,26 +75,26 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
     v = args.ver
 
-    L = agg(v, "CoEP_L", FRONTIER)
-    LF = agg(v, "CoEP_LF", FRONTIER)
+    BOTH = (FRONTIER, CHEAP)
+    L = agg(v, "CoEP_L", BOTH)
+    LF = agg(v, "CoEP_LF", BOTH)
     Lm = agg(v, "CoEP_L", CHEAP)
     LFm = agg(v, "CoEP_LF", CHEAP)
-    P = agg(v, "PyDex", FRONTIER)
+    P = agg(v, "PyDex", BOTH)
     Pm = agg(v, "PyDex", CHEAP)
     PC = agg(v, "PyDex_PC", FRONTIER)
     PCm = agg(v, "PyDex_PC", CHEAP)
     R = agg(v, "Refactory", "none")
     Lc, LFc, Rc, Pc = (agg(v, a, m, CS1) for a, m in
-                       (("CoEP_L", FRONTIER), ("CoEP_LF", FRONTIER),
-                        ("Refactory", "none"), ("PyDex", FRONTIER)))
+                       (("CoEP_L", BOTH), ("CoEP_LF", BOTH),
+                        ("Refactory", "none"), ("PyDex", BOTH)))
     Lx, LFx, Rx = (agg(v, a, m, CF) for a, m in
-                   (("CoEP_L", FRONTIER), ("CoEP_LF", FRONTIER),
+                   (("CoEP_L", BOTH), ("CoEP_LF", BOTH),
                     ("Refactory", "none")))
-    src = _source_split(v, FRONTIER)
+    src = _source_split(v)
     tot = sum(x[0] for k, x in src.items() if k != "llm")
-    rule_n = src.get("authored", [0, 0])[0] + src.get("generic", [0, 0])[0]
-    rule_rps = ((src.get("authored", [0, 0.0])[1] + src.get("generic", [0, 0.0])[1])
-                / max(rule_n, 1))
+    rule_n, rule_sum = src.get("rules", [0, 0.0])
+    rule_rps = rule_sum / max(rule_n, 1)
     ref = src.get("reference", [0, 0.0])
     fired, rate, won, winf, gusd = gate_stats(v, FRONTIER)
 
@@ -105,9 +112,9 @@ def main(argv: list[str]) -> int:
     def money(x): return f"{x:.2f}"
 
     M = {
-        "NumEval": f"{L['n']:,}".replace(",", "{,}"),
-        "NumEvalRefac": f"{Lc['n']:,}".replace(",", "{,}"),
-        "NumEvalCF": f"{Lx['n']:,}".replace(",", "{,}"),
+        "NumEval": f"{L['n'] // 2:,}".replace(",", "{,}"),
+        "NumEvalRefac": f"{Lc['n'] // 2:,}".replace(",", "{,}"),
+        "NumEvalCF": f"{Lx['n'] // 2:,}".replace(",", "{,}"),
         # CS1 corpus (the head-to-head against the published symbolic tool)
         "LocalRR": f"{Lc['rr']:.2f}", "LocalRPS": f"{Lc['rps']:.3f}",
         "HybridRR": f"{LFc['rr']:.2f}", "HybridRPS": f"{LFc['rps']:.3f}",
@@ -151,19 +158,16 @@ def main(argv: list[str]) -> int:
         "GateUsd": money(gusd),
     }
 
-    used = set(re.findall(r"\\([A-Za-z]+)", (PAPER / "main.tex").read_text()))
-    # Only what the paper cites: an unused macro is a number nobody checked,
-    # and a cited-but-undefined one is a compile error rather than a silent gap.
-    body = []
+    tex = (PAPER / "main.tex").read_text()
+    absent = []
     for k, val in M.items():
-        if k in used:
-            body.append("\\newcommand{\\%s}{%s}\n" % (k, val))
-    splice("numbers", "".join(body), "run.py numbers")
-    orphan = sorted(k for k in M if k not in used)
-    missing = sorted(u for u in used if u[0].isupper() and u not in M
-                     and u not in {"UrlFont", "LLM", "Delta"})
-    print(f"  spliced {len(M) - len(orphan)} macros into paper/main.tex "
-          f"({len(orphan)} computed but unused)")
-    if missing:
-        print(f"  cited but not defined: {', '.join(missing)}")
+        if val in tex:
+            print(f"  {k:<20}{val:>12}   in main.tex")
+        else:
+            absent.append((k, val))
+            print(f"  {k:<20}{val:>12}   ABSENT")
+    print(f"{len(M) - len(absent)}/{len(M)} quantities occur verbatim in main.tex")
+    if absent:
+        print("  absent values are either superseded or quoted with different "
+              "formatting; check each before assuming the paper is stale")
     return 0

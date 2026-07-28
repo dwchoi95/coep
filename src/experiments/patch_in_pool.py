@@ -1,16 +1,23 @@
-"""Is the construct a rule produces present anywhere in the reference pool?
+"""Measure whether a rule's local edit appears in the reference pool.
 
-Reference-guided repair can only emit code it can transplant from a correct
-program. So the question that separates a synthesized rule from that whole
-family is not whether one tool failed, but whether the construct the rule builds
-exists in the pool at all. If it does not, no reference-guided method could have
-produced that repair, however well it aligned.
+This is a diagnostic of patch shape, not evidence that reference-guided repair
+cannot fix a bug. A transplant may repair the same misconception by importing a
+guard and its surrounding structure even when the rule's exact in-place rewrite
+is absent. The comparison helps explain why authored rules can produce smaller
+patches.
 
-Operationally: diff p_b against p_f, parse the statements the patch introduces,
+Operationally, diff p_b against p_f, parse the statements the patch introduces,
 normalise them by folding identifiers and constants to placeholders, and ask
 whether that normalised form occurs among the statements of any correct program
-for the same problem. Folding identifiers is what makes the comparison about
-structure rather than about whether a student happened to name a variable `s`.
+for the same problem. Folding identifiers makes the comparison about structure
+rather than whether a student happened to name a variable `s`.
+
+Limitations:
+1. Compound statements are excluded. Counting a changed FunctionDef (and its
+   body) would make nearly every patch appear absent, so the measurement compares
+   simple statements and branch tests instead.
+2. Constants are folded. A repair whose essential edit is a constant change can
+   therefore collapse to the buggy form and be missed by this analysis.
 """
 from __future__ import annotations
 
@@ -21,7 +28,13 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-sys.path.insert(0, "/Users/cdw/VSCode/coep")
+# Running this file directly puts ``src/experiments`` first on sys.path, where
+# numbers.py would shadow Python's standard-library ``numbers`` module while
+# pandas imports. Use the repository root instead, as module execution does.
+_HERE = Path(__file__).resolve().parent
+_ROOT = Path(__file__).resolve().parents[2]
+sys.path = [p for p in sys.path if Path(p or ".").resolve() != _HERE]
+sys.path.insert(0, str(_ROOT))
 import pandas as pd
 
 from src.experiments.tables import ORDER, IDS, ROOT, _cell, _summary

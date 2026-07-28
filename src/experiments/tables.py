@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.experiments._common import tool_path
 from src.experiments.splice import splice
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,7 +32,7 @@ TITLE = {"refactory_q1": "Sequential search",
 # mention costs four characters instead of a title. R for the CS1 corpus, C for
 # Codeforces in rating order, which is the order Table 2 lists them in.
 IDS = {p: (f"R{i+1}" if i < 5 else f"C{i-4}") for i, p in enumerate(ORDER)}
-BANDS = [("CS1 (Refactory)", ORDER[:5]),
+BANDS = [("CS1", ORDER[:5]),
          ("CF 800--1000", ["cf_110A", "cf_131A"]),
          ("CF 1200--2000", ["cf_1011B", "cf_125A", "cf_11B", "cf_10C"])]
 FRONTIER = "claude-sonnet-5"
@@ -52,6 +53,50 @@ def _summary(ver: str, pid: str) -> pd.DataFrame:
 def _cell(df: pd.DataFrame, approach: str, model: str) -> dict | None:
     m = df[(df["Approach"] == approach) & (df["Model"] == model)]
     return m.iloc[0].to_dict() if len(m) else None
+
+
+
+def tab_data(ver: str) -> str:
+    """The benchmark: two corpora, their pools and their oracles."""
+    out = [r"\begin{tabular}{lrrrr}", r"\toprule",
+           r"Corpus & problems & buggy & correct & tests \\", r"\midrule"]
+    tot = [0, 0, 0, 0]
+    for gname, pids in (("Refactory (CS1)", ORDER[:5]), ("Codeforces", ORDER[5:])):
+        nb = nc = nt = 0
+        for pid in pids:
+            d = ROOT / "data" / pid
+            nb += len(list((d / "buggy").glob("*.py")))
+            nc += len(list((d / "correct").glob("*.py")))
+            nt += len(json.loads((d / "problem.json").read_text()).get("tests", []))
+        out.append(f"{gname} & {len(pids)} & {nb:,} & {nc:,} & {nt}"
+                   f" \\\\".replace(",", "{,}"))
+        tot[0] += len(pids); tot[1] += nb; tot[2] += nc; tot[3] += nt
+    out += [r"\midrule",
+            (r"\textbf{Total} & \textbf{%d} & \textbf{%s} & \textbf{%s} & "
+             r"\textbf{%d} \\"
+             % (tot[0], f"{tot[1]:,}".replace(",", "{,}"),
+                f"{tot[2]:,}".replace(",", "{,}"), tot[3])),
+            r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(out) + "\n"
+
+
+def _pooled(ver: str, pid: str, approach: str) -> tuple[int, int, float] | None:
+    """(n, repaired, mean RPS) pooled over every model this arm ran on.
+
+    Refactory has no model, so it pools to itself. For the LLM arms this is the
+    two builders' submissions taken together rather than one of them chosen for
+    the table, which is what the arm's own row in RQ5 then decomposes.
+    """
+    models = ["none"] if approach == "Refactory" else [FRONTIER, CHEAP]
+    n = rep = 0
+    rps = 0.0
+    for m in models:
+        c = _cell(_summary(ver, pid), approach, m)
+        if c is None:
+            continue
+        nn = int(c["N"]); k = round(float(c["RR"]) * nn)
+        n += nn; rep += k; rps += float(c["RPS"]) * k
+    return None if n == 0 else (n, rep, rps / max(rep, 1))
 
 
 def tab_effect(ver: str) -> str:
@@ -75,69 +120,63 @@ def tab_effect(ver: str) -> str:
             spine = (r"\multirow{%d}{*}{\rotatebox[origin=c]{90}{\emph{%s}}}"
                      % (len(pids), gname)) if i == 0 else ""
             rr, rps = [], []
-            for a, m in arms:
-                c = _cell(df, a, m)
-                if c is None:
+            for a, _m in arms:
+                got = _pooled(ver, pid, a)
+                if got is None:
                     rr.append("--"); rps.append("--"); continue
-                n, r_, p_ = int(c["N"]), float(c["RR"]), float(c["RPS"])
-                rep = round(r_ * n)
-                rr.append(f"{100*r_:.1f}"); rps.append(f"{p_:.3f}")
-                acc[a][0] += r_ * n; acc[a][1] += p_ * rep
+                n, rep, p_ = got
+                rr.append(f"{100*rep/n:.1f}"); rps.append(f"{p_:.3f}")
+                acc[a][0] += rep; acc[a][1] += p_ * rep
                 acc[a][2] += n; acc[a][3] += rep
             out.append(f"{spine} & {IDS[pid]} & {title} & {rating} & "
                        + " & ".join(rr) + " & & " + " & ".join(rps) + r" \\")
     out.append(r"\midrule")
     rr = " & ".join(f"\\textbf{{{100*acc[a][0]/acc[a][2]:.1f}}}" for a, _m in arms)
     rps = " & ".join(f"\\textbf{{{acc[a][1]/acc[a][3]:.3f}}}" for a, _m in arms)
-    out.append(r"& \multicolumn{3}{l}{\textbf{Corpus} (%s submissions)} & %s & & %s \\"
-               % (f"{acc['CoEP_L'][2]:,}".replace(",", "{,}"), rr, rps))
+    out.append(r"& \multicolumn{3}{l}{\textbf{Overall}} & %s & & %s \\" % (rr, rps))
     out += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out) + "\n"
 
 
-def _source_split(ver: str, model: str) -> dict:
-    """Repaired submissions by the mechanism that produced them."""
+def _source_split(ver: str, model: str | tuple = (FRONTIER, CHEAP)) -> dict:
+    """Repaired submissions by the mechanism that produced them, over one
+    builder or, by default, both pooled."""
+    models = (model,) if isinstance(model, str) else tuple(model)
     agg: dict[str, list] = {}
-    for pid in ORDER:
+    for model in models:
+      for pid in ORDER:
         f = ROOT / "results" / ver / pid / "coep_l.csv"
         if not f.exists():
             continue
-        authored = set(json.loads(_cell(_summary(ver, pid), "CoEP_L",
-                                        model)["Rules_build"]))
         df = pd.read_csv(f, keep_default_na=False)
         df = df[df["Model"] == model]
         for _i, r in df.iterrows():
             if not r["Fixed"]:
                 continue
-            src = r["Source"]
-            if src == "rules":
-                names = json.loads(r["Rules_L"])
-                src = "authored" if any(n in authored for n in names) else "generic"
-            a = agg.setdefault(src, [0, 0.0])
+            a = agg.setdefault(r["Source"], [0, 0.0])
             a[0] += 1
             a[1] += float(r["RPS"]) if r["RPS"] != "" else 0.0
     # the fallback's share is CoEP_LF's llm-sourced repairs
     fb = [0, 0.0]
-    for pid in ORDER:
-        f = ROOT / "results" / ver / pid / "coep_lf.csv"
-        if not f.exists():
-            continue
-        df = pd.read_csv(f, keep_default_na=False)
-        df = df[(df["Model"] == model) & (df["Source"] == "llm") & (df["Fixed"])]
-        fb[0] += len(df)
-        fb[1] += df["RPS"].astype(float).sum()
+    for m in models:
+        for pid in ORDER:
+            f = ROOT / "results" / ver / pid / "coep_lf.csv"
+            if not f.exists():
+                continue
+            df = pd.read_csv(f, keep_default_na=False)
+            df = df[(df["Model"] == m) & (df["Source"] == "llm") & (df["Fixed"])]
+            fb[0] += len(df)
+            fb[1] += df["RPS"].astype(float).sum()
     agg["llm"] = fb
     return agg
 
 
 def tab_source(ver: str) -> str:
-    agg = _source_split(ver, FRONTIER)
+    agg = _source_split(ver)
     tot = sum(v[0] for k, v in agg.items() if k != "llm")
-    rows = [("authored", "LLM-authored rules", r"$\bullet$"),
-            ("generic", "Generic-library rules", r"$\bullet$"),
-            ("reference", "Reference transplant", "--"),
-            ("noop", "Already passing (no edit)", "--"),
-            ("llm", "LLM fallback (\\textsc{CoEP}\\textsubscript{LF})", "--")]
+    rows = [("rules", "1. rules", r"$\bullet$"),
+            ("reference", "2. reference transplant", "--"),
+            ("llm", "3. LLM (\\textsc{CoEP}\\textsubscript{LF})", "--")]
     out = [r"\begin{tabular}{lrrc}", r"\toprule",
            r"Repair source & share (\%) & mean RPS & labelled \\", r"\midrule"]
     for k, name, lab in rows:
@@ -147,7 +186,8 @@ def tab_source(ver: str) -> str:
         out.append(f"{name} & {100*v[0]/max(tot,1):.1f} & "
                    f"{v[1]/max(v[0],1):.3f} & {lab} \\\\")
     # framework-only ablation, if the pass has been run
-    fw = [(_cell(_summary(ver, p), "CoEP_L_fw", FRONTIER), p) for p in ORDER]
+    fw = [(_cell(_summary(ver, p), "CoEP_L_fw", m), p)
+          for m in (FRONTIER, CHEAP) for p in ORDER]
     fw = [(c, p) for c, p in fw if c is not None]
     out.append(r"\midrule")
     if fw:
@@ -155,13 +195,15 @@ def tab_source(ver: str) -> str:
         rep = sum(round(float(c["RR"]) * int(c["N"])) for c, _p in fw)
         rps = sum(float(c["RPS"]) * round(float(c["RR"]) * int(c["N"]))
                   for c, _p in fw) / max(rep, 1)
-        base = [(_cell(_summary(ver, p), "CoEP_L", FRONTIER)) for p in ORDER]
+        base = [_cell(_summary(ver, p), "CoEP_L", m)
+                for m in (FRONTIER, CHEAP) for p in ORDER]
         bn = sum(int(c["N"]) for c in base)
         brep = sum(round(float(c["RR"]) * int(c["N"])) for c in base)
         brps = sum(float(c["RPS"]) * round(float(c["RR"]) * int(c["N"]))
                    for c in base) / max(brep, 1)
         out += [r"\multicolumn{4}{l}{\emph{Framework-only ablation"
-                r" (authored rules removed)}}\\",
+                r" (builder rules removed),}}\\",
+                r"\multicolumn{4}{l}{\emph{first column is RR (\%) rather than share}}\\",
                 f"\\quad ablated & {100*rep/n:.2f} & {rps:.3f} & -- \\\\",
                 f"\\quad full tool & {100*brep/bn:.2f} & {brps:.3f} & -- \\\\"]
     else:
@@ -185,20 +227,106 @@ def _band(ver: str, pids: list[str], approach: str, model: str):
     return rr / n, rps / max(rep, 1)
 
 
+
+
+def tab_att(ver: str) -> str:
+    """Turnaround, split into the local search and the model wait behind it."""
+    out = [r"\begin{tabular}{llrrr}", r"\toprule",
+           r"Arm & Builder & $\mathrm{ATT}_{\mathrm{cpu}}$ &"
+           r" $\mathrm{ATT}_{\mathrm{api}}$ & $\mathrm{ATT}_{\mathrm{tot}}$ \\",
+           r"\midrule"]
+    for model, tag in ((FRONTIER, r"\texttt{claude-sonnet-5}"),
+                       (CHEAP, r"\texttt{gpt-5.4-mini}")):
+        if model == CHEAP:
+            out.append(r"\midrule")
+        for arm, label in (("PyDex", "PyDex"),
+                           ("CoEP_LF", r"\textsc{CoEP}\textsubscript{LF}")):
+            n = cpu = api = 0.0
+            for pid in ORDER:
+                c = _cell(_summary(ver, pid), arm, model)
+                if c is None:
+                    continue
+                nn = int(c["N"]); n += nn
+                cpu += float(c["ATT_cpu"]) * nn
+                api += float(c["ATT_api"]) * nn
+            cpu /= max(n, 1); api /= max(n, 1)
+            out.append(f"{label} & {tag} & {cpu:.2f} & {api:.2f} & "
+                       f"{cpu + api:.2f} \\\\")
+    out += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(out) + "\n"
+
+def tab_learn(ver: str) -> str:
+    """RQ4 as a funnel: what failed, what was tried, what survived, what it fixed."""
+    import re
+    failed = attempted = kept = 0
+    fired: set[str] = set()
+    gain = loss = 0
+    for m in (FRONTIER, CHEAP):
+        for pid in ORDER:
+            l = pd.read_csv(ROOT / "results" / ver / pid / "coep_l.csv",
+                            keep_default_na=False)
+            l = l[l.Model == m]
+            miss = l[~l.Fixed.astype(bool)]
+            failed += len(miss)
+            if not len(miss):
+                continue
+            # induction is only tried where the fallback repaired the miss
+            lf = pd.read_csv(ROOT / "results" / ver / pid / "coep_lf.csv",
+                             keep_default_na=False)
+            lf = lf[(lf.Model == m)
+                    & lf.Buggy.astype(str).isin(miss.Buggy.astype(str))]
+            attempted += int(lf.Fixed.astype(bool).sum())
+            learned = tool_path(pid, m, "tools").parent / "sl" / "learned.py"
+            names = (re.findall(r'Rule\("([^"]+)"', learned.read_text())
+                     if learned.exists() else [])
+            kept += len(names)
+            f = ROOT / "results" / ver / pid / "coep_l_sl.csv"
+            if not f.exists() or not names:
+                continue
+            sl = pd.read_csv(f, keep_default_na=False)
+            sl = sl[sl.Model == m]
+            was = dict(zip(l.Buggy.astype(str), l.Fixed.astype(bool)))
+            for _i, r in sl.iterrows():
+                k = str(r["Buggy"])
+                if k not in was:
+                    continue
+                now = bool(r["Fixed"])
+                if now and not was[k]:
+                    gain += 1
+                    fired |= set(json.loads(r["Rules_L"] or "[]")) & set(names)
+                elif was[k] and not now:
+                    loss += 1
+    rows = [("Submissions \\textsc{CoEP}\\textsubscript{L} failed to repair", failed),
+            ("\\quad of those, induction attempted", attempted),
+            ("\\quad\\quad new rules kept", kept),
+            ("\\quad\\quad\\quad rules that later repaired a submission", len(fired)),
+            ("Submissions newly repaired", gain),
+            ("\\quad regressed", loss)]
+    out = [r"\begin{tabular}{lr}", r"\toprule",
+           r"Stage & count \\", r"\midrule"]
+    for name, n in rows:
+        if name.startswith("Submissions newly"):
+            out.append(r"\midrule")
+        out.append(f"{name} & {n} \\\\")
+    out += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(out) + "\n"
+
+
 def tab_robust(ver: str) -> str:
     def cell(t):
         return f"{100*t[0]:.1f} / {t[1]:.3f}" if t else "--"
 
-    out = [r"\begin{tabular}{lccc}", r"\toprule",
+    out = [r"\begin{tabular}{@{}l@{\hskip 4pt}ccc@{}}", r"\toprule",
            r"& Refactory & PyDex & \textsc{CoEP}\textsubscript{LF} \\",
            r"Stratum & \multicolumn{3}{c}{RR (\%) / RPS} \\", r"\midrule",
-           r"\multicolumn{4}{l}{\emph{Difficulty} (Sonnet builder)}\\"]
+           r"\multicolumn{4}{l}{\emph{Difficulty} (\texttt{claude-sonnet-5})}\\"]
     for name, pids in BANDS:
         out.append(f"\\quad {name} & {cell(_band(ver, pids, 'Refactory', 'none'))}"
                    f" & {cell(_band(ver, pids, 'PyDex', FRONTIER))}"
                    f" & {cell(_band(ver, pids, 'CoEP_LF', FRONTIER))} \\\\")
     out += [r"\midrule", r"\multicolumn{4}{l}{\emph{Builder}}\\"]
-    for model, name in ((FRONTIER, "Claude Sonnet 5"), (CHEAP, "GPT-5.4-mini")):
+    for model, name in ((FRONTIER, r"\texttt{claude-sonnet-5}"),
+                        (CHEAP, r"\texttt{gpt-5.4-mini}")):
         out.append(f"\\quad {name} & -- & {cell(_band(ver, ORDER, 'PyDex', model))}"
                    f" & {cell(_band(ver, ORDER, 'CoEP_LF', model))} \\\\")
     sweep = ROOT / "results" / ver / "threshold_sweep.json"
@@ -221,12 +349,14 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py tables")
     ap.add_argument("--ver", default="v2")
     args = ap.parse_args(argv)
-    for name, body in (("tab_effect", tab_effect(args.ver)),
-                       ("tab_source", tab_source(args.ver))):
+    for name, body in (("tab_data", tab_data(args.ver)),
+                       ("tab_effect", tab_effect(args.ver)),
+                       ("tab_att", tab_att(args.ver)),
+                       ):
         splice(name, body, "run.py tables")
         print(f"  spliced {name} into paper/main.tex")
     for name, body in (("tab_source", tab_source(args.ver)),
-                       ("tab_robust", tab_robust(args.ver))):
+                       ):
         (PAPER / "supp" / f"{name}.tex").write_text(body)
         print(f"  wrote paper/supp/{name}.tex")
     return 0

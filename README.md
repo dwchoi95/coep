@@ -1,120 +1,90 @@
-# CoEP: Synthesize Once, Repair Many
+# CoEP: Use LLMs to Build Repair Tools, Not Patch Generation
 
-Cost-effective automated program repair (APR) for programming assignments by
-**per-assignment repairer synthesis**: an LLM agent writes, once per
-assignment, a local rule/template-based repair program; student submissions
-are then repaired locally at zero marginal LLM cost, with per-submission LLM
-repair as fallback.
+Automated program repair for programming assignments in which **the model
+writes the repair tool, not the patch**. Once per assignment a builder LLM
+turns worked (buggy, reference) pairs into a Python module of
+misconception-named AST rewrite rules; the frozen module then repairs
+submissions locally with no model at all, and only what it abstains on takes a
+conventional per-submission call.
 
-Paper: `paper/main.pdf` (AAAI-format draft; anonymized).
+Paper: `paper/main.pdf` (AAAI format, anonymized).
 
-## Headline results (10 assignments, 229 buggy programs, 179 held-out)
+## Results
 
-| | Repair rate | RPS ≤ 0.35 | build $/assign. | marginal $/submission |
-|---|---|---|---|---|
-| Frontier per-submission | 100.0% | 92.7% | 0 | $2.99×10⁻³ |
-| + provider prompt caching | 100.0% | 92.7% | 0 | $1.53×10⁻³ |
-| Cheap-model (Haiku) per-subm. | 97.2% | 86.6% | 0 | $0.99×10⁻³ |
-| Cascade (cheap→frontier) | 100.0% | 88.3% | 0 | $1.09×10⁻³ |
-| Generic-only local | 62.0% | 62.0% | 0 | 0 |
-| Generic-hybrid | 100.0% | 92.7% | 0 | $1.13×10⁻³ |
-| **CoEP-local** | **74.9%** | 74.9% | $0.126 | **0** |
-| **CoEP + frontier fallback** | **100.0%** | 92.7% | $0.126 | $0.76×10⁻³ |
-| **CoEP + cascade fallback** | **100.0%** | 91.6% | $0.126 | **$0.29×10⁻³** |
+11 assignments, 2,970 buggy programs, both builders pooled. **RR** is the
+repair rate, counting a repair only when the fixed program passes every test.
+**RPS** is relative patch size, the tree-edit distance from the buggy to the
+fixed AST normalized by buggy program size; lower is better.
 
-Break-evens: ≈56 submissions vs. the frontier baseline; ≈342 vs. the strongest
-zero-build competitor (generic-hybrid); ≈159 for CoEP+cascade vs. the cascade.
-Asymptotic marginal-cost reduction 4.0× (10.2× with cascade fallback). On
-misconception-crafted bugs, synthesized problem-specific rules lift local repair
-from 21% (generic edit search) to 50% (p<10⁻⁶); a Haiku-tier builder reaches
-51.4% local at $0.011/assignment build cost.
+| Arm | RR | RPS | cost over the benchmark |
+|---|---|---|---|
+| Refactory (reference-guided) | 85.93% | 0.500 | no model |
+| PyDex (one LLM call per submission) | 98.94% | 0.634 | $292.77 / $28.42 |
+| **CoEP_L** (frozen tool, no model at repair time) | **99.06%** | **0.463** | build only |
+| **CoEP_LF** (+ fallback on abstentions and oversized patches) | **99.70%** | **0.410** | **$13.58 / $1.00** |
 
-## Repository layout
+Costs are `claude-sonnet-5 / gpt-5.4-mini` and include the one-off build. An
+assignment repays that build after 11 submissions against PyDex.
+
+## Layout
 
 ```
-coep/                 harness library
-  sandbox.py          sandboxed / in-process test runners
-  mutation.py         AST mutation engine (benchmark generation + repair operators)
-  repairlib.py        repair-operator library used by synthesized repairers
-  prompts.py          baseline + builder + refinement prompt construction
-  evaluate.py         RPS (token-level relative patch size)
-  costmodel.py        token/dollar accounting (Sonnet-tier pricing + caching)
-benchmark/problems/<id>/
-  problem.json        description + entry + 14 tests
-  refs/               3 reference solutions
-  buggy/              crafted_XX.py (misconception bugs) + mutant_XX.py
-  repairer.py         the synthesized repairer (final round)
-benchmark/splits.json build/eval split (seeded)
-runs/
-  baseline/           per-instance prompts, raw LLM responses, results.json
-  baseline_haiku/     cheap-model arm (same prompts, Haiku-tier responses)
-  coep/               builder prompts/responses per round, build/eval results
-  coep_haiku/         Haiku-tier builder arm (robustness experiment)
-  ablation_generic/   generic-only ablation results
-  summary.json        aggregated metrics + statistics
-scripts/              orchestration: make_dataset, gen_baseline_prompts,
-                      collect_baseline, coep_build, ablation_generic, analyze,
-                      validate_benchmark
-paper/                AAAI LaTeX sources, figures, references, reviews
+src/core/          build-set selection, tool synthesis, the rule search,
+                   reference transplant, escalation, self-learning
+src/experiments/   one driver per stage, all reachable through run.py
+src/prompts/       every prompt sent to a model, as Markdown
+src/runner/        sandboxed test execution
+data/<problem>/    buggy/, correct/, problem.json (tests + description)
+tools/<problem>/<model>/     the synthesized repairer: fixer.py, cost.json,
+                             and sl/learned.py for the self-learned rules
+results/v2/        one row per (submission, arm, model), plus the summaries
+                   built from those rows; everything the paper reports
+paper/             main.tex, references.bib, generated tables and figures
 ```
 
-## Reproducing
+## Recomputing the paper
+
+Nothing below touches a model. Every number the paper reports is derived from
+the committed logs in `results/v2/`:
 
 ```bash
-pip install matplotlib numpy
-python3 scripts/validate_benchmark.py            # refs pass, bugs fail
-python3 scripts/make_dataset.py                  # mutants + splits (seeded)
-python3 scripts/gen_baseline_prompts.py          # per-instance prompts
-# ... run an LLM over runs/baseline/prompts/ -> runs/baseline/responses/ ...
-python3 scripts/collect_baseline.py
-python3 scripts/coep_build.py prompt  <pid>      # builder prompt (round k)
-# ... run an LLM over the prompt -> runs/coep/responses/<pid>_round<k>.md ...
-python3 scripts/coep_build.py install <pid>      # install + build-set eval
-python3 scripts/coep_build.py evalfinal <pid>    # held-out evaluation
-python3 scripts/ablation_generic.py
-python3 scripts/analyze.py                       # summary + figures + numbers.tex
+pip install -r requirements.txt
+
+python run.py tables      # splice the generated tables into paper/main.tex
+python run.py figures     # regenerate paper/figures/*.pdf
+python run.py numbers     # recompute each quantity and report whether that
+                          # exact string still occurs in main.tex
+python run.py stats       # Wilson intervals and exact McNemar over the logs
 ```
 
-All raw prompts and model responses used in the paper are committed under
-`runs/`, so every number is recomputable without any LLM access.
-
-## Running with GPT models (setup provided)
-
-The harness is provider-agnostic at the file level (prompt files in →
-response files out). To run any arm with an OpenAI model:
+## Running the pipeline
 
 ```bash
-pip install openai && export OPENAI_API_KEY=sk-...
-# per-submission baseline arm with GPT
-python3 scripts/run_llm_openai.py --prompts runs/baseline/prompts     --out runs/baseline_gpt4o/responses --model gpt-4o
-python3 scripts/collect_arm.py --arm baseline_gpt4o --model gpt-4o
-# GPT as the CoEP builder
-mkdir -p runs/coep_gpt/prompts && cp runs/coep/prompts/*_round1.md runs/coep_gpt/prompts/
-python3 scripts/run_llm_openai.py --prompts runs/coep_gpt/prompts     --out runs/coep_gpt/responses --model gpt-4o
-COEP_RUNS=coep_gpt COEP_REPAIRER=repairer_gpt.py python3 scripts/coep_build.py install <pid>
-COEP_RUNS=coep_gpt COEP_REPAIRER=repairer_gpt.py python3 scripts/coep_build.py evalfinal <pid>
+cp .env.example .env      # provider keys; .env is gitignored
+
+python run.py build   --problem refactory_q1     # synthesize the tool
+python run.py compare --problem refactory_q1     # CoEP_L and CoEP_LF
+python run.py pydex   --problem refactory_q1     # the per-submission baseline
+python run.py repair  --problem refactory_q1 --file bug.py    # one submission
 ```
 
-Model pricing lives in `coep/costmodel.py` (`MODEL_PRICES`) — verify against
-current provider pricing before a paid run.
+`run.py --list` prints every driver. `src/experiments/v1/` is the previous
+campaign's code, kept runnable against `results/v1/` and not used by anything
+current.
 
-## Real student data (Refactory dataset adapter)
+## Notes on the measurements
 
-`scripts/import_refactory.py` converts the Refactory replication package
-(real student submissions from Hu et al., ASE 2019) into this benchmark's
-format — real buggy submissions become `buggy/real_XXX.py`, instructor
-reference + verified correct submissions become refs, `ans/` becomes the test
-suite, and splits are generated. Clone `githubhuyang/refactory` next to this
-repo, run the importer with `--dry-run` first, then the standard pipeline
-applies unchanged. (The dataset could not be fetched in the authoring
-environment's network sandbox; the importer targets the documented layout and
-re-validates everything with the harness.)
-
-## Protocol notes
-
-- Both paradigms use the same frontier model; every LLM interaction is a
-  single-shot prompt→response exchange with no tool use or test access.
-- Patches are always re-validated independently (sandboxed test run + RPS cap
-  τ=0.35); a repairer cannot self-report success.
-- Token counts use a fixed approximation (chars/3.6) applied identically to
-  both arms; raw strings are included for exact re-tokenization.
+- **Refactory.** Its CS1 rows are the authors' published per-assignment
+  figures; its Codeforces rows are our run of the released tool. The upstream
+  tree under `baselines/refactory/` is gitignored apart from our wrapper, since
+  it carries 36 MB of the authors' own data.
+- **Already-passing submissions.** Both corpora label a few submissions buggy
+  that pass every test. They are repair targets like any other and enter the
+  search unshortcut, so the denominator is the pool as published and is
+  identical across arms.
+- **Held-out view.** The builder sees worked pairs drawn from the same buggy
+  programs it is later measured on, 1,524 of the 2,970. Every result is also
+  reported on the 1,446 submissions no builder ever saw.
+- **Two builders.** Effectiveness is pooled over `claude-sonnet-5` and
+  `gpt-5.4-mini`; cost is never pooled, since the two price schedules differ by
+  an order of magnitude.

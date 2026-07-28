@@ -6,7 +6,7 @@ an index shifted by one — are always covered even when the build sample happen
 not to show them. These are pure *candidate generators*: each emits edited
 program sources, and the harness validates them against the tests. They locate on
 the AST and splice on the original source (no ``ast.unparse``), like the builder
-rules. This is METHODOLOGY §2.1's ``candidates_generic``.
+rules: the always-on operators every synthesized tool carries.
 """
 from __future__ import annotations
 

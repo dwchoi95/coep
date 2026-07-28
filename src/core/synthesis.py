@@ -112,7 +112,7 @@ def load_fixer(path: str | Path) -> list[Rule]:
     if learned_path.exists():
         learned = getattr(_exec_module(learned_path, "learned"), "LEARNED", [])
         rules = rules + [r for r in learned if isinstance(r, Rule)]
-    # every tool also carries the shared small-edit operators (METHODOLOGY §2.1)
+    # every tool also carries the shared small-edit operators
     return rules + generic_rules()
 
 

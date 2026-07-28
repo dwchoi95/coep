@@ -288,14 +288,18 @@ inches = round(n / 3)
 feet = inches // 12
 inches = inches % 12
 print(feet, inches)",True,0.7143,0.4924,0.4924,0.0,0,0,0.0,[],[]
-49637703,claude-sonnet-5,noop,"from math import ceil
+49637703,claude-sonnet-5,rules,"from math import ceil
 a = int(input())
 a/=3
 if a%1<0.5:
 	a//=1
 else:
 	a=a//1+1
-print(str(a//12)+' '+str(a%12))",True,0.0,0.0345,0.0345,0.0,0,0,0.0,[],[]
+_a, _b = (a//12), (a%12)
+if _b >= 12:
+    _a += _b // 12
+    _b %= 12
+print(str(_a)+' '+str(_b))",True,0.6852,0.0702,0.0702,0.0,0,0,0.0,"[""carry_fix_two_value_print""]",[]
 49646595,claude-sonnet-5,rules,"cms=int(input())
 inch=cms//36 
 cms=cms%36 
@@ -596,14 +600,14 @@ inches = round(n / 3)
 feet = inches // 12
 inches = inches % 12
 print(feet, inches)",True,0.7143,3.2798,3.2798,0.0,0,0,0.0,[],[]
-49637703,gpt-5.4-mini,noop,"from math import ceil
+49637703,gpt-5.4-mini,rules,"from math import ceil
 a = int(input())
 a/=3
 if a%1<0.5:
 	a//=1
 else:
 	a=a//1+1
-print(str(a//12)+' '+str(a%12))",True,0.0,0.0346,0.0346,0.0,0,0,0.0,[],[]
+print(str(a // 12)+' '+str(a%12))",True,0.0185,0.0703,0.0703,0.0,0,0,0.0,"[""replace_36_based_split_with_3_and_12_split""]",[]
 49646595,gpt-5.4-mini,reference,"n=int(input())
 n+=1
 f = n//36

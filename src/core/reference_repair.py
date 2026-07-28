@@ -189,9 +189,6 @@ def reference_repair(buggy: str, problem: dict, index: ReferenceIndex,
     correct program. Smallest edit first, so RPS stays minimal."""
     import time
     t0 = time.time()
-    if run_tests(buggy, problem, timeout=candidate_timeout).all_pass:
-        return ReferenceResult(True, buggy, None, 0, 0, 0.0)
-
     seen = {buggy}
     scored: list[tuple[tuple, str, str, int]] = []   # (cheap-order-key, cand, ref, hunks)
     for ref in index.nearest(buggy, k_refs):
@@ -232,7 +229,7 @@ def reference_repair(buggy: str, problem: dict, index: ReferenceIndex,
 class LocalResult:
     repaired: bool
     patch: str | None = None
-    source: str = "none"              # "rules" | "reference" | "noop" | "none"
+    source: str = "none"              # "rules" | "reference" | "none"
     rules: tuple[str, ...] = ()       # provenance when a rule fired
     reference_used: str | None = None
     seconds: float = 0.0
@@ -252,8 +249,8 @@ def local_repair(buggy: str, problem: dict, rules, index: ReferenceIndex,
 
     rr = repair(buggy, problem, rules, budget)
     if rr.repaired:
-        src = "noop" if rr.source == "noop" else "rules"
-        return LocalResult(True, rr.patch, src, rr.rules, None, time.time() - t0)
+        return LocalResult(True, rr.patch, "rules", rr.rules, None,
+                           time.time() - t0)
 
     ref = reference_repair(buggy, problem, index,
                            candidate_timeout=budget.candidate_timeout)

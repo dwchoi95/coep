@@ -180,7 +180,7 @@ class PyDexResult:
     prompt: str = ""               # the prompt used (for prefix analysis)
 
 
-def repair(buggy: str, problem: dict, model: str = "claude-haiku",
+def repair(buggy: str, problem: dict, model: str = "claude-sonnet-5",
            k: int = K_DEFAULT, bank: ShotBank | None = None,
            llm_fn=None) -> PyDexResult:
     """One semantic-phase repair: K sampled candidates, oracle, min-edit pick."""

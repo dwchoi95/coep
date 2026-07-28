@@ -109,10 +109,12 @@ def repair(source: str, problem: dict, rules: list[Rule],
     budget = budget or SearchBudget()
     t0 = time.time()
 
+    # No shortcut for a submission that already passes: the corpus labels it
+    # buggy, so it enters the search like every other one and is measured on
+    # whatever the strategies do to it. Returning it unedited would hand this
+    # arm a free patch of size zero that the per-submission baselines, which
+    # query the model regardless, never get.
     base = run_tests(source, problem, timeout=budget.candidate_timeout)
-    if base.all_pass:                     # already correct: nothing to repair
-        return RepairResult(True, source, (), 0, time.time() - t0, "noop",
-                            base.signature())
     signature = base.signature()
     ordered = _ordered(rules, signature)
 
