@@ -83,46 +83,22 @@ Large language models (LLMs) repair buggy submissions to programming assignments
 
 \section{Introduction}
 
-% [번역] 시의적절한 개별 피드백은 프로그래밍 교육에서 가장 희소한 자원이다. 입문 과목은 캠퍼스에서 수백 명, 온라인에서 수만 명을 수강시키고 각자가 버기한 제출물을
-% 만들어내지만 어떤 교수자도 하나씩 살펴볼 수 없다. 그래서 자동 프로그램 수리(APR)가 오래전부터 피드백 엔진으로 제안돼 왔다. 버기한 제출물과 과제의 테스트가 주어지면,
-% 학생 자신의 접근을 보존하면서 정답으로 만드는 작은 패치를 내놓는 것이다. 초기 시스템들은 패치가 학생 프로그램에 가까이 머물러야 함을 확립했다. 무관한 재작성은 테스트를
-% 통과하지만 아무것도 가르치지 못하기 때문이다. 2세대는 수업의 기존 정답 제출물을 채굴했는데, 이는 값싸게 수리하지만 어떤 제출물이 참조와 맞지 않으면 실패한다. LLM
-% 기반 수리는 그 제약을 없앴고 이제 대부분의 실제 학생 프로그램을 적당한 버그당 가격에 고친다.
+% [번역] 시의적절한 개별 피드백은 프로그래밍 교육에서 가장 희소한 자원이다. 입문 과목은 캠퍼스에서 수백 명, 온라인에서 수만 명을 수강시키고 각자가 버기한 제출물을 만들어내지만 어떤 교수자도 하나씩 살펴볼 수 없다. 그래서 자동 프로그램 수리(APR)가 오래전부터 피드백 엔진으로 제안돼 왔다. 버기한 제출물과 과제의 테스트가 주어지면, 학생 자신의 접근을 보존하면서 정답으로 만드는 작은 패치를 내놓는 것이다. 초기 시스템들은 패치가 학생 프로그램에 가까이 머물러야 함을 확립했다. 무관한 재작성은 테스트를 통과하지만 아무것도 가르치지 못하기 때문이다. 2세대는 수업의 기존 정답 제출물을 채굴했는데, 이는 값싸게 수리하지만 어떤 제출물이 참조와 맞지 않으면 실패한다. LLM 기반 수리는 그 제약을 없앴고 이제 대부분의 실제 학생 프로그램을 적당한 버그당 가격에 고친다.
 Timely, individualized feedback is the scarcest resource in programming education: introductory courses enroll hundreds of students on campus and tens of thousands online, each producing buggy submissions no instructor can examine one by one. Automated program repair (APR) has therefore long been proposed as a feedback engine: given a buggy submission and the assignment's tests, produce a small patch that makes it correct while preserving the student's own approach \citep{itsp2017,clara2018,sarfgen2018,refactory2019,verifix2022}. Early systems established that the patch must stay close to the student's program, because an unrelated rewrite passes the tests but teaches nothing \citep{itsp2017}; a second generation mined the class's own accepted solutions, which repairs cheaply but fails whenever a submission matches no reference \citep{clara2018,sarfgen2018,refactory2019,verifix2022,orvalho2025}; LLM-based repair removed that constraint and now fixes most real student programs at modest per-bug prices \citep{pydex2024,mmapr2022,chatrepair2024,fastfixer2024}.
 
-% [번역] 3세대가 커버리지에서 고친 것을 비용 구조에서 망가뜨렸다. 배포 기본값은 버기한 제출물당 모델 질의 1회이므로 지출이 수강 인원에 비례해 늘고 매 학기 다시
-% 시작된다. 게다가 질의들은 대단히 중복적이다. 한 과제를 수백 명이 시도하고 그 실패는 몇 개의 되풀이되는 오개념으로 뭉치며, 질의 입력 토큰의 약 3분의 2가 같은 과제
-% 제출물들 사이에서 바이트 단위로 동일하다. 같은 오프바이원을 300번째로 재발견하라고 모델에 돈을 내는 것은 지능이 일하는 것이 아니라 청구 아티팩트다. 표준적 처방들은 이
-% 형태를 바꾸지 못한다. 저가 티어와 공급자 캐싱은 상수를 줄일 뿐이고, 캐싱은 이 중복을 잘못된 입도에서 서비스한다. 공유 선두 접두사만 지불되는데 가변적인 프로그램이 앞에
-% 오기 때문이다. 검색 증강은 각 질의를 풍부하게 하지만 여전히 모든 제출물이 왕복을 유발한다. 질문은 호출 하나가 얼마인가가 아니라 파이프라인의 어디에서 LLM을
-% 호출하는가이다.
+% [번역] 3세대가 커버리지에서 고친 것을 비용 구조에서 망가뜨렸다. 배포 기본값은 버기한 제출물당 모델 질의 1회이므로 지출이 수강 인원에 비례해 늘고 매 학기 다시 시작된다. 게다가 질의들은 대단히 중복적이다. 한 과제를 수백 명이 시도하고 그 실패는 몇 개의 되풀이되는 오개념으로 뭉치며, 질의 입력 토큰의 약 3분의 2가 같은 과제 제출물들 사이에서 바이트 단위로 동일하다. 같은 오프바이원을 300번째로 재발견하라고 모델에 돈을 내는 것은 지능이 일하는 것이 아니라 청구 아티팩트다. 표준적 처방들은 이 형태를 바꾸지 못한다. 저가 티어와 공급자 캐싱은 상수를 줄일 뿐이고, 캐싱은 이 중복을 잘못된 입도에서 서비스한다. 공유 선두 접두사만 지불되는데 가변적인 프로그램이 앞에 오기 때문이다. 검색 증강은 각 질의를 풍부하게 하지만 여전히 모든 제출물이 왕복을 유발한다. 질문은 호출 하나가 얼마인가가 아니라 파이프라인의 어디에서 LLM을 호출하는가이다.
 What the third generation fixed in coverage, it broke in cost structure. The deployment default is one model query per buggy submission, so spending grows with enrollment and restarts every term --- and the queries are massively redundant. A single assignment is attempted by hundreds of students whose failures cluster into a few recurring misconceptions \citep{clara2018,refactory2019}, and about two thirds of a query's input tokens are byte-identical across submissions to the same assignment. Paying a model to rediscover the same off-by-one for the three-hundredth time is not intelligence at work; it is a billing artifact. The standard remedies do not change the shape: cheaper tiers and provider caching shrink the constant \citep{anthropiccaching,openaicaching} --- and caching serves this redundancy at the wrong granularity, paying only for a shared leading prefix while the variable program comes first --- and retrieval enriches each query \citep{lsgen2026}, but every submission still triggers a round trip with its marginal cost, latency, and data egress. The question is not what a call costs, but where in the pipeline the LLM is invoked.
 
-% [번역] 우리의 답은 LLM을 과제당 1회 쓰는 것이다. 에이전트 연구는 LLM이 재사용 가능한 코드를 작성해 여러 사용에 걸쳐 상각할 수 있음을 보였고, 고전적 합성은
-% 예제로부터 과제별 수정 규칙을 학습해 왔다. CoEP는 이를 과제 수리에 구현한다. LLM 에이전트가 과제를 한 번 읽고 그 문제 전용 층, 즉 자신이 고치는 오개념의
-% 이름을 딴 AST 재작성 규칙들을 작성한다. 이 규칙들은 제네릭 편집과 수업의 정답 풀로부터의 참조 유도 이식으로 이루어진 공용 기반 위에서 실행된다. 모든 후보 패치는
-% 채택되기 전에 교수자의 테스트를 통과해야 하므로 도구가 스스로 성공을 보고할 수 없다. 프로즌 도구는 로컬에서 약 1초에 한계 LLM 비용 0으로 수리하고, 기권한 소수만
-% 관례적인 제출물당 호출로 에스컬레이션된다.
+% [번역] 우리의 답은 LLM을 과제당 1회 쓰는 것이다. 에이전트 연구는 LLM이 재사용 가능한 코드를 작성해 여러 사용에 걸쳐 상각할 수 있음을 보였고, 고전적 합성은 예제로부터 과제별 수정 규칙을 학습해 왔다. CoEP는 이를 과제 수리에 구현한다. LLM 에이전트가 과제를 한 번 읽고 그 문제 전용 층, 즉 자신이 고치는 오개념의 이름을 딴 AST 재작성 규칙들을 작성한다. 이 규칙들은 제네릭 편집과 수업의 정답 풀로부터의 참조 유도 이식으로 이루어진 공용 기반 위에서 실행된다. 모든 후보 패치는 채택되기 전에 교수자의 테스트를 통과해야 하므로 도구가 스스로 성공을 보고할 수 없다. 프로즌 도구는 로컬에서 약 1초에 한계 LLM 비용 0으로 수리하고, 기권한 소수만 관례적인 제출물당 호출로 에스컬레이션된다.
 Our answer is to spend the LLM once per assignment. Agent research has shown LLMs can author reusable code and amortize it across uses \citep{toolmakers2024,voyager2024}, and classical synthesis has learned per-assignment fix rules from examples \citep{refazer2017}. \textsc{CoEP} (\underline{Co}st-\underline{E}ffective \underline{P}rogram repair) instantiates this for assignment repair: an LLM agent reads the assignment once and authors its problem-specific layer, AST rewrite rules named after the misconceptions they fix, running on a shared substrate of generic edits and reference-guided transplant from the class's correct pool. Every candidate patch must pass the instructor's tests before it is kept, so a tool can never self-report success. The frozen tool repairs locally in about a second at zero marginal LLM cost, and the few submissions it abstains on escalate to a conventional per-submission call.
 
-% [번역] 그 결과물은 손으로 만든 최신 기술을 그 도구 자신의 벤치마크와 지표에서 이긴다. 실제 학생 프로그램 1,783건에서 수리율 98.48%에 평균 상대 패치 크기
-% 0.289로, Refactory의 90.80% / 0.397 대비다. 전체 2,970건 벤치마크에서 제출물당 LLM 수리와 비교하면 커버리지는 동률이고 패치는 3분의 1
-% 작으며 비용은 $13.58 대 $292.69다. 귀속은 명시적으로 밝힌다. 규칙 층은 로컬 수리의 25.9%를 이식의 5분의 1 패치 크기로 생산하며 각각 오개념 라벨을
-% 달고, 이식 엔진이 나머지를 생산하며 커버리지를 나른다. 주장은 LLM이 최신 수리기를 작성했다는 것이 아니다. 호출 구조다. 값싼 빌드 1회와 작은 에스컬레이션 꼬리가
-% 제출물당 추론을 대체하고 과제당 11건에서 손익분기를 넘으며, 그것이 먹이는 결과물이 손으로 만든 도구를 능가한다.
+% [번역] 그 결과물은 손으로 만든 최신 기술을 그 도구 자신의 벤치마크와 지표에서 이긴다. 실제 학생 프로그램 1,783건에서 수리율 98.48%에 평균 상대 패치 크기 0.289로, Refactory의 90.80% / 0.397 대비다. 전체 2,970건 벤치마크에서 제출물당 LLM 수리와 비교하면 커버리지는 동률이고 패치는 3분의 1 작으며 비용은 $13.58 대 $292.69다. 귀속은 명시적으로 밝힌다. 규칙 층은 로컬 수리의 25.9%를 이식의 5분의 1 패치 크기로 생산하며 각각 오개념 라벨을 달고, 이식 엔진이 나머지를 생산하며 커버리지를 나른다. 주장은 LLM이 최신 수리기를 작성했다는 것이 아니다. 호출 구조다. 값싼 빌드 1회와 작은 에스컬레이션 꼬리가 제출물당 추론을 대체하고 과제당 11건에서 손익분기를 넘으며, 그것이 먹이는 결과물이 손으로 만든 도구를 능가한다.
 The resulting artifact beats the hand-built state of the art on its own benchmark and metric --- \LocalRR\% repair rate at \LocalRPS{} mean relative patch size against Refactory's \RefacRR\% at \RefacRPS{} over \NumEvalRefac{} real student programs --- and against per-submission LLM repair on the full \NumEval-submission benchmark, coverage is at parity while the patch is a third smaller, for \$\HybridUsd{} against \$\PydexUsd. We are explicit about attribution: the rule layer produces \RuleShare\% of local fixes at a fifth the transplant's patch size and with a misconception label each, and the transplant produces the rest and is what carries coverage. The claim is not that an LLM wrote a state-of-the-art repairer. It is the invocation structure --- one cheap build plus a small escalation tail replaces an inference per submission, breaking even at eleven submissions per assignment --- and the artifact it feeds exceeds the hand-built tool.
 
-% [번역] 이해관계는 배포 규모에 비례한다. 한 과목에서 제출물당 청구액은 몇 달러지만 온라인 저지에서는 그렇지 않다. 우리 벤치마크가 인용하는 공개 Codeforces
-% 덤프는 1만 개 넘는 문제에 1,260만 건의 제출물을 모으고 있고, 표준 $3/$15 per Mtok 요율에서 우리가 측정한 제출물당 수리는 천 건당 약 $125이며 새
-% 제출물이 도착할 때마다 다시 지불된다. 이 결과물은 또한 제출물당 추론이 어떤 가격으로도 줄 수 없는 것을 제공한다. 모든 패치는 방출 전에 교수자의 테스트로 재실행되고,
-% 결정적이며 오프라인으로 돌아 학생 코드가 기관을 떠나지 않으며, 규칙이 발화한 수리는 어떤 API 호출도 반환하지 않는 학급 단위 오개념 프로파일로 집계된다.
+% [번역] 이해관계는 배포 규모에 비례한다. 한 과목에서 제출물당 청구액은 몇 달러지만 온라인 저지에서는 그렇지 않다. 우리 벤치마크가 인용하는 공개 Codeforces 덤프는 1만 개 넘는 문제에 1,260만 건의 제출물을 모으고 있고, 표준 $3/$15 per Mtok 요율에서 우리가 측정한 제출물당 수리는 천 건당 약 $125이며 새 제출물이 도착할 때마다 다시 지불된다. 이 결과물은 또한 제출물당 추론이 어떤 가격으로도 줄 수 없는 것을 제공한다. 모든 패치는 방출 전에 교수자의 테스트로 재실행되고, 결정적이며 오프라인으로 돌아 학생 코드가 기관을 떠나지 않으며, 규칙이 발화한 수리는 어떤 API 호출도 반환하지 않는 학급 단위 오개념 프로파일로 집계된다.
 The stakes scale with deployment. In one course the per-submission bill is dollars; on an online judge it is not. The public Codeforces dump our benchmark draws from aggregates 12.6M submissions to over 10{,}000 problems \citep{penedo2025codeforces}, and at the standard \$3/\$15 per Mtok rate our measured per-submission repair costs about \$125 per thousand, re-paid as every new submission arrives. The artifact also offers what per-submission inference cannot at any price: every patch is re-executed against the instructor's tests before it is emitted, it is deterministic and runs offline so student code never leaves the institution, and its rule-fired repairs aggregate into a per-class misconception profile that no API call returns.
 
-% [번역] 이 논문의 기여: (1) 비용 구조 재정식화 — LLM을 제출물당 한계비용에서 과제당 고정비용으로 옮기고, 토큰 가격에 불변인 손익분기 N*를 제시해 상각이 값싼
-% 모델이 지워버릴 상수 배수가 아니라 구조적 이점임을 보인다. (2) CoEP 시스템 — 빌더 에이전트가 생성-검증-정제 루프로 오개념 이름을 단 AST 재작성 규칙을
-% 합성하고, 제네릭 편집과 참조 유도 최소 hunk 이식 위에 얹으며, 모든 패치는 독립적으로 테스트 검증되고 기권은 에스컬레이션된다. (3) 베이스라인 자신의 코퍼스와
-% 지표에서의 실증 결과 — 기전 귀속, LLM 층을 격리하는 framework-only 절제, 두 상용 빌더에 걸친 일치. (4) 아티팩트 — 하네스, 임포트 파이프라인,
-% 프롬프트, 합성된 수리기, 제출물별 로그, 모든 원시 모델 출력.
+% [번역] 이 논문의 기여: (1) 비용 구조 재정식화 — LLM을 제출물당 한계비용에서 과제당 고정비용으로 옮기고, 토큰 가격에 불변인 손익분기 N*를 제시해 상각이 값싼 모델이 지워버릴 상수 배수가 아니라 구조적 이점임을 보인다. (2) CoEP 시스템 — 빌더 에이전트가 생성-검증-정제 루프로 오개념 이름을 단 AST 재작성 규칙을 합성하고, 제네릭 편집과 참조 유도 최소 hunk 이식 위에 얹으며, 모든 패치는 독립적으로 테스트 검증되고 기권은 에스컬레이션된다. (3) 베이스라인 자신의 코퍼스와 지표에서의 실증 결과 — 기전 귀속, LLM 층을 격리하는 framework-only 절제, 두 상용 빌더에 걸친 일치. (4) 아티팩트 — 하네스, 임포트 파이프라인, 프롬프트, 합성된 수리기, 제출물별 로그, 모든 원시 모델 출력.
 \noindent This paper contributes:
 \begin{itemize}\itemsep2pt \parskip0pt
 \item \textbf{A cost-structure reformulation.} The LLM moves from per-submission marginal cost to per-assignment fixed cost, with a break-even $N^{*} = C_{\text{build}}/(\Delta(1{-}f))$ that is invariant to token price, so amortization is a structural advantage rather than one cheaper models erase.
@@ -173,72 +149,49 @@ model.}
 \subsection{Problem Formulation}
 An \emph{assignment} is a triple $A = (d, T, R)$: a natural-language description $d$, a test suite $T = \{(x_i, y_i)\}$ (function-entry or judge-style stdin/stdout), and the pool $R$ of correct student solutions, which the setting assumes is available at feedback time, as every per-assignment system from CLARA to Refactory does \citep{clara2018,refactory2019}. A \emph{repair} of a buggy submission $b$ is a program $p$ that passes all of $T$. Patch quality is measured, never gated: RPS, the tree-edit distance between the ASTs of $b$ and $p$ normalized by the size of $b$, following Refactory's definition \citep{refactory2019}, is reported for every repair, since a small patch is feedback on the \emph{student's} program while a rewrite passes tests but teaches nothing \citep{itsp2017}.
 
-% [번역] 관례적 LLM 기반 APR은 각 버기 프로그램 b를 질의 LLM(d,T,b)로 사상한다. CoEP는 이를 두 단계로 나눈다. 과제당 1회의 빌드가 수리기를
-% 합성하고, 제출물당 실행이 그 프로즌 수리기를 적용한다. 빌드만이 모델을 소비하며 그 비용은 과제 하나에 한 번 지불된다.
+% [번역] 관례적 LLM 기반 APR은 각 버기 프로그램 b를 질의 LLM(d,T,b)로 사상한다. CoEP는 이를 두 단계로 나눈다. 과제당 1회의 빌드가 수리기를 합성하고, 제출물당 실행이 그 프로즌 수리기를 적용한다. 빌드만이 모델을 소비하며 그 비용은 과제 하나에 한 번 지불된다.
 Conventional LLM-based APR maps each $b$ to a query $\mathrm{LLM}(d, T, b)$. \textsc{CoEP} instead synthesizes, once per assignment, a \emph{repairer} $\rho_A : b \mapsto p \,\cup\, \{\bot\}$, an ordinary module with no model access, and deploys the hybrid: $\mathrm{repair}(b) = \rho_A(b)$ if $\rho_A(b) \ne \bot$ (local, ${\approx}0$ marginal cost), else $\mathrm{LLM}(d, T, b, r)$: the conventional call, strengthened with one reference $r$ chosen to match the student's strategy by clustering $R$ on program structure and drawing $r$ from the cluster nearest $b$.
 
 \subsection{Repairer Synthesis (once per assignment)}
 \textbf{Build-set selection (local, no LLM cost).} The builder does not see the whole pool; it sees a \emph{chosen} sample. We cluster the buggy pool on a structural view (TF-IDF over normalized-AST paths, identifiers folded) and, walking clusters largest-first, take from each the member with the smallest tree-edit distance to its nearest correct solution, a clean single-misconception exemplar rather than the medoid's typical but tangled program, paired with that nearest correct program. The result is a set of worked (buggy $\to$ fixed) pairs: frequent misconceptions first, each shown \emph{with} its minimal fix, so a weak builder needs only to generalize a transformation it is shown, not infer it.
 
-% [번역] 규칙 작성. 빌더 LLM은 과제 설명 d, 테스트 T, 구조적으로 군집화된 정답 참조, 그리고 학급의 버기 제출물에서 뽑은 (버기→수정) 작업 쌍을 받아, 오개념
-% 이름을 단 AST 재작성 규칙들의 파이썬 모듈을 방출한다. 규칙은 AST에서 편집 위치를 찾아 소스 구간 치환으로 이어붙이며, 수정을 주장하는 대신 후보를 방출한다.
+% [번역] 규칙 작성. 빌더 LLM은 과제 설명 d, 테스트 T, 구조적으로 군집화된 정답 참조, 그리고 학급의 버기 제출물에서 뽑은 (버기→수정) 작업 쌍을 받아, 오개념 이름을 단 AST 재작성 규칙들의 파이썬 모듈을 방출한다. 규칙은 AST에서 편집 위치를 찾아 소스 구간 치환으로 이어붙이며, 수정을 주장하는 대신 후보를 방출한다.
 \textbf{Rule authoring.} The builder LLM receives $d$, $T$, reference solutions (structural-cluster medoids of $R$), and the worked pairs, and emits the assignment-specific rule module: AST rewrite rules, each named after the misconception it targets and tagged with the failure symptoms it addresses. The contract is strict. A rule locates its edit on the AST and splices it as a source-span replacement, never re-rendering the module, which would reformat untouched lines. It emits candidates rather than claimed fixes, and it never rewrites a whole function: a rule that cannot express a targeted edit must abstain so the submission escalates.
 
-% [번역] 생성-검증-정제. 단발 모듈은 자체 결함을 담을 수 있으므로 빌드는 합성된 모듈을 빌드 표본에 대해 실행하고, 실패를 다음 라운드로 되먹이며, 최대 R_max
-% 라운드까지 반복한 뒤 표본 커버리지가 가장 높은 라운드의 모듈을 프리즈한다.
+% [번역] 생성-검증-정제. 단발 모듈은 자체 결함을 담을 수 있으므로 빌드는 합성된 모듈을 빌드 표본에 대해 실행하고, 실패를 다음 라운드로 되먹이며, 최대 R_max 라운드까지 반복한 뒤 표본 커버리지가 가장 높은 라운드의 모듈을 프리즈한다.
 \textbf{Generate--validate--refine.} A single-shot module can contain its own defects, so the harness closes the loop: it loads the module, runs it on the sample bugs, \emph{independently} validates every candidate patch by executing the full suite (the repairer's own claims are never trusted), and, while any sample remains unrepaired, returns the module with per-bug outcomes and the still-failing sources for revision, up to $R_{\max}{=}3$ builder calls. The best-validated round is kept, and build cost is exactly the token count of these exchanges, measured from the raw strings.
 
 \subsection{Local Repair (every submission)}
 The frozen tool repairs in three stages, cheapest and smallest-patch first, validating every candidate against the full suite before it is kept:
 
-% [번역] (1) 이름 붙은 규칙 + 제네릭 탐색. 규칙은 증상 순서 탐색으로 조합되는 후보 생성기다. 실패 테스트 서명이 선언된 증상이 일치하는 규칙들의 순위를 매기고,
-% 조합의 각 깊이를 다음 깊이를 열거하기 전에 검증하므로 가장 얕은 수리가 구성상 반환된다. 비교 뒤집기, 오프바이원 range·인덱스 이동, 불 연산 뒤집기로 이루어진 공용
-% 제네릭 라이브러리는 항상 켜져 있어 빌더가 무엇을 쓰든 흔한 실수를 덮으며, 이는 고전적 변이 연산자 공간의 역산이다. 살아남은 모든 패치는 그것을 만든 규칙 이름 순서를
-% 지니며, 이 출처가 학급 단위 오개념 프로파일로 집계된다.
+% [번역] (1) 이름 붙은 규칙 + 제네릭 탐색. 규칙은 증상 순서 탐색으로 조합되는 후보 생성기다. 실패 테스트 서명이 선언된 증상이 일치하는 규칙들의 순위를 매기고, 조합의 각 깊이를 다음 깊이를 열거하기 전에 검증하므로 가장 얕은 수리가 구성상 반환된다. 비교 뒤집기, 오프바이원 range·인덱스 이동, 불 연산 뒤집기로 이루어진 공용 제네릭 라이브러리는 항상 켜져 있어 빌더가 무엇을 쓰든 흔한 실수를 덮으며, 이는 고전적 변이 연산자 공간의 역산이다. 살아남은 모든 패치는 그것을 만든 규칙 이름 순서를 지니며, 이 출처가 학급 단위 오개념 프로파일로 집계된다.
 \textbf{(1) Named rules + generic search.} Rules are \emph{candidate generators} composed by a symptom-ordered search: the failing-test signature ranks rules whose declared symptoms match, and each depth of composition is tested before the next is enumerated, so the shallowest repair is returned by construction. A shared generic library of comparison flips, off-by-one range and index shifts, and Boolean-operator flips is always on, covering common slips regardless of what the builder wrote; it inverts the classical mutation-operator space \citep{mutants2014,par2013,tbar2019}. Every surviving patch carries the ordered rule names behind it, provenance that aggregates into a per-class \emph{misconception profile}.
 
-% [번역] (2) 참조 유도 최소 hunk 이식. 대부분의 학생 버그는 토큰 수준 규칙이 표현하지 못하는 구조적 편집을 필요로 하며 정답 풀이 그것을 공급한다. b를
-% 구조적으로 가장 가까운 정답들과 diff하고, 참조의 변수명을 학생의 것으로 바꾸며(매개변수는 위치로, 지역변수는 첫 등장 순서로), 테스트를 통과시키는 가장 작은 차이
-% hunk 집합을 채택한다. 후보는 작은 것부터 정렬해 일괄 검증하고 최소 RPS 통과자를 반환한다. 이는 CLARA·Sarfgen·Refactory 계보의 참조 재사용이되
-% 블록이 아닌 hunk 입도이며, 그것이 패치를 손으로 만든 도구보다 작게 유지한다.
+% [번역] (2) 참조 유도 최소 hunk 이식. 대부분의 학생 버그는 토큰 수준 규칙이 표현하지 못하는 구조적 편집을 필요로 하며 정답 풀이 그것을 공급한다. b를 구조적으로 가장 가까운 정답들과 diff하고, 참조의 변수명을 학생의 것으로 바꾸며(매개변수는 위치로, 지역변수는 첫 등장 순서로), 테스트를 통과시키는 가장 작은 차이 hunk 집합을 채택한다. 후보는 작은 것부터 정렬해 일괄 검증하고 최소 RPS 통과자를 반환한다. 이는 CLARA·Sarfgen·Refactory 계보의 참조 재사용이되 블록이 아닌 hunk 입도이며, 그것이 패치를 손으로 만든 도구보다 작게 유지한다.
 \textbf{(2) Reference-guided minimal-hunk transplant.} Most student bugs need a structural edit no token-level rule expresses; the correct pool supplies it. We diff $b$ against its structurally nearest correct solutions, rename the reference's variables to the student's (parameters by position, locals by first-appearance order), and adopt the \emph{smallest} set of differing line-hunks that passes the tests, candidates ordered smallest-first and batch-validated, returning the minimum-RPS passer. This is reference reuse in the lineage of CLARA, Sarfgen, and Refactory \citep{clara2018,sarfgen2018,refactory2019}, at hunk granularity rather than block granularity, which is what keeps patches smaller than the hand-built tool's.
 
-% [번역] (3) 에스컬레이션. 두 단계 모두가 기권한 제출물은 fallback LLM(d,T,b,r)로 가며 그 비용은 모든 비교에서 CoEP에 청구된다. 기권만이 유일한
-% 트리거는 아니다. 로컬 수리의 수용 검사는 교수자의 테스트 스위트인데 이는 패치 크기에 대해 아무 말도 하지 않으므로, 이식은 학생 프로그램 전체보다 큰 패치를 반환할 수
-% 있는 반면 규칙 층은 표적 편집을 표현할 수 없을 때 반드시 기권해야 한다. 우리는 통과한 로컬 패치 중 RPS가 1을 넘는 것을 에스컬레이션함으로써 이식에 같은 계약을
-% 부과한다. 자기가 고치는 프로그램만큼 큰 패치는 어떤 과제의 기준으로도 수리가 아니라 재작성이다. 로컬과 모델 패치 중 작은 쪽을 남기므로 에스컬레이션은 호출을 쓸 수는
-% 있어도 커버리지나 패치 크기를 잃을 수는 없다.
+% [번역] (3) 에스컬레이션. 두 단계 모두가 기권한 제출물은 fallback LLM(d,T,b,r)로 가며 그 비용은 모든 비교에서 CoEP에 청구된다. 기권만이 유일한 트리거는 아니다. 로컬 수리의 수용 검사는 교수자의 테스트 스위트인데 이는 패치 크기에 대해 아무 말도 하지 않으므로, 이식은 학생 프로그램 전체보다 큰 패치를 반환할 수 있는 반면 규칙 층은 표적 편집을 표현할 수 없을 때 반드시 기권해야 한다. 우리는 통과한 로컬 패치 중 RPS가 1을 넘는 것을 에스컬레이션함으로써 이식에 같은 계약을 부과한다. 자기가 고치는 프로그램만큼 큰 패치는 어떤 과제의 기준으로도 수리가 아니라 재작성이다. 로컬과 모델 패치 중 작은 쪽을 남기므로 에스컬레이션은 호출을 쓸 수는 있어도 커버리지나 패치 크기를 잃을 수는 없다.
 \textbf{(3) Escalation.} A submission both stages abstain on takes the fallback $\mathrm{LLM}(d,T,b,r)$, its cost counted against \textsc{CoEP} in every comparison. Abstention is not the only trigger. Local repair's acceptance test is the instructor's suite, which says nothing about patch size, so transplant can return a patch larger than the student's whole program while the rule layer must abstain whenever it cannot express a targeted edit. We give transplant the same contract by escalating any passing local patch whose $\mathrm{RPS}$ exceeds $1$: a patch at least as large as the program it repairs is a rewrite, not a repair, under any assignment's standards. The smaller of the local and model patches is kept, so escalating can cost a call but never coverage or patch size.
 
-% [번역] 임계값은 캘리브레이션된 양이 아니라 상수이며, 그것은 단순화가 아니라 발견이다. 상대적·분위수·상수를 아우르는 38개 후보 규칙 전부에서 수리율이 변하지 않고 모든
-% 설정이 세 베이스라인을 네 지표에서 이기므로, 우리는 그 값이 적합된 수치가 아니라 정의인 것을 택하고 나머지는 민감도 띠로 보고한다(RQ5).
+% [번역] 임계값은 캘리브레이션된 양이 아니라 상수이며, 그것은 단순화가 아니라 발견이다. 상대적·분위수·상수를 아우르는 38개 후보 규칙 전부에서 수리율이 변하지 않고 모든 설정이 세 베이스라인을 네 지표에서 이기므로, 우리는 그 값이 적합된 수치가 아니라 정의인 것을 택하고 나머지는 민감도 띠로 보고한다(RQ5).
 The threshold is a constant rather than a calibrated quantity, and that is a finding: across 38 candidate rules --- relative, quantile, and constant --- repair rate is unchanged and every setting beats all three baselines on all four metrics, so we take the one whose value is a definition rather than a fitted number and report the rest as a sensitivity band (RQ5).
 
-% [번역] (4) 자기 학습. 성공한 fallback 수정은 LLM이 새 이름 붙은 규칙으로 일반화할 수 있으며, 증강된 도구가 그 놓친 건을 스스로 고칠 때만 유지된다.
-% 흡수는 평가 패스가 결코 참조하지 않는 스테이징 사본에 기록되므로 어떤 제출물의 결과도 그 앞의 제출물에 의존하지 않으며, 축적된 규칙은 두 번째 프로즌 패스로 평가되고
-% 자기 자신에게 가격이 매겨지는 별도 아티팩트다. 이미 에스컬레이션된 제출물에만 호출을 쓰므로 빌드 주장도 건드리지 않는다.
+% [번역] (4) 자기 학습. 성공한 fallback 수정은 LLM이 새 이름 붙은 규칙으로 일반화할 수 있으며, 증강된 도구가 그 놓친 건을 스스로 고칠 때만 유지된다. 흡수는 평가 패스가 결코 참조하지 않는 스테이징 사본에 기록되므로 어떤 제출물의 결과도 그 앞의 제출물에 의존하지 않으며, 축적된 규칙은 두 번째 프로즌 패스로 평가되고 자기 자신에게 가격이 매겨지는 별도 아티팩트다. 이미 에스컬레이션된 제출물에만 호출을 쓰므로 빌드 주장도 건드리지 않는다.
 \textbf{(4) Self-learning.} Each successful fallback fix can be generalized by the LLM into a new named rule, kept only if the augmented tool then repairs that miss on its own. Absorption writes to a staging copy the evaluated pass never consults, so no submission's outcome depends on which preceded it, and the accumulated rules are a separate artifact evaluated by a second frozen pass and priced to themselves (Section~\ref{sec:setup}). It spends calls only on submissions that already escalated, so it too leaves the build claim untouched.
 
-% [번역] 로컬 경로는 제출물당 약 1~2초에 CPU에서 결정적으로 오프라인으로 돌며, 결함 있는 도구는 잘못된 '수리'가 아니라 기권으로 퇴화한다. 채점 하네스가 학생이
-% 보기 전에 모든 패치를 재검증하기 때문이다.
+% [번역] 로컬 경로는 제출물당 약 1~2초에 CPU에서 결정적으로 오프라인으로 돌며, 결함 있는 도구는 잘못된 '수리'가 아니라 기권으로 퇴화한다. 채점 하네스가 학생이 보기 전에 모든 패치를 재검증하기 때문이다.
 The local path runs on a CPU in ${\sim}1$--$2$\,s per submission, deterministically and offline; a defective tool degrades to $\bot$, never to a wrong ``repair'', because the harness re-validates every patch before a student sees it.
 
 \section{Related Work}
 \label{sec:related}
 
-% [번역] 과제용 APR. LLM 이전 시스템들은 과제별 구조를 활용하며, 그중 참조 재사용 계열은 구조적으로 맞는 정답을 찾는 데 의존한다. 우리 이식은 그 계보에 서되
-% 블록이 아닌 hunk 입도이며, 커버리지와 패치 크기 양쪽에서 그중 가장 강한 것을 능가한다. 우리 합성 층에 가장 가까운 Refazer는 PROSE로 (버기, 수정)
-% 쌍에서 과제별 변환을 학습한다. CoEP는 예제 주도 합성기를 각 규칙 뒤의 오개념을 이름 짓는 최저가 티어 LLM으로 대체하고, 그 둘레를 제네릭 탐색, 이식, 하네스가
-% 통제하는 에스컬레이션으로 감싼다.
+% [번역] 과제용 APR. LLM 이전 시스템들은 과제별 구조를 활용하며, 그중 참조 재사용 계열은 구조적으로 맞는 정답을 찾는 데 의존한다. 우리 이식은 그 계보에 서되 블록이 아닌 hunk 입도이며, 커버리지와 패치 크기 양쪽에서 그중 가장 강한 것을 능가한다. 우리 합성 층에 가장 가까운 Refazer는 PROSE로 (버기, 수정) 쌍에서 과제별 변환을 학습한다. CoEP는 예제 주도 합성기를 각 규칙 뒤의 오개념을 이름 짓는 최저가 티어 LLM으로 대체하고, 그 둘레를 제네릭 탐색, 이식, 하네스가 통제하는 에스컬레이션으로 감싼다.
 \textbf{APR for programming assignments.} The pre-LLM systems \citep{itsp2017,clara2018,sarfgen2018,refactory2019,verifix2022} exploit per-assignment structure, and the reference-reuse ones depend on finding a structurally matching correct solution; our transplant stands in that lineage at hunk rather than block granularity and exceeds the strongest of them on both coverage and patch size. Closest to our synthesis layer, Refazer learns per-assignment transformations from (buggy, fixed) pairs with PROSE \citep{refazer2017}; \textsc{CoEP} replaces the example-driven synthesizer with a cheapest-tier LLM that \emph{names} the misconception behind each rule, and surrounds it with generic search, transplant, and harness-gated escalation.
 
-% [번역] LLM 기반 수리. 생성으로서의 수리, 대화형 테스트 피드백, 학생 프로그램 대상 수리, 질의당 추론 가속, 루프 안의 튜터, 반례 유도 최소 수리, 검색 유도
-% 학습자 맞춤 수리는 모두 제출물당 방식이며 상호 보완적이다. 어느 것이든 CoEP의 fallback으로 쓰일 수 있지만, CoEP는 주된 비용을 과제로 옮긴다.
+% [번역] LLM 기반 수리. 생성으로서의 수리, 대화형 테스트 피드백, 학생 프로그램 대상 수리, 질의당 추론 가속, 루프 안의 튜터, 반례 유도 최소 수리, 검색 유도 학습자 맞춤 수리는 모두 제출물당 방식이며 상호 보완적이다. 어느 것이든 CoEP의 fallback으로 쓰일 수 있지만, CoEP는 주된 비용을 과제로 옮긴다.
 \textbf{LLM-based repair.} Repair-as-generation \citep{alpharepair2022}, conversational test feedback \citep{chatrepair2024}, student-program repair \citep{pydex2024,mmapr2022}, faster per-query inference \citep{fastfixer2024}, a tutor in the loop \citep{cref2024}, counterexample-guided minimal repair \citep{orvalho2025} and retrieval-guided learner-tailored repair \citep{dai2026} are all per-submission, and complementary --- any can serve as \textsc{CoEP}'s fallback --- but \textsc{CoEP} shifts the primary cost to the assignment.
 
-% [번역] 템플릿과 도구 합성. 사람이 큐레이팅한 고정 수정 템플릿 라이브러리가 실제 버그의 놀라운 비율을 고친다는 것이 알려져 있다. CoEP의 제네릭 층은 변이 연산자
-% 공간을 역산한 것이고, 그 신규성은 합성된 과제별 층에 있다. 캐스케이드, 값싼 파이프라인, 공급자 캐싱은 질의당 지불 패러다임 안에서 최적화하고, 에이전트 도구 제작은
-% 작성된 코드를 에피소드에 걸쳐 상각한다. CoEP는 대신 질의를 제거한다.
+% [번역] 템플릿과 도구 합성. 사람이 큐레이팅한 고정 수정 템플릿 라이브러리가 실제 버그의 놀라운 비율을 고친다는 것이 알려져 있다. CoEP의 제네릭 층은 변이 연산자 공간을 역산한 것이고, 그 신규성은 합성된 과제별 층에 있다. 캐스케이드, 값싼 파이프라인, 공급자 캐싱은 질의당 지불 패러다임 안에서 최적화하고, 에이전트 도구 제작은 작성된 코드를 에피소드에 걸쳐 상각한다. CoEP는 대신 질의를 제거한다.
 \textbf{Templates and tool synthesis.} Fixed libraries of human-curated fix templates repair a surprising share of real bugs \citep{par2013,tbar2019}; \textsc{CoEP}'s generic layer inverts the mutation-operator space \citep{mutants2014} and its novelty is the \emph{synthesized, assignment-specific} layer. Cascades, cheap pipelines and caching \citep{frugalgpt2024,srepair2024,anthropiccaching,openaicaching} optimize \emph{within} pay-per-query, and agent tool-making amortizes written code across episodes \citep{voyager2024,toolmakers2024,selfrefine2023,reflexion2023}. \textsc{CoEP} removes queries instead.
 
 % [번역] 윤리 진술. CoEP는 채점이 아니라 피드백을 자동화한다. 처리되지 않은 제출물은 전면 LLM 경로를 타며, 수리는 감사 가능하고 데이터는 공개돼 있다.
@@ -268,14 +221,10 @@ Every LLM arm runs on two models, one per provider: \textbf{GPT-5.4-mini} (\$0.7
 \subsubsection{Evaluation Metrics.}
 \textbf{Repair rate (RR)} is the percentage of buggy submissions for which a system produces a program passing the full test suite. \textbf{Relative patch size (RPS)} is the tree-edit distance between buggy and repaired ASTs normalized by buggy program size, reimplemented from Refactory's definition \citep{refactory2019}; smaller patches preserve the student's approach and are pedagogically preferable. RPS never \emph{claims} a repair the tests do not support --- it enters the pipeline only in \textsc{CoEP}\textsubscript{LF}, where a value above 1 routes a submission to the fallback and the smaller patch is kept, so the gate can add a call but cannot manufacture a repair or enlarge a patch.
 
-% [번역] 평균 턴어라운드 시간(ATT)은 제출물당 평균 벽시계 초이며, 로컬 탐색인 ATT_cpu와 모델 지연인 ATT_api로 나뉜다. 시스템의 일회성 빌드 벽시계는
-% 절편이므로 과제당으로 따로 보고한다. API 비용은 그 빌드를 포함해 벤치마크 전체에 대한 추론 USD이며 위의 티어 요율로 정확한 토큰 수에서 산정한다. 모델 호출을 타는
-% 제출물 비율인 에스컬레이션율 f는 손익분기 N*가 소비하는 값이다.
+% [번역] 평균 턴어라운드 시간(ATT)은 제출물당 평균 벽시계 초이며, 로컬 탐색인 ATT_cpu와 모델 지연인 ATT_api로 나뉜다. 시스템의 일회성 빌드 벽시계는 절편이므로 과제당으로 따로 보고한다. API 비용은 그 빌드를 포함해 벤치마크 전체에 대한 추론 USD이며 위의 티어 요율로 정확한 토큰 수에서 산정한다. 모델 호출을 타는 제출물 비율인 에스컬레이션율 f는 손익분기 N*가 소비하는 값이다.
 \textbf{Average turnaround time (ATT)} is mean wall-clock seconds per submission, split into $\mathrm{ATT}_{\mathrm{cpu}}$ (local search) and $\mathrm{ATT}_{\mathrm{api}}$ (model latency); a system's one-off build wall-clock is an intercept and is reported per assignment. \textbf{API cost} is USD of inference over the whole benchmark, including that build, priced at the tiers above from exact token counts. The \textbf{escalation rate} $f$, the fraction of submissions taking a model call, is what the break-even $N^{*}=C_{\text{build}}/(\Delta(1-f))$ consumes.
 
-% [번역] 수리율에는 95% Wilson 구간을 붙이고, 우리가 직접 돌린 팔들 사이의 비교는 제출물 단위로 짝지어 exact McNemar로 검정한다. 카이제곱 근사가
-% 아니라 정확 검정을 쓰는 이유는 불일치 개수가 흔히 한 자리이기 때문이다. 유일한 예외는 자기 코퍼스 위의 Refactory인데, 거기서는 발표된 과제별 결과를 인용하므로
-% 짝지을 제출물 단위 결과가 없다. 그 비교는 등장하는 모든 곳에서 비짝지음으로 표시한다.
+% [번역] 수리율에는 95% Wilson 구간을 붙이고, 우리가 직접 돌린 팔들 사이의 비교는 제출물 단위로 짝지어 exact McNemar로 검정한다. 카이제곱 근사가 아니라 정확 검정을 쓰는 이유는 불일치 개수가 흔히 한 자리이기 때문이다. 유일한 예외는 자기 코퍼스 위의 Refactory인데, 거기서는 발표된 과제별 결과를 인용하므로 짝지을 제출물 단위 결과가 없다. 그 비교는 등장하는 모든 곳에서 비짝지음으로 표시한다.
 Repair rates carry 95\% Wilson intervals, and comparisons between arms we ran ourselves are paired by submission and tested with exact McNemar --- exact rather than chi-square because the discordant counts are often single-digit. The one exception is Refactory on its own corpus, where we quote published per-assignment results and have no per-submission outcomes to pair; that comparison is marked unpaired wherever it appears.
 
 \subsubsection{Setup.}
@@ -325,29 +274,17 @@ We answer the five research questions stated in the Experimental Setup; together
 
 \subsubsection{RQ1: Repair Effectiveness}
 
-% [번역] 핵심 발견은 가장 강한 비-LLM 도구 대비 CoEP의 로컬 수리다. 제출물 1,783건의 Refactory 코퍼스에서 CoEP는 98.48%를 평균 RPS
-% 0.289로 수리하며, 이는 Refactory의 발표된 90.80% / 0.397 대비 더 높은 커버리지에 4분의 1 작은 패치를 한계 LLM 비용 0에 달성한 것이다. 이
-% 비교는 비짝지음인데 Refactory의 자기 코퍼스 결과가 발표된 집계이기 때문이다. 우리가 직접 돌리는 Codeforces에서는 격차가 더 벌어지고 검정도 짝지어진다.
-% exact McNemar b=254, c=1, p=8.8×10⁻⁷⁵. 짝지은 검정을 그 절반으로 한정한 것은 의도적이다. CS1 행은 Refactory의 발표 수치를
-% 인용하므로 거기서 짝지으면 그들의 실행을 우리 것으로 조용히 바꿔치게 된다. 합성된 도구는 모든 정답을 소비하는 심볼릭 도구보다 값싼 데 그치지 않고 더 많이 고친다.
+% [번역] 핵심 발견은 가장 강한 비-LLM 도구 대비 CoEP의 로컬 수리다. 제출물 1,783건의 Refactory 코퍼스에서 CoEP는 98.48%를 평균 RPS 0.289로 수리하며, 이는 Refactory의 발표된 90.80% / 0.397 대비 더 높은 커버리지에 4분의 1 작은 패치를 한계 LLM 비용 0에 달성한 것이다. 이 비교는 비짝지음인데 Refactory의 자기 코퍼스 결과가 발표된 집계이기 때문이다. 우리가 직접 돌리는 Codeforces에서는 격차가 더 벌어지고 검정도 짝지어진다. exact McNemar b=254, c=1, p=8.8×10⁻⁷⁵. 짝지은 검정을 그 절반으로 한정한 것은 의도적이다. CS1 행은 Refactory의 발표 수치를 인용하므로 거기서 짝지으면 그들의 실행을 우리 것으로 조용히 바꿔치게 된다. 합성된 도구는 모든 정답을 소비하는 심볼릭 도구보다 값싼 데 그치지 않고 더 많이 고친다.
 The central finding is \textsc{CoEP}'s local repair against the strongest non-LLM tool. On the Refactory corpus of \NumEvalRefac{} submissions it repairs \textbf{\LocalRR\%} at mean \textbf{\LocalRPS} RPS against Refactory's published \textbf{\RefacRR\%} at \textbf{\RefacRPS} --- higher coverage and a patch a quarter smaller, at zero marginal LLM cost. That comparison is unpaired, since Refactory's own-corpus results are published aggregates; where we run it ourselves, on Codeforces, the gap widens and the test is paired: \LocalRRCF\% against \RefacRRCF\%, exact McNemar $b{=}254$, $c{=}1$, $p{=}8.8{\times}10^{-75}$ over the \NumEvalCF{} Codeforces submissions. We confine the paired test to that half deliberately: the CS1 rows quote Refactory's published per-assignment figures, so pairing there would silently substitute our own run for theirs. A synthesized tool is not merely cheaper than a symbolic one that consumes every correct solution; it repairs more.
 
-% [번역] 제출물당 LLM 수리 대비 분리점은 커버리지가 아니다. CoEP_L은 99.06%, PyDex는 98.96%에 도달하며 짝지은 검정은 차이를 찾지 못한다(b=28,
-% c=25, p=0.78). CS1 규모 프로그램에서는 유능한 수리기라면 커버리지가 천장에 가깝다. 분리점은 패치 크기로 0.449 대 0.598이다. 에스컬레이션 꼬리를
-% 더하면 CoEP_LF가 99.66% / 0.398이 되어 커버리지에서도 앞선다(b=28, c=7, p=5.1×10⁻⁴; Wilson [99.38, 99.82] 대
-% [98.52, 99.26]). 모든 패치는 학생이 보기 전에 테스트로 검증되므로 유일한 로컬 실패 양식은 기권이지 잘못된 수리가 아니며, 기권은 LLM 경로를 탄다.
+% [번역] 제출물당 LLM 수리 대비 분리점은 커버리지가 아니다. CoEP_L은 99.06%, PyDex는 98.96%에 도달하며 짝지은 검정은 차이를 찾지 못한다(b=28, c=25, p=0.78). CS1 규모 프로그램에서는 유능한 수리기라면 커버리지가 천장에 가깝다. 분리점은 패치 크기로 0.449 대 0.598이다. 에스컬레이션 꼬리를 더하면 CoEP_LF가 99.66% / 0.398이 되어 커버리지에서도 앞선다(b=28, c=7, p=5.1×10⁻⁴; Wilson [99.38, 99.82] 대 [98.52, 99.26]). 모든 패치는 학생이 보기 전에 테스트로 검증되므로 유일한 로컬 실패 양식은 기권이지 잘못된 수리가 아니며, 기권은 LLM 경로를 탄다.
 Against per-submission LLM repair the separation is not coverage. \textsc{CoEP}\textsubscript{L} reaches \LocalRRAll\% and PyDex \PydexRRAll, and the paired test finds no difference ($b{=}28$, $c{=}25$, $p{=}0.78$): on CS1-scale programs coverage is near-saturated for any competent repairer \citep{pydex2024}. The separation is \emph{patch size}, \LocalRPSAll{} against \PydexRPSAll. Adding the escalation tail takes \textsc{CoEP}\textsubscript{LF} to \textbf{\HybridRRAll\%} at \textbf{\HybridRPSAll}, now ahead on coverage too ($b{=}28$, $c{=}7$, $p{=}5.1{\times}10^{-4}$; Wilson $[99.38, 99.82]$ against $[98.52, 99.26]$). Every patch is test-validated before a student sees it, so the only local failure mode is abstention, never a wrong repair, and abstentions take the LLM path.
 
-% [번역] Table 2를 과제별로 낸 것은 코퍼스 평균이 두 가지를 감추기 때문이다. Refactory의 수리율은 40.3%에서 100% 사이를 오가는데 두 LLM 팔은
-% 어느 것도 93.8% 아래로 떨어지지 않으며, 그 진폭은 난이도를 따르지 않는다. rating 2000 문제는 전부 고치고 rating 1600 문제는 열에 넷만
-% 고친다(RQ5). 그리고 작은 패치 크기가 늘 미덕인 것은 아니다. Codeforces에서 Refactory의 0.680은 CoEP_LF의 0.590에 견줄 만해 보이지만,
-% 그것은 자신이 수용한 78.59%에 대해 평균 낸 값이고 그 위에서 CoEP_LF는 100.00%를 수리한다.
+% [번역] Table 2를 과제별로 낸 것은 코퍼스 평균이 두 가지를 감추기 때문이다. Refactory의 수리율은 40.3%에서 100% 사이를 오가는데 두 LLM 팔은 어느 것도 93.8% 아래로 떨어지지 않으며, 그 진폭은 난이도를 따르지 않는다. rating 2000 문제는 전부 고치고 rating 1600 문제는 열에 넷만 고친다(RQ5). 그리고 작은 패치 크기가 늘 미덕인 것은 아니다. Codeforces에서 Refactory의 0.680은 CoEP_LF의 0.590에 견줄 만해 보이지만, 그것은 자신이 수용한 78.59%에 대해 평균 낸 값이고 그 위에서 CoEP_LF는 100.00%를 수리한다.
 Table~\ref{tab:effect} is per-assignment because corpus means hide two things. Refactory's rate swings from 40.3\% to 100\% while neither LLM arm drops below 93.8\%, and the swing does not track difficulty --- it repairs all of the rating-2000 problem and four in ten of a rating-1600 one (RQ5). And a low patch size is not always a virtue: Refactory's \RefacRPSCF{} on Codeforces looks competitive against \HybridRPSCF, but is averaged over the \RefacRRCF\% it accepts where \textsc{CoEP}\textsubscript{LF} repairs \HybridRRCF\%.
 
 \smallskip
-% [번역] RQ1 답. CoEP의 로컬 수리는 Refactory 코퍼스에서 98.48% RR, 평균 RPS 0.289에 도달해 고전적 비-LLM 도구(90.80%,
-% 0.397)를 커버리지와 패치 크기 양쪽에서 한계 LLM 비용 0에 이기며, 모든 과제에서 그 수리율을 넘는다. 제출물당 LLM 수리 대비 커버리지는 동률(p=0.78)이고
-% 패치는 3분의 1 작다. 에스컬레이션은 커버리지를 99.66%로 올려 PyDex를 p<10⁻³로 앞선다.
+% [번역] RQ1 답. CoEP의 로컬 수리는 Refactory 코퍼스에서 98.48% RR, 평균 RPS 0.289에 도달해 고전적 비-LLM 도구(90.80%, 0.397)를 커버리지와 패치 크기 양쪽에서 한계 LLM 비용 0에 이기며, 모든 과제에서 그 수리율을 넘는다. 제출물당 LLM 수리 대비 커버리지는 동률(p=0.78)이고 패치는 3분의 1 작다. 에스컬레이션은 커버리지를 99.66%로 올려 PyDex를 p<10⁻³로 앞선다.
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ1.} \textsc{CoEP}'s local repair reaches \LocalRR\% RR at \LocalRPS{} mean RPS on the Refactory corpus, beating the classical non-LLM tool (\RefacRR\%, \RefacRPS) on both coverage and patch size at zero marginal LLM cost. Against per-submission LLM repair, coverage is at parity ($p{=}0.78$) and patch size is a third smaller; escalation adds \HybridRRAll\% coverage, ahead of PyDex at $p{<}10^{-3}$.}}
 
 \subsubsection{RQ2: Cost Effectiveness and Break-Even}
@@ -360,43 +297,25 @@ eleven assignments' sizes; ten clear $N^{*}$.}
 \label{fig:cost}
 \end{figure}
 
-% [번역] 시스템들은 상수가 아니라 비용 구조에서 다르다. 제출물당 팔은 모든 제출물에 추론을 지불하므로 비용이 수강 인원과 함께 늘고 매 학기 되풀이된다. CoEP는 과제당
-% 일회성 C_build를 지불하고, 덮이는 비율을 한계 LLM 비용 0으로 수리하며, 에스컬레이션 꼬리에만 제출물당 지불한다. 벤치마크 전체로는 프론티어 티어에서 $13.58
-% 대 PyDex의 $292.69(22배), 저가 티어에서 $1.00 대 $28.42(28배)다. 우리 총액 중 $12.22가 빌드이고 $1.36이 2,970건 전체의 배포
-% 지출이다.
+% [번역] 시스템들은 상수가 아니라 비용 구조에서 다르다. 제출물당 팔은 모든 제출물에 추론을 지불하므로 비용이 수강 인원과 함께 늘고 매 학기 되풀이된다. CoEP는 과제당 일회성 C_build를 지불하고, 덮이는 비율을 한계 LLM 비용 0으로 수리하며, 에스컬레이션 꼬리에만 제출물당 지불한다. 벤치마크 전체로는 프론티어 티어에서 $13.58 대 PyDex의 $292.69(22배), 저가 티어에서 $1.00 대 $28.42(28배)다. 우리 총액 중 $12.22가 빌드이고 $1.36이 2,970건 전체의 배포 지출이다.
 The systems differ in \emph{cost structure}, not just constant. A per-submission arm pays an inference on every submission, so its cost grows with enrollment and recurs every term; \textsc{CoEP} pays a one-off $C_{\text{build}}$ per assignment, repairs the covered fraction at \emph{zero} marginal LLM cost, and pays per submission only on the escalating tail. Over the benchmark that is \$\HybridUsd{} against PyDex's \$\PydexUsd{} at the frontier tier (\CostRatio$\times$) and \$\HybridUsdMini{} against \$\PydexUsdMini{} at the cheap one (\CostRatioMini$\times$); of our total, \$\BuildUsdSonnet{} is the build and \$\GateUsd{} the entire deployment spend across \NumEval{} submissions.
 
-% [번역] Figure 2는 그것을 학과가 실제로 결정하는 양으로 바꾼다. Δ를 제출물당 한계 절감, f를 에스컬레이션율이라 하면 합성은 N* =
-% C_build/(Δ(1−f))를 넘을 때 이긴다. 우리가 측정한 빌드와 꼬리로는 PyDex 대비 과제당 11건, PyDex_PC 대비 13건이다. 11개 과제 중 10개가
-% 이를 넘고 대부분은 자릿수만큼 넘는다. N* 아래에서는 질의당 수리기가 옳은 도구이며 우리는 그 이상을 주장하지 않는다.
+% [번역] Figure 2는 그것을 학과가 실제로 결정하는 양으로 바꾼다. Δ를 제출물당 한계 절감, f를 에스컬레이션율이라 하면 합성은 N* = C_build/(Δ(1−f))를 넘을 때 이긴다. 우리가 측정한 빌드와 꼬리로는 PyDex 대비 과제당 11건, PyDex_PC 대비 13건이다. 11개 과제 중 10개가 이를 넘고 대부분은 자릿수만큼 넘는다. N* 아래에서는 질의당 수리기가 옳은 도구이며 우리는 그 이상을 주장하지 않는다.
 Fig.~\ref{fig:cost} turns that into the quantity a department decides on. With $\Delta$ the marginal per-submission saving and $f$ the escalation rate, synthesis wins past $N^{*}=C_{\text{build}}/(\Delta(1-f))$, which our measured build and tail put at \textbf{11 submissions per assignment} against PyDex and 13 against PyDex\textsubscript{PC}. Ten of eleven assignments exceed it, most by an order of magnitude. Below $N^{*}$ a per-query repairer is the right tool, and we claim nothing else.
 
-% [번역] 캐싱과 저가 티어는 격차를 닫지 못한다. PyDex_PC는 모든 질의를 공급자의 문서화된 캐싱 규칙으로 다시 매긴 것으로, 허용되는 곳마다 적중을 가정하는
-% 상한이며, 모든 LLM 팔은 이미 캐싱이 동작하는 최저가 티어에서 돈다. 할인폭은 프론티어 티어에서 10.2%, 저가 티어에서 17.3%이고 측정이 그 이유를 말해준다.
-% 캐싱은 공유 선두 접두사에 대해 지불하는데 여기서 공유되는 재료는 접두사가 아니다. 가변적인 버기 프로그램과 검색된 예시가 먼저 오고 동일 접두사는 열 토큰 남짓이며, 남는
-% 것은 한 제출물 안에서 K개 후보에 걸친 재사용뿐이다. 해석적으로도 N*는 빌드와 질의 토큰이 같은 요율로 청구되는 한 토큰 가격에 불변인데, C_build와 Δ가 함께
-% 비례하기 때문이다. 주장은 명세당 호출을 몇 번 하느냐이지 그 가격이 아니며, 모든 팔이 최저가 티어에서 도므로 측정된 격차는 하한이다.
+% [번역] 캐싱과 저가 티어는 격차를 닫지 못한다. PyDex_PC는 모든 질의를 공급자의 문서화된 캐싱 규칙으로 다시 매긴 것으로, 허용되는 곳마다 적중을 가정하는 상한이며, 모든 LLM 팔은 이미 캐싱이 동작하는 최저가 티어에서 돈다. 할인폭은 프론티어 티어에서 10.2%, 저가 티어에서 17.3%이고 측정이 그 이유를 말해준다. 캐싱은 공유 선두 접두사에 대해 지불하는데 여기서 공유되는 재료는 접두사가 아니다. 가변적인 버기 프로그램과 검색된 예시가 먼저 오고 동일 접두사는 열 토큰 남짓이며, 남는 것은 한 제출물 안에서 K개 후보에 걸친 재사용뿐이다. 해석적으로도 N*는 빌드와 질의 토큰이 같은 요율로 청구되는 한 토큰 가격에 불변인데, C_build와 Δ가 함께 비례하기 때문이다. 주장은 명세당 호출을 몇 번 하느냐이지 그 가격이 아니며, 모든 팔이 최저가 티어에서 도므로 측정된 격차는 하한이다.
 \textbf{Caching and cheaper tiers do not close it.} PyDex\textsubscript{PC} re-prices every query under the provider's documented caching rules, as an upper bound assuming a hit wherever one is allowed, and every LLM arm already runs at the cheapest tier at which caching functions. The discount is \CacheSavingFrac\% at the frontier tier (\$\PydexUsd{} to \$\PydexPCUsd) and 17.3\% at the cheap one, and the measurement says why it is small: caching pays for a shared leading \emph{prefix}, and the shared material here is not a prefix. The variable buggy program and retrieved exemplars come first, leaving an identical prefix of about ten tokens; what remains is reuse within one submission across its $K$ candidates. Analytically, $N^{*}$ is invariant to token price when build and per-query tokens bill on the same schedule, since $C_{\text{build}}$ and $\Delta$ scale together. The claim is about how many calls per specification are made, not their price --- and since every arm runs at the cheapest tier, the measured gaps are a \emph{floor}.
 
-% [번역] 턴어라운드는 완승이 아니라 교환이다. 프론티어 티어에서 CoEP_LF는 3.06초, PyDex는 14.64초로 답하며 그 분해가 이야기의 전부다. 우리는 로컬
-% CPU 탐색에 2.69초를 쓰고 제출물의 10분의 1에 API를 쓰는 반면, PyDex는 로컬에 0.66초, 네트워크에 13.97초를 쓴다. 저가 티어에서는 순서가 뒤집혀
-% 2.14초 대 3.22초로 우리가 진다. 작은 모델이 완성 하나를 반환하는 것이 우리 탐색이 후보를 열거하고 재실행하는 것보다 빠르기 때문이다. 유리한 티어만 인용하지 않고
-% 그대로 보고한다. 그 몇 초가 사는 것은 결정적이고, 속도 제한이 없고, 기관을 떠나지 않으며, 마감 전날 밤 폭주에 영향받지 않는 답이다. 호스팅 큐는 수업이 가장 필요로
-% 할 때 가장 느려진다.
+% [번역] 턴어라운드는 완승이 아니라 교환이다. 프론티어 티어에서 CoEP_LF는 3.06초, PyDex는 14.64초로 답하며 그 분해가 이야기의 전부다. 우리는 로컬 CPU 탐색에 2.69초를 쓰고 제출물의 10분의 1에 API를 쓰는 반면, PyDex는 로컬에 0.66초, 네트워크에 13.97초를 쓴다. 저가 티어에서는 순서가 뒤집혀 2.14초 대 3.22초로 우리가 진다. 작은 모델이 완성 하나를 반환하는 것이 우리 탐색이 후보를 열거하고 재실행하는 것보다 빠르기 때문이다. 유리한 티어만 인용하지 않고 그대로 보고한다. 그 몇 초가 사는 것은 결정적이고, 속도 제한이 없고, 기관을 떠나지 않으며, 마감 전날 밤 폭주에 영향받지 않는 답이다. 호스팅 큐는 수업이 가장 필요로 할 때 가장 느려진다.
 \textbf{Turnaround is a trade, not a sweep.} At the frontier tier \textsc{CoEP}\textsubscript{LF} answers in \HybridATT\,s against \PydexATT\,s, and the split is the story: we spend \LocalATT\,s on local CPU search and API on a tenth of submissions, PyDex 0.66\,s locally and 13.97\,s on the network. At the cheap tier the ordering reverses (\PydexATTMini\,s against \HybridATTMini\,s), because a small model returns one completion faster than our search enumerates and re-executes candidates; we report it rather than quoting only the flattering tier. What the seconds buy is an answer that is deterministic, rate-limit-free, never leaves the institution, and is unaffected by the deadline-night spikes that make a hosted queue slowest when a class most needs it.
 
 \smallskip
-% [번역] RQ2 답. CoEP는 제출물당 추론을 일회성 $12.22 합성과 $1.36 꼬리로 대체하며, 2,970건에 걸쳐 22배 싸고 과제당 N*=11에서 손익분기를
-% 넘는다. 캐싱은 10.2%만 회수하고 N*는 가격 불변이므로 격차는 구조적이다.
+% [번역] RQ2 답. CoEP는 제출물당 추론을 일회성 $12.22 합성과 $1.36 꼬리로 대체하며, 2,970건에 걸쳐 22배 싸고 과제당 N*=11에서 손익분기를 넘는다. 캐싱은 10.2%만 회수하고 N*는 가격 불변이므로 격차는 구조적이다.
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ2.} \textsc{CoEP} replaces a per-submission inference with a one-off \$\BuildUsdSonnet{} synthesis plus a \$\GateUsd{} tail, \CostRatio$\times$ cheaper over \NumEval{} submissions and breaking even at $N^{*}{=}11$ per assignment. Caching recovers only \CacheSavingFrac\% and $N^{*}$ is price-invariant, so the gap is structural.}}
 
 \subsubsection{RQ3: Where the Repairs Come From}
 
-% [번역] 상호 보완적인 두 로컬 기전. 이름 붙은 규칙은 흔한 오개념(느슨해진 비교, 오프바이원 경계)에 대해 작고 라벨 붙은 편집을 하며 외과적이다. 수리된 제출물의
-% 25.9%를 평균 RPS 0.108에 처리한다(Table 3). 대부분의 학생 버그는 단일 토큰 실수가 아니라 토큰 수준 규칙이 표현하지 못하는 구조적 편집을 요구하며,
-% 이식이 구조적으로 맞는 정답 프로그램에서 가장 작은 차이 hunk 집합을 채택해 그것을 공급한다. 이식은 학생 코드를 다섯 배 더 많이 건드린다. 이식이 규칙만의 도구를
-% 경쟁력 있는 커버리지로 끌어올리고, 규칙은 흔한 경우를 거의 최소 크기로 유지하며 진단을 남기는 유일한 층이다. 이 분담은 균일하지 않다(Figure 3). 풀이 깊은
-% 곳에서는 이식이 지배하지만 한 오개념이 학급을 지배하는 곳에서는 작성 층이 넘겨받는다. C4에서는 규칙 하나가 38건 중 27건을 수리한다.
+% [번역] 상호 보완적인 두 로컬 기전. 이름 붙은 규칙은 흔한 오개념(느슨해진 비교, 오프바이원 경계)에 대해 작고 라벨 붙은 편집을 하며 외과적이다. 수리된 제출물의 25.9%를 평균 RPS 0.108에 처리한다(Table 3). 대부분의 학생 버그는 단일 토큰 실수가 아니라 토큰 수준 규칙이 표현하지 못하는 구조적 편집을 요구하며, 이식이 구조적으로 맞는 정답 프로그램에서 가장 작은 차이 hunk 집합을 채택해 그것을 공급한다. 이식은 학생 코드를 다섯 배 더 많이 건드린다. 이식이 규칙만의 도구를 경쟁력 있는 커버리지로 끌어올리고, 규칙은 흔한 경우를 거의 최소 크기로 유지하며 진단을 남기는 유일한 층이다. 이 분담은 균일하지 않다(Figure 3). 풀이 깊은 곳에서는 이식이 지배하지만 한 오개념이 학급을 지배하는 곳에서는 작성 층이 넘겨받는다. C4에서는 규칙 하나가 38건 중 27건을 수리한다.
 \textbf{Two complementary local mechanisms.} Named rules make small, labelled edits for common misconceptions --- a relaxed comparison, an off-by-one bound --- and are surgical, at \RuleShare\% of repaired submissions and mean RPS \RuleRPS{} (Table~\ref{tab:source}). Most student bugs are not single-token slips; they need a structural edit no token-level rule expresses, and the transplant supplies it by adopting the smallest set of differing hunks from a structurally-matched correct program, disturbing five times more of the student's code. The transplant lifts a rule-only tool to competitive coverage; the rules keep common cases near-minimal and are the only layer leaving a diagnosis behind. The division is not uniform (Fig.~\ref{fig:source}): where the pool is deep the transplant dominates, but where one misconception dominates a class the authored layer takes over --- on C4 a single rule, \texttt{carry\_fix\_two\_value\_print}, repairs 27 of 38 submissions.
 
 \begin{figure}[t]
@@ -434,86 +353,50 @@ rows are the framework-only ablation.}
 \label{tab:source}
 \end{table}
 
-% [번역] LLM 층이 사는 것. framework-only 절제, 즉 작성 규칙만 제거하고 제네릭 라이브러리와 이식은 그대로 둔 동일한 도구가 그것을 격리한다. 제거하면
-% 수리율이 0.37포인트(99.06→98.69), 평균 패치가 8%(0.449→0.485) 나빠진다. 커버리지가 거의 안 움직이는 것은 이식이 규칙이 하던 일을 흡수하기
-% 때문이지만, 표적 편집이 아니라 구조적 편집으로 흡수하며 그 대가는 규칙이 실제로 일하던 곳에 떨어진다. C6의 패치는 0.250, C2는 0.110 커지고, 커버리지를
-% 잃는 유일한 과제는 R2로 2.53포인트다. C4는 반대로 움직이는데(−0.087) 거기서는 이식이 발화하는 규칙보다 작은 편집을 찾는다. 정답 풀이 조밀한 곳에서 빌드가
-% 사는 것은 도달 범위가 아니라 패치 품질과 진단이며, 성긴 풀 절반은 RQ5다.
+% [번역] LLM 층이 사는 것. framework-only 절제, 즉 작성 규칙만 제거하고 제네릭 라이브러리와 이식은 그대로 둔 동일한 도구가 그것을 격리한다. 제거하면 수리율이 0.37포인트(99.06→98.69), 평균 패치가 8%(0.449→0.485) 나빠진다. 커버리지가 거의 안 움직이는 것은 이식이 규칙이 하던 일을 흡수하기 때문이지만, 표적 편집이 아니라 구조적 편집으로 흡수하며 그 대가는 규칙이 실제로 일하던 곳에 떨어진다. C6의 패치는 0.250, C2는 0.110 커지고, 커버리지를 잃는 유일한 과제는 R2로 2.53포인트다. C4는 반대로 움직이는데(−0.087) 거기서는 이식이 발화하는 규칙보다 작은 편집을 찾는다. 정답 풀이 조밀한 곳에서 빌드가 사는 것은 도달 범위가 아니라 패치 품질과 진단이며, 성긴 풀 절반은 RQ5다.
 \textbf{What the LLM layer buys.} A \emph{framework-only} ablation --- the identical tool with the authored rules removed, generic library and transplant left in place --- isolates it. Removing them costs \textbf{0.37} points of repair rate (99.06 to 98.69) and inflates the mean patch \textbf{8\%} (0.449 to 0.485). Coverage barely moves because the transplant absorbs what the rules handled, but it absorbs them with a structural edit rather than a targeted one, and the cost lands where the rules were doing real work: C6's patches grow 0.250, C2's 0.110, and R2 is the only assignment losing coverage, by 2.53 points. C4 moves the other way ($-0.087$), where the transplant finds a smaller edit than the rule that fires there. On a dense correct pool the build therefore buys patch quality and diagnosis rather than reach; the sparse-pool half is RQ5.
 
-% [번역] 출처 로그가 그 효과가 어디서 오는지 말해준다. 빌더는 발화한 규칙 91개를 작성했고 라이브러리는 5개이며, 발화 횟수는 789 대 293이다. 그러나 작성 규칙
-% 중 두 과제 이상에서 발화한 것은 단 하나인 반면 generic_flip_compare 하나가 11개 중 8개 과제에서 198회 발화했다. 작성 층은 구성상 과제 전용이다.
-% 과제당 한 번 사서 이 학급이 무엇을 틀렸는지를 부호화한다. 그 위에 네 번째 생산자가 있다. 임계값은 317건에서 발화해 로컬 수리된 것의 10.8%를 올리고 그중
-% 232건(73.2%)에서 더 작은 패치를 돌려받는다. 이는 팔의 345 호출 중 317이고 나머지 28은 기권이다.
+% [번역] 출처 로그가 그 효과가 어디서 오는지 말해준다. 빌더는 발화한 규칙 91개를 작성했고 라이브러리는 5개이며, 발화 횟수는 789 대 293이다. 그러나 작성 규칙 중 두 과제 이상에서 발화한 것은 단 하나인 반면 generic_flip_compare 하나가 11개 중 8개 과제에서 198회 발화했다. 작성 층은 구성상 과제 전용이다. 과제당 한 번 사서 이 학급이 무엇을 틀렸는지를 부호화한다. 그 위에 네 번째 생산자가 있다. 임계값은 317건에서 발화해 로컬 수리된 것의 10.8%를 올리고 그중 232건(73.2%)에서 더 작은 패치를 돌려받는다. 이는 팔의 345 호출 중 317이고 나머지 28은 기권이다.
 The provenance logs say where the effect comes from. The builder authored 91 rules that fired against the library's 5, firing 789 times against 293 --- but only one authored rule fired on more than one assignment, while \texttt{generic\_flip\_compare} alone fired 198 times across 8 of the 11. The authored layer is assignment-specific by construction: it is bought once per assignment and encodes what \emph{this} class got wrong. A fourth producer sits above both --- the threshold fires on \GateFired{} submissions, \GateRate\% of those repaired locally, and returns the smaller patch on \GateWon{} of them (\GateWinFrac\%); those are 317 of the arm's 345 calls, the other 28 being abstentions.
 
-% [번역] 공짜로 얻는 진단. 규칙이 만든 모든 패치는 그 뒤의 규칙 이름을 지니므로 학급 단위로 집계하면 도구가 오개념 프로파일을 낸다. 어떤 이름의 실수가 얼마나 자주,
-% 어떤 프로그램에서 일어났는지다. 이름들은 패치가 아니라 오개념으로 읽힌다. 교수자는 읽고 편집할 수 있는 결과물에서 추가 비용 없이 이 보고서를 얻는다. 진단 커버리지는
-% 25.9%이며(Table 3), 제출물당 API는 어떤 가격으로도 이를 방출하지 않는다.
+% [번역] 공짜로 얻는 진단. 규칙이 만든 모든 패치는 그 뒤의 규칙 이름을 지니므로 학급 단위로 집계하면 도구가 오개념 프로파일을 낸다. 어떤 이름의 실수가 얼마나 자주, 어떤 프로그램에서 일어났는지다. 이름들은 패치가 아니라 오개념으로 읽힌다. 교수자는 읽고 편집할 수 있는 결과물에서 추가 비용 없이 이 보고서를 얻는다. 진단 커버리지는 25.9%이며(Table 3), 제출물당 API는 어떤 가격으로도 이를 방출하지 않는다.
 \textbf{Diagnosis for free.} Every rule-produced patch carries the rule names behind it, so aggregated over a class the tool yields a misconception profile: how often each named mistake occurred, and on which programs. The names read as misconceptions rather than patches --- \texttt{append\_missing\_return\_len\_after\_loop}, \texttt{count\_compare\_relax} --- and an instructor gets the report at no extra cost from an artifact that can be read and edited. Diagnosis coverage is \RuleShare\% (Table~\ref{tab:source}); a per-submission API emits none of it at any price.
 
 \smallskip
-% [번역] RQ3 답. 이름 붙은 규칙은 로컬 수리의 25.9%를 평균 RPS 0.108에 생산하며 이는 이식의 0.595보다 다섯 배 작고 각각 오개념 라벨을 단다. 이식은
-% 나머지를 생산하며 커버리지를 나른다. 작성 규칙을 제거하면 커버리지 0.37포인트를 잃고 패치가 8% 커지므로, 조밀한 풀에서 빌드가 사는 것은 도달 범위가 아니라 패치
-% 품질과 진단이다. 작성 규칙 91개 중 과제 간 재사용은 1개인 반면 제네릭 라이브러리는 어디서나 재사용되며, 그것이 빌드를 과제당으로 가격 매기는 이유다.
+% [번역] RQ3 답. 이름 붙은 규칙은 로컬 수리의 25.9%를 평균 RPS 0.108에 생산하며 이는 이식의 0.595보다 다섯 배 작고 각각 오개념 라벨을 단다. 이식은 나머지를 생산하며 커버리지를 나른다. 작성 규칙을 제거하면 커버리지 0.37포인트를 잃고 패치가 8% 커지므로, 조밀한 풀에서 빌드가 사는 것은 도달 범위가 아니라 패치 품질과 진단이다. 작성 규칙 91개 중 과제 간 재사용은 1개인 반면 제네릭 라이브러리는 어디서나 재사용되며, 그것이 빌드를 과제당으로 가격 매기는 이유다.
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ3.} Named rules produce \RuleShare\% of local repairs at mean RPS \RuleRPS, five times smaller than the transplant's \RefRPS{} and each carrying a misconception label; the transplant produces \RefShare\% and carries coverage. Removing the authored rules costs 0.37 points of coverage and inflates the patch 8\%, so on a dense pool the build buys patch quality and diagnosis rather than reach. One of 91 authored rules recurs across assignments while the generic library recurs everywhere --- which is why the build is priced per assignment.}}
 
 \subsubsection{RQ4: Learning From Its Own Escalations}
 
-% [번역] CoEP_L+SL은 자기 fallback 수정에서 흡수한 규칙과 함께 다시 돌린 프로즌 도구다. 흡수는 평가 패스 밖에서 일어나고 증강된 도구는 이 팔이 돌기 전에
-% 프리즈되므로 CoEP_L과의 비교는 순서 무관하다. 같은 제출물, 같은 수용 규칙, 두 개의 규칙 집합이다. 흡수는 로컬 도구가 완전히 실패한 제출물에서만 배우고 임계값
-% 에스컬레이션에서는 배우지 않으므로, 그 재료 공급원은 정확히 기권 집합이다.
+% [번역] CoEP_L+SL은 자기 fallback 수정에서 흡수한 규칙과 함께 다시 돌린 프로즌 도구다. 흡수는 평가 패스 밖에서 일어나고 증강된 도구는 이 팔이 돌기 전에 프리즈되므로 CoEP_L과의 비교는 순서 무관하다. 같은 제출물, 같은 수용 규칙, 두 개의 규칙 집합이다. 흡수는 로컬 도구가 완전히 실패한 제출물에서만 배우고 임계값 에스컬레이션에서는 배우지 않으므로, 그 재료 공급원은 정확히 기권 집합이다.
 \textsc{CoEP}\textsubscript{L+SL} is the frozen tool re-run with the rules absorbed from its own fallback fixes. Absorption happens outside the evaluated pass and the augmented tool is frozen before this arm runs, so the comparison against \textsc{CoEP}\textsubscript{L} is order-independent: the same submissions, the same acceptance rule, two rule sets. Absorption learns only from submissions the local tool fails outright, never from threshold escalations, so its supply of material is exactly the abstention set.
 
-% [번역] 첫 번째 결과는 배울 것이 얼마나 적은가이다. 22개 (과제, 빌더) 셀에서 프로즌 도구는 총 28건에 기권하고 19개 셀은 흡수할 것을 남기지 않는다. 이는
-% 기전의 실패가 아니라 로컬 수리율 99.06%가 의미하는 바다. 기권하는 곳에서는 흡수가 발화한다. 프론티어 빌더로 R2에 규칙 4개, 저가 빌더로 R2에 3개, C3에
-% 1개다.
+% [번역] 첫 번째 결과는 배울 것이 얼마나 적은가이다. 22개 (과제, 빌더) 셀에서 프로즌 도구는 총 28건에 기권하고 19개 셀은 흡수할 것을 남기지 않는다. 이는 기전의 실패가 아니라 로컬 수리율 99.06%가 의미하는 바다. 기권하는 곳에서는 흡수가 발화한다. 프론티어 빌더로 R2에 규칙 4개, 저가 빌더로 R2에 3개, C3에 1개다.
 \textbf{The first result is how little there is to learn from.} Across the 22 (assignment, builder) cells the frozen tool abstains on 28 submissions and 19 cells leave nothing to absorb --- not a failure of the mechanism but what a 99.06\% local repair rate means. Where it does abstain, absorption fires: four rules on R2 with the frontier builder, three on R2 with the cheap one, one on C3.
 
-% [번역] 발화하는 곳에서 규칙은 전이된다. R2는 4개 규칙으로 93.79%에서 95.40%로, 저가 빌더의 3개로는 96.55%로 올라간다. C3에서는 규칙 하나
-% binarysearch_zero_exit가 마지막 격차를 100%로 닫는다. 짝지어 보면 둘 다 유의하다. 프론티어 티어에서 b=9, c=1, p=0.021이고 저가
-% 티어에서 b=12, c=0, p=4.9×10⁻⁴다. 저가 빌더가 더 많이 배운다는 점은 말할 가치가 있다. 재료는 어느 쪽이든 같은 27건 기권이고, 다른 것은 모델이 수정
-% 하나에서 얼마나 일반적인 규칙을 쓰느냐다. 이 규칙들을 유도한 것은 평가된 504건 중 8건이므로 이득은 거의 전적으로 규칙이 한 번도 검증받지 않은 프로그램에서 측정되며,
-% 유도 비용은 결과물에 가격 매겨진 $0.76이다. 이름들은 다시 오개념으로 읽힌다.
+% [번역] 발화하는 곳에서 규칙은 전이된다. R2는 4개 규칙으로 93.79%에서 95.40%로, 저가 빌더의 3개로는 96.55%로 올라간다. C3에서는 규칙 하나 binarysearch_zero_exit가 마지막 격차를 100%로 닫는다. 짝지어 보면 둘 다 유의하다. 프론티어 티어에서 b=9, c=1, p=0.021이고 저가 티어에서 b=12, c=0, p=4.9×10⁻⁴다. 저가 빌더가 더 많이 배운다는 점은 말할 가치가 있다. 재료는 어느 쪽이든 같은 27건 기권이고, 다른 것은 모델이 수정 하나에서 얼마나 일반적인 규칙을 쓰느냐다. 이 규칙들을 유도한 것은 평가된 504건 중 8건이므로 이득은 거의 전적으로 규칙이 한 번도 검증받지 않은 프로그램에서 측정되며, 유도 비용은 결과물에 가격 매겨진 $0.76이다. 이름들은 다시 오개념으로 읽힌다.
 \textbf{Where it fires, the rules transfer.} R2 moves from 93.79\% to \textbf{95.40\%} on the four, and to \textbf{96.55\%} on the cheap builder's three; on C3 a single rule, \texttt{binarysearch\_zero\_exit}, closes the last gap to 100\%. Paired, both are significant: $b{=}9$, $c{=}1$, $p{=}0.021$ at the frontier tier and $b{=}12$, $c{=}0$, $p{=}4.9{\times}10^{-4}$ at the cheap one. The cheap builder learning \emph{more} is worth stating --- the material is the same 27 abstentions, and what differs is how general a rule the model writes from one fix. Eight submissions induced these rules out of 504 evaluated, so the gain is measured almost entirely on programs the rules were never validated against, for \$0.76 of induction priced to the artifact. The names again read as misconceptions: \texttt{uniqueness\_count\_gt1\_to\_neq1}, \texttt{counter\_var\_confusion}.
 
 \smallskip
-% [번역] RQ4 답. 흡수는 22개 셀 중 3개에서 발화한다. 나머지 19개에서는 프로즌 도구가 배울 놓친 건을 남기지 않는다. 발화하는 곳에서 규칙은 일반화된다. R2가
-% 95.40%(프론티어)와 96.55%(저가)로, C3가 100%로 가며 비용은 $0.76이고, 규칙이 유도되지 않은 제출물에서 p=0.021과 p<10⁻³로 유의하다.
+% [번역] RQ4 답. 흡수는 22개 셀 중 3개에서 발화한다. 나머지 19개에서는 프로즌 도구가 배울 놓친 건을 남기지 않는다. 발화하는 곳에서 규칙은 일반화된다. R2가 95.40%(프론티어)와 96.55%(저가)로, C3가 100%로 가며 비용은 $0.76이고, 규칙이 유도되지 않은 제출물에서 p=0.021과 p<10⁻³로 유의하다.
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ4.} Absorption fires on 3 of 22 cells; on the other 19 the frozen tool leaves no miss to learn from. Where it fires the rules generalize --- R2 to 95.40\% (frontier) and 96.55\% (cheap), C3 to 100\%, for \$0.76 --- significant at $p{=}0.021$ and $p{<}10^{-3}$ on submissions they were not induced from.}}
 
 \subsubsection{RQ5: What the Conclusion Survives}
 
-% [번역] 난이도. 여섯 Codeforces 문제가 rating 800에서 2000으로 올라가면서 깊은 CS1 정답 풀은 더 성긴 것으로 바뀌고, 심볼릭 베이스라인이 그것을
-% 따라간다. CS1에서 90.8%, 800–1000 대역에서 83.1%, 1200–2000에서 54.3%인 반면 CoEP_LF는 99.4/100.0/100.0을 유지한다.
-% 그러나 과제별 행은 난이도가 원인이 아니라고 말한다. Refactory는 C6(rating 2000)을 전부 고치고 C5(rating 1600)는 열에 넷을 고치며, 그
-% 수리율은 rating에 단조롭지 않다. 붕괴를 예측하는 것은 풀이 구조적으로 맞는 참조를 담고 있느냐이다. 전략이 갈라지면 블록 수준 재사용이 굶기 때문이고, C5의
-% 77건은 정답 2개짜리 풀에 의존한다. 모든 팔의 RPS가 CS1에서 어려운 대역으로 가며 대략 두 배가 되므로 팔 사이의 순서는 살아남지만 절대값은 그렇지 않다.
+% [번역] 난이도. 여섯 Codeforces 문제가 rating 800에서 2000으로 올라가면서 깊은 CS1 정답 풀은 더 성긴 것으로 바뀌고, 심볼릭 베이스라인이 그것을 따라간다. CS1에서 90.8%, 800–1000 대역에서 83.1%, 1200–2000에서 54.3%인 반면 CoEP_LF는 99.4/100.0/100.0을 유지한다. 그러나 과제별 행은 난이도가 원인이 아니라고 말한다. Refactory는 C6(rating 2000)을 전부 고치고 C5(rating 1600)는 열에 넷을 고치며, 그 수리율은 rating에 단조롭지 않다. 붕괴를 예측하는 것은 풀이 구조적으로 맞는 참조를 담고 있느냐이다. 전략이 갈라지면 블록 수준 재사용이 굶기 때문이고, C5의 77건은 정답 2개짜리 풀에 의존한다. 모든 팔의 RPS가 CS1에서 어려운 대역으로 가며 대략 두 배가 되므로 팔 사이의 순서는 살아남지만 절대값은 그렇지 않다.
 \textbf{Difficulty.} As the six Codeforces problems climb from rating 800 to 2000 the deep CS1 solution pools give way to sparser ones, and the symbolic baseline tracks that: 90.8\% on CS1, 83.1\% on the 800--1000 band, \textbf{54.3\%} on 1200--2000, against \textsc{CoEP}\textsubscript{LF}'s 99.4/100.0/100.0. But the per-assignment rows say difficulty is not the driver. Refactory repairs all of C6 (rating 2000) and four in ten of C5 (rating 1600); its rate is not monotone in rating. What predicts the collapse is whether the pool holds a structurally matching reference, since block-level reuse starves when strategies diverge --- C5's 77 submissions draw on a pool of two correct solutions. Every arm's RPS roughly doubles from CS1 to the hard band, so the ordering survives while the absolute numbers do not.
 
-% [번역] 공급자. CoEP_LF는 프론티어 빌더로 99.7% / RPS 0.398, 저가 빌더로 99.7% / 0.411에 도달한다. 빌드 가격이 18배 차이($12.22
-% 대 $0.68)인데 패치 크기는 3% 차이이며, 두 베이스라인에 대한 순서는 어느 쪽이든 동일하다.
+% [번역] 공급자. CoEP_LF는 프론티어 빌더로 99.7% / RPS 0.398, 저가 빌더로 99.7% / 0.411에 도달한다. 빌드 가격이 18배 차이($12.22 대 $0.68)인데 패치 크기는 3% 차이이며, 두 베이스라인에 대한 순서는 어느 쪽이든 동일하다.
 \textbf{Provider.} \textsc{CoEP}\textsubscript{LF} reaches 99.7\% at 0.398 RPS with the frontier builder and 99.7\% at 0.411 with the cheap one --- 3\% in patch size for an 18-fold difference in build price (\$\BuildUsdSonnet{} against \$\BuildUsdMini) --- with the ordering against both baselines identical either way.
 
-% [번역] 임계값. 우리는 38개 후보 규칙을 스윕했다. 중앙값 또는 평균에 MAD·표준편차·사분위 범위를 더한 것, 순수 분위수, 과제 중앙값의 배수, 각각의 코퍼스 전역
-% 변형, 그리고 상수들이다. 그중 29개가 캐시된 에스컬레이션 프리픽스 안에서 서로 다른 설정을 주며 정확히 측정된다. 셋 모두에서 성립하는 것이 세 가지다. 수리율은 소수
-% 넷째 자리까지 99.66%로 동일한데, 게이트가 테스트를 이미 통과한 패치만 재검토하고 더 작은 쪽을 남기기 때문이다. 평균 RPS는 에스컬레이션율과 함께 0.451에서
-% 0.378로 떨어지되 대체로 그렇지 단조롭지는 않다. 인접한 여섯 쌍이 역전하고 두 설정 median+3MAD와 mean*2는 우리가 채택한 것에 엄격히 지배당해 더 많은
-% 호출로 더 큰 패치를 산다. 프론티어 위의 어떤 설정도 내부 최적점이 아니므로 선택은 발견할 값이 아니라 예산이다. 총 지출은 $12.47–$15.61 안에 머무르므로
-% 29개 전부가 세 베이스라인을 수리율, 패치 크기, 비용에서 동시에 이긴다. 턴어라운드는 이 계열에 대해 주장하지 않는다. 스윕이 지연이 아니라 호출 수를 기록하고,
-% RQ2가 이미 저가 티어에서 CoEP_LF가 PyDex에 턴어라운드를 진다고 보고했기 때문이다.
+% [번역] 임계값. 우리는 38개 후보 규칙을 스윕했다. 중앙값 또는 평균에 MAD·표준편차·사분위 범위를 더한 것, 순수 분위수, 과제 중앙값의 배수, 각각의 코퍼스 전역 변형, 그리고 상수들이다. 그중 29개가 캐시된 에스컬레이션 프리픽스 안에서 서로 다른 설정을 주며 정확히 측정된다. 셋 모두에서 성립하는 것이 세 가지다. 수리율은 소수 넷째 자리까지 99.66%로 동일한데, 게이트가 테스트를 이미 통과한 패치만 재검토하고 더 작은 쪽을 남기기 때문이다. 평균 RPS는 에스컬레이션율과 함께 0.451에서 0.378로 떨어지되 대체로 그렇지 단조롭지는 않다. 인접한 여섯 쌍이 역전하고 두 설정 median+3MAD와 mean*2는 우리가 채택한 것에 엄격히 지배당해 더 많은 호출로 더 큰 패치를 산다. 프론티어 위의 어떤 설정도 내부 최적점이 아니므로 선택은 발견할 값이 아니라 예산이다. 총 지출은 $12.47–$15.61 안에 머무르므로 29개 전부가 세 베이스라인을 수리율, 패치 크기, 비용에서 동시에 이긴다. 턴어라운드는 이 계열에 대해 주장하지 않는다. 스윕이 지연이 아니라 호출 수를 기록하고, RQ2가 이미 저가 티어에서 CoEP_LF가 PyDex에 턴어라운드를 진다고 보고했기 때문이다.
 \textbf{Threshold.} We swept 38 candidate rules --- median- or mean-anchored with MAD, standard-deviation or interquartile spread, bare quantiles, multiples of the assignment's median, corpus-wide variants, and constants --- of which 29 give distinct settings inside the cached escalation prefix and are measured exactly. Three things hold across all. Repair rate is \emph{identical} to four decimals at 99.66\%, because the gate re-examines only patches the tests already passed and keeps the smaller. Mean RPS falls with the escalation rate, 0.451 to 0.378, broadly but not monotonically --- six adjacent pairs invert, and two settings, \texttt{median+3MAD} and \texttt{mean*2}, are strictly dominated by the one we ship, buying a larger patch for more calls. No setting on the frontier is an interior optimum, so the choice is a budget rather than a value to discover. Total spend stays within \$12.47--\$15.61, so every one of the 29 beats all three baselines on repair rate, patch size and dollars at once. We do not claim turnaround across the family: the sweep records calls rather than latency, and RQ2 already reports \textsc{CoEP}\textsubscript{LF} losing turnaround to PyDex at the cheap tier.
 
-% [번역] 스윕 안의 두 발견은 부정적이다. 임계값을 과제에 상대적으로 만드는 것은 값을 하지 않는다. 코퍼스 전역 단일 컷오프가 같은 프론티어 위나 그보다 낫게 앉는데,
-% RPS가 이미 프로그램 크기로 정규화돼 있어 과제별로 다시 정규화하면 도구가 이미 잘 처리하는 과제로 호출이 향하기 때문이다. 그리고 우리가 시작했던 median+MAD
-% 계열은 파레토 지배당한다. 따라서 우리는 그 값이 적합된 상수가 아니라 정의인 설정을 채택하며, 그 정직한 대가는 로컬 패치가 일률적으로 작은 곳에서 거의 무위라는 점이다.
-% R3에서 0.0%, C2에서 22.3% 발화한다.
+% [번역] 스윕 안의 두 발견은 부정적이다. 임계값을 과제에 상대적으로 만드는 것은 값을 하지 않는다. 코퍼스 전역 단일 컷오프가 같은 프론티어 위나 그보다 낫게 앉는데, RPS가 이미 프로그램 크기로 정규화돼 있어 과제별로 다시 정규화하면 도구가 이미 잘 처리하는 과제로 호출이 향하기 때문이다. 그리고 우리가 시작했던 median+MAD 계열은 파레토 지배당한다. 따라서 우리는 그 값이 적합된 상수가 아니라 정의인 설정을 채택하며, 그 정직한 대가는 로컬 패치가 일률적으로 작은 곳에서 거의 무위라는 점이다. R3에서 0.0%, C2에서 22.3% 발화한다.
 Two findings inside the sweep are negative. Making the threshold \emph{relative to the assignment} does not pay --- a single corpus-wide cutoff sits on the same frontier or better, since RPS is already normalized by program size and normalizing again directs calls to assignments the tool already handles --- and the median-plus-MAD family we began with is Pareto-dominated. We therefore ship the setting whose value is a definition rather than a fitted constant, at the honest cost of being nearly inert where local patches are uniformly small: it fires on 0.0\% of R3 against 22.3\% of C2.
 
 \smallskip
-% [번역] RQ5 답. 세 축 모두 그렇다. 심볼릭 베이스라인은 CS1 코퍼스와 가장 어려운 Codeforces 대역 사이에서 90.8%에서 54.3%로 떨어지는 반면
-% CoEP_LF는 100%를 유지한다. 두 빌더는 18배 가격 차이에 패치 크기 3% 차이로 일치한다. 그리고 측정된 29개 임계값에 걸쳐 수리율은 불변이며 패치 크기는
-% 0.378–0.451, 지출은 $12.47–$15.61에 걸치므로 모든 설정이 모든 베이스라인을 네 지표에서 이긴다.
+% [번역] RQ5 답. 세 축 모두 그렇다. 심볼릭 베이스라인은 CS1 코퍼스와 가장 어려운 Codeforces 대역 사이에서 90.8%에서 54.3%로 떨어지는 반면 CoEP_LF는 100%를 유지한다. 두 빌더는 18배 가격 차이에 패치 크기 3% 차이로 일치한다. 그리고 측정된 29개 임계값에 걸쳐 수리율은 불변이며 패치 크기는 0.378–0.451, 지출은 $12.47–$15.61에 걸치므로 모든 설정이 모든 베이스라인을 네 지표에서 이긴다.
 \noindent\fbox{\parbox{0.965\columnwidth}{\textbf{RQ5.} Yes on all three. The symbolic baseline falls 90.8\% to 54.3\% between the CS1 corpus and the hardest Codeforces band while \textsc{CoEP}\textsubscript{LF} holds 100\%; the builders agree to 3\% in patch size for an 18-fold price difference; and across 29 thresholds the repair rate is invariant while patch size spans 0.378--0.451 and spend \$12.47--\$15.61, so every setting beats every baseline on all four metrics.}}
 
 \bibliography{references}
