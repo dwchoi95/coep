@@ -34,6 +34,47 @@ C1--C6), the arm names, and every metric definition are the main paper's.
 Values are generated from \texttt{results/} by the released scripts
 (\texttt{run.py tables}, \texttt{run.py figures}); none is transcribed.
 
+\section{The Benchmark, and What Escalation Costs}
+
+\begin{table}[h]
+\centering\small\setlength{\tabcolsep}{4pt}
+% BEGIN GENERATED tab_data -- rewritten by `run.py tables`; do not edit
+\begin{tabular}{lrrrr}
+\toprule
+Corpus & problems & buggy & correct & tests \\
+\midrule
+Refactory (CS1) & 5 & 1{,}783 & 2{,}442 & 37 \\
+Codeforces & 6 & 1{,}187 & 698 & 213 \\
+\midrule
+\textbf{Total} & \textbf{11} & \textbf{2{,}970} & \textbf{3{,}140} & \textbf{250} \\
+\bottomrule
+\end{tabular}
+% END GENERATED tab_data
+\caption{Datasets Statistics.}
+\label{tab:data}
+\end{table}
+
+\begin{table}[t]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+% BEGIN GENERATED tab_att -- rewritten by `run.py tables`; do not edit
+\begin{tabular}{llrrr}
+\toprule
+Arm & Builder & $\mathrm{ATT}_{\mathrm{cpu}}$ & $\mathrm{ATT}_{\mathrm{api}}$ & $\mathrm{ATT}_{\mathrm{tot}}$ \\
+\midrule
+PyDex & \texttt{claude-sonnet-5} & 0.66 & 13.97 & 14.64 \\
+\textsc{CoEP}\textsubscript{LF} & \texttt{claude-sonnet-5} & 2.70 & 0.36 & 3.06 \\
+\midrule
+PyDex & \texttt{gpt-5.4-mini} & 0.73 & 1.41 & 2.14 \\
+\textsc{CoEP}\textsubscript{LF} & \texttt{gpt-5.4-mini} & 3.07 & 0.15 & 3.22 \\
+\bottomrule
+\end{tabular}
+% END GENERATED tab_att
+\caption{Turnaround per submission, in seconds. Nearly all of PyDex's wait is
+the model and nearly all of ours is local search, which is why the ordering
+depends on how fast the model answers.}
+\label{tab:att}
+\end{table}
+
 \section{Where the Repairs Come From}
 
 Table~\ref{tab:source} decomposes every repair by the strategy that produced
@@ -76,8 +117,7 @@ per assignment, over both builders.}
 
 The main paper's ablation compares the tool with and without the builder's
 rules on the benchmark as it stands, where every assignment arrives with
-hundreds of correct submissions already in hand. Table~\ref{tab:pool} varies
-that: each tool is held fixed and only the number of correct programs the
+hundreds of correct submissions already in hand. The main paper's Table 2 varies that: each tool is held fixed and only the number of correct programs the
 transplant may draw on is restricted, with the \texttt{claude-sonnet-5} tool.
 \texttt{run.py pool} reproduces it.
 
@@ -107,14 +147,6 @@ table isolates is the substrate's dependence on the pool at deployment. A true
 cold start would rebuild at each pool size and would cost a model call per
 size.
 
-\begin{table}[h]
-\centering\scriptsize\setlength{\tabcolsep}{2pt}
-\resizebox{\columnwidth}{!}{\input{supp/tab_pool}}
-\caption{Repair rate and patch size as the reference pool is restricted to $k$
-correct programs, over 146 held-out submissions; brackets are the range over
-three draws of each pool.}
-\label{tab:pool}
-\end{table}
 
 \section{Robustness}
 
@@ -148,17 +180,16 @@ them.}
 
 \section{What the Builder Writes}
 
-
 \textbf{Three levels of generality.} What the builder writes is not one kind of thing, and the level predicts how far a rule travels. The most general level catches a language slip. \texttt{add\_missing\_call\_parens} describes itself as ``\texttt{x.pop} / \texttt{x.reverse} used as a statement or return value without \texttt{()}'', a Python trap that belongs to no assignment; it is the only one of the 128 builder-written rules that ever fired to do so on two assignments, repairing 8 submissions across R3 and C2. The middle level catches the misconception of one problem. \texttt{slice\_case\_check\_to\_equality} explains that ``\texttt{slice.isupper()} fails on empty slices (single char words)'' and repairs 108 submissions on C2, most of that assignment's rule-produced repairs; it cannot move to another problem but it would work for any class given this one. The most specific level is tied to the problem statement itself: \texttt{carry\_fix\_two\_value\_print} inserts an inch-to-foot carry check before the final print, fixing what it calls the ``compute feet first, round remainder second'' misconception, and repairs 28 of C4's 38 submissions on its own. That the authored layer is assignment-specific is therefore not a defect but a consequence of level. A rule that covers a class is written at the level of that class's misconception and so cannot cross assignments; a rule that crosses assignments does so because it knows nothing about the assignment.
+
+
+
 
 
 \textbf{A misconception profile falls out of repairing.} Every rule-produced patch carries the name of the rule that produced it, so aggregating over a class yields a report an instructor can read. On R2, of the 145 submissions the rules repaired under \texttt{claude-sonnet-5}, \texttt{count\_compare\_relax} accounts for 58, \texttt{undefined\_domain\_var\_rename} 27, \texttt{missing\_return\_false\_append} 22, and \texttt{month\_day\_index\_fix} 7, with the always-on comparison flip taking 33; a repair may compose rules, so these overlap. That is not a list of patches but a frequency table of named mistakes, and it says at once that one relaxed comparison accounts for 40\% of everything the rules repaired on this assignment. The report costs nothing beyond the repairing, and a per-submission API emits none of it at any price, because a call yields a patch but leaves no name behind.
 
-\section{Self-Learning}
 
-Figure~\ref{fig:learn} follows the submissions the frozen tool could not
-repair: what the fallback reaches, and what the rules distilled from those
-repairs reach with no model at all.
+\section{Self-Learning}
 
 \begin{figure}[h]
 \centering
