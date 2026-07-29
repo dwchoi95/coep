@@ -68,7 +68,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  missing: paper/{track}/{f}")
             continue
         (OUT / "paper" / track / f).write_text(KOREAN.sub("", src.read_text()))
-    for shared in ("references.bib", "aaai2027.sty", "aaai2027.bst", "build.sh"):
+    for name in ("aaai2027.sty", "aaai2027.bst"):
+        shutil.copy2(ROOT / "paper" / track / name, OUT / "paper" / track / name)
+    for shared in ("references.bib", "build.sh"):
         shutil.copy2(ROOT / "paper" / shared, OUT / "paper" / shared)
     # only the side tables this track's sources actually \input: shipping the
     # others would put a typeset table for a claim the paper never makes in
