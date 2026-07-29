@@ -25,8 +25,8 @@ KOREAN = re.compile(r"^% \[번역\].*$", re.M)
 # package that carried both would tell a reviewer of one about the other.
 TRACKS = {
     "main": ("main.tex", "supplementary.tex", "ReproducibilityChecklist.tex"),
-    "first": ("first.tex", "first_supplementary.tex",
-              "first_ReproducibilityChecklist.tex"),
+    "first": ("first.tex", "supplementary.tex",
+              "ReproducibilityChecklist.tex"),
 }
 
 

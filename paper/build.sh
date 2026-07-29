@@ -11,9 +11,11 @@
 # the same for the merged bibliography.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
-export TEXINPUTS="$here:$TEXINPUTS"
-export BIBINPUTS="$here:$BIBINPUTS"
-export BSTINPUTS="$here:$BSTINPUTS"
+# The track directory comes first: a stray copy of a source left in paper/
+# would otherwise shadow the real one and compile silently against it.
+export TEXINPUTS=".:$here:$TEXINPUTS"
+export BIBINPUTS=".:$here:$BIBINPUTS"
+export BSTINPUTS=".:$here:$BSTINPUTS"
 
 build_one() {
     dir=$1; stem=$2
@@ -44,7 +46,7 @@ for track in "$@"; do
              build_one main supplementary
              build_one main ReproducibilityChecklist ;;
       first) build_one first first
-             build_one first first_supplementary
-             build_one first first_ReproducibilityChecklist ;;
+             build_one first supplementary
+             build_one first ReproducibilityChecklist ;;
     esac
 done
