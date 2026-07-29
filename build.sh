@@ -11,11 +11,10 @@
 # the same for the merged bibliography.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
-# The track directory comes first: a stray copy of a source left in paper/
-# would otherwise shadow the real one and compile silently against it.
-export TEXINPUTS=".:$here:$TEXINPUTS"
-export BIBINPUTS=".:$here:$BIBINPUTS"
-export BSTINPUTS=".:$here:$BSTINPUTS"
+# No search paths are set. Each track directory holds its own copy of the AAAI
+# style files, and figures/, tables/ and references.bib are reached by relative
+# path from the sources, so latexmk, an editor or a bare pdflatex run from
+# inside a track directory all work the same way this script does.
 
 build_one() {
     dir=$1; stem=$2
