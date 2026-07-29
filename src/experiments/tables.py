@@ -331,15 +331,21 @@ def tab_pool(ver: str) -> str:
             a[1] += 1; a[2] += r["rps"] or 0.0
     ks = sorted({r["k"] for r in rows}, key=lambda k: (k < 0, k))
 
-    def cell(k, arm, rate):
+    def draws(k, arm, rate):
         seeds = sorted({s for (kk, s, _a) in per if kk == k})
-        v = []
-        for sd in seeds:
-            c = per[(k, sd, arm)]
-            v.append(100 * c[1] / c[0] if rate else c[2] / max(c[1], 1))
-        fmt = "%.1f" if rate else "%.3f"
-        m = fmt % (sum(v) / len(v))
-        return m if len(v) == 1 else f"{m} [{fmt % min(v)}, {fmt % max(v)}]"
+        return [100 * per[(k, sd, arm)][1] / per[(k, sd, arm)][0] if rate
+                else per[(k, sd, arm)][2] / max(per[(k, sd, arm)][1], 1)
+                for sd in seeds]
+
+    def cell(k, arm, rate):
+        # The mean only: a sampled pool is drawn three times, and the spread
+        # across draws goes in the caption rather than into every cell, which
+        # is what keeps this table inside one column.
+        v = draws(k, arm, rate)
+        return ("%.1f" if rate else "%.3f") % (sum(v) / len(v))
+
+    widest = {rate: max(max(v) - min(v) for k in ks for arm in ("fw", "full")
+                        for v in [draws(k, arm, rate)]) for rate in (1, 0)}
 
     out = [r"\begin{tabular}{lllll}", r"\toprule",
            r"& \multicolumn{2}{c}{RR (\%)} & \multicolumn{2}{c}{RPS} \\",
@@ -350,7 +356,9 @@ def tab_pool(ver: str) -> str:
         lab = "all" if k < 0 else str(k)
         out.append(f"{lab} & {cell(k,'fw',1)} & {cell(k,'full',1)} & "
                    f"{cell(k,'fw',0)} & {cell(k,'full',0)} \\\\")
-    out += [r"\bottomrule", r"\end{tabular}"]
+    out += [r"\bottomrule", r"\end{tabular}",
+            f"% max spread across draws: {widest[1]:.1f} points of RR, "
+            f"{widest[0]:.3f} RPS"]
     return "\n".join(out) + "\n"
 
 
@@ -393,16 +401,18 @@ def main(argv: list[str]) -> int:
                     help="optional subdirectory under results/; empty means "
                          "results/ itself, which is where the campaign wrote")
     args = ap.parse_args(argv)
+    # tab_pool is spliced, not written aside: the pool ablation moved into the
+    # main paper when RQ3 was rebalanced, and its fence there was left empty.
     for name, body in (("tab_data", tab_data(args.ver)),
                        ("tab_effect", tab_effect(args.ver)),
                        ("tab_att", tab_att(args.ver)),
+                       ("tab_pool", tab_pool(args.ver)),
                        ):
-        splice(name, body, "run.py tables")
-        print(f"  spliced {name} into paper/main.tex")
+        where = splice(name, body, "run.py tables")
+        print(f"  spliced {name} into paper/{where.name}")
     for name, body in (("tab_source", tab_source(args.ver)),
                        ("tab_cost", tab_cost(args.ver)),
                        ("tab_rules", tab_rules(args.ver)),
-                       ("tab_pool", tab_pool(args.ver)),
                        ("tab_robust", tab_robust(args.ver)),
                        ):
         (PAPER / "supp" / f"{name}.tex").write_text(body)

@@ -17,16 +17,27 @@ from pathlib import Path
 
 PAPER = Path(__file__).resolve().parents[2] / "paper"
 MAIN = PAPER / "main.tex"
+# A table lives wherever the paper puts it, and floats move between the main
+# paper and the supplement as the page budget shifts. The generator follows the
+# fence rather than assuming a file.
+TARGETS = (MAIN, PAPER / "supplementary.tex")
 
 
-def splice(name: str, body: str, by: str) -> None:
-    """Replace the ``name`` block in main.tex with ``body``."""
-    s = MAIN.read_text()
+def splice(name: str, body: str, by: str) -> Path:
+    """Replace the ``name`` block wherever its fence lives, and say where."""
     begin = f"% BEGIN GENERATED {name}"
     end = f"% END GENERATED {name}"
-    i = s.find(begin)
-    j = s.find(end)
-    if i < 0 or j < 0:
-        raise SystemExit(f"main.tex has no '{name}' block; expected {begin} ... {end}")
-    head = f"{begin} -- rewritten by `{by}`; do not edit\n"
-    MAIN.write_text(s[:i] + head + body.rstrip("\n") + "\n" + s[j:])
+    for target in TARGETS:
+        if not target.exists():
+            continue
+        s = target.read_text()
+        i = s.find(begin)
+        j = s.find(end)
+        if i < 0 or j < 0:
+            continue
+        head = f"{begin} -- rewritten by `{by}`; do not edit\n"
+        target.write_text(s[:i] + head + body.rstrip("\n") + "\n" + s[j:])
+        return target
+    raise SystemExit(
+        f"no '{name}' block in {' or '.join(t.name for t in TARGETS)}; "
+        f"expected {begin} ... {end}")
