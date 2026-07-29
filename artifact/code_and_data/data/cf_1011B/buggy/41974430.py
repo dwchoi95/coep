@@ -1,6 +1,0 @@
-p,q=input().split(" ")
-p=int(p)
-q=int(q)
-l1=list()
-l1.append(input().split(" "))
-print(q//p,end=" ")

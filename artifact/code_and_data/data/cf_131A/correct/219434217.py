@@ -1,5 +1,0 @@
-n = input()
-if len(n) == 1 and n.isupper() == False: print(n.swapcase())
-elif n.isupper() == True: print(n.swapcase())
-elif n[0].isupper() == False and n[1:].isupper() == True: print(n.swapcase())
-else: print(n)

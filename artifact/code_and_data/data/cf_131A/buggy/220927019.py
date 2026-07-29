@@ -1,5 +1,0 @@
-a = input()
-b = a.lower()
-#print(b)
-print(a[0].upper(),end="")
-print(b[1::],end="")
