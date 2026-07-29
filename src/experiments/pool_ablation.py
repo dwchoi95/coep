@@ -30,14 +30,14 @@ from src.utils.metrics import rps
 MODEL = "claude-sonnet-5"
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-problem", type=int, default=15)
     ap.add_argument("--ks", default="0,1,2,5,-1")   # -1 = the whole pool
     ap.add_argument("--seeds", type=int, default=3, help="pool draws per k > 0")
     ap.add_argument("--out", default="")
     ap.add_argument("--seed", type=int, default=0)
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
     ks = [int(x) for x in args.ks.split(",")]
     from src.core.synthesis import select_sample_pairs
     budget = SearchBudget()
@@ -84,7 +84,8 @@ def main() -> None:
     if args.out:
         open(args.out, "w").write(json.dumps(rows))
     print(f"{len(rows)} rows")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

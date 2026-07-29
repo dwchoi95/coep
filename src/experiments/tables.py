@@ -375,31 +375,42 @@ def tab_rules(ver: str) -> str:
 
 
 def tab_pool(ver: str) -> str:
-    """The pool-size ablation: coverage and patch size as the pool thins."""
+    """The pool-size ablation, over held-out submissions and repeated draws."""
     from collections import defaultdict
     f = ROOT / "results" / ver / "pool_ablation.json"
     if not f.exists():
         return "% pool_ablation.json absent; run `run.py pool`\n"
-    agg = defaultdict(lambda: [0, 0, 0.0])
-    for r in json.loads(f.read_text()):
-        a = agg[(r["k"], r["arm"])]
+    rows = json.loads(f.read_text())
+    per = defaultdict(lambda: [0, 0, 0.0])
+    for r in rows:
+        a = per[(r["k"], r.get("seed", 0), r["arm"])]
         a[0] += 1
         if r["fixed"]:
             a[1] += 1; a[2] += r["rps"] or 0.0
-    out = [r"\begin{tabular}{lrrrr}", r"\toprule",
+    ks = sorted({r["k"] for r in rows}, key=lambda k: (k < 0, k))
+
+    def cell(k, arm, rate):
+        seeds = sorted({s for (kk, s, _a) in per if kk == k})
+        v = []
+        for sd in seeds:
+            c = per[(k, sd, arm)]
+            v.append(100 * c[1] / c[0] if rate else c[2] / max(c[1], 1))
+        fmt = "%.1f" if rate else "%.3f"
+        m = fmt % (sum(v) / len(v))
+        return m if len(v) == 1 else f"{m} [{fmt % min(v)}, {fmt % max(v)}]"
+
+    out = [r"\begin{tabular}{lllll}", r"\toprule",
            r"& \multicolumn{2}{c}{RR (\%)} & \multicolumn{2}{c}{RPS} \\",
            r"\cmidrule(lr){2-3}\cmidrule(lr){4-5}",
            r"pool & \textsc{CoEP}\textsubscript{fw} & full & "
            r"\textsc{CoEP}\textsubscript{fw} & full \\", r"\midrule"]
-    for k in (0, 1, 2, 5, 10, -1):
-        fw, fu = agg[(k, "fw")], agg[(k, "full")]
-        if not fw[0]:
-            continue
+    for k in ks:
         lab = "all" if k < 0 else str(k)
-        out.append(f"{lab} & {100*fw[1]/fw[0]:.1f} & {100*fu[1]/fu[0]:.1f} & "
-                   f"{fw[2]/max(fw[1],1):.3f} & {fu[2]/max(fu[1],1):.3f} \\\\")
+        out.append(f"{lab} & {cell(k,'fw',1)} & {cell(k,'full',1)} & "
+                   f"{cell(k,'fw',0)} & {cell(k,'full',0)} \\\\")
     out += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out) + "\n"
+
 
 def tab_robust(ver: str) -> str:
     def cell(t):
