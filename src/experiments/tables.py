@@ -409,12 +409,12 @@ def main(argv: list[str]) -> int:
                        ("tab_pool", tab_pool(args.ver)),
                        ):
         where = splice(name, body, "run.py tables")
-        print(f"  spliced {name} into paper/{where.name}")
+        print(f"  spliced {name} into paper/{where.parent.name}/{where.name}")
     for name, body in (("tab_source", tab_source(args.ver)),
                        ("tab_cost", tab_cost(args.ver)),
                        ("tab_rules", tab_rules(args.ver)),
                        ("tab_robust", tab_robust(args.ver)),
                        ):
-        (PAPER / "supp" / f"{name}.tex").write_text(body)
-        print(f"  wrote paper/supp/{name}.tex")
+        (PAPER / "tables" / f"{name}.tex").write_text(body)
+        print(f"  wrote paper/tables/{name}.tex")
     return 0

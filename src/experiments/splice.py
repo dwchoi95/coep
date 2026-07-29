@@ -16,11 +16,12 @@ from __future__ import annotations
 from pathlib import Path
 
 PAPER = Path(__file__).resolve().parents[2] / "paper"
-MAIN = PAPER / "main.tex"
+MAIN = PAPER / "main" / "main.tex"
 # A table lives wherever the paper puts it, and floats move between the main
 # paper and the supplement as the page budget shifts. The generator follows the
-# fence rather than assuming a file.
-TARGETS = (MAIN, PAPER / "supplementary.tex")
+# fence rather than assuming a file. Only the main track is generated; the first
+# track is edited by hand and its tables are static by design.
+TARGETS = (MAIN, PAPER / "main" / "supplementary.tex")
 
 
 def splice(name: str, body: str, by: str) -> Path:

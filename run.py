@@ -31,6 +31,7 @@ COMMANDS = {
     "pool": ("pool_ablation", "main"),  # how the arms fare as the pool thins
     "labelsheet": ("labelsheet", "main"),  # rules.csv for the label-accuracy study
     "labelagree": ("labelagree", "main"),  # aggregate the raters' labels
+    "package": ("make_package", "main"),  # a track's Code and Data Package
     "refactory": ("refactory_results", "main"),   # collect our Refactory run
     "refactory-published": ("refactory_published", "main"),  # its own-corpus figures
 }
