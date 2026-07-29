@@ -32,7 +32,10 @@ def _mpl():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    # Type 3 fonts are forbidden in AAAI papers -- aaai2027.sty refuses bbm for
+    # exactly that reason -- and matplotlib embeds them by default.
     plt.rcParams.update({"font.size": 8, "font.family": "serif",
+                         "pdf.fonttype": 42, "ps.fonttype": 42,
                          "axes.spines.top": False, "axes.spines.right": False,
                          "figure.dpi": 200, "savefig.bbox": "tight",
                          "savefig.pad_inches": 0.02})
