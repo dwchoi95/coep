@@ -259,64 +259,6 @@ def tab_att(ver: str) -> str:
     out += [r"\bottomrule", r"\end{tabular}"]
     return "\n".join(out) + "\n"
 
-def tab_learn(ver: str) -> str:
-    """RQ4 as a funnel: what failed, what was tried, what survived, what it fixed."""
-    import re
-    failed = attempted = kept = 0
-    fired: set[str] = set()
-    gain = loss = 0
-    for m in (FRONTIER, CHEAP):
-        for pid in ORDER:
-            l = pd.read_csv(ROOT / "results" / ver / pid / "coep_l.csv",
-                            keep_default_na=False)
-            l = l[l.Model == m]
-            miss = l[~l.Fixed.astype(bool)]
-            failed += len(miss)
-            if not len(miss):
-                continue
-            # induction is only tried where the fallback repaired the miss
-            lf = pd.read_csv(ROOT / "results" / ver / pid / "coep_lf.csv",
-                             keep_default_na=False)
-            lf = lf[(lf.Model == m)
-                    & lf.Buggy.astype(str).isin(miss.Buggy.astype(str))]
-            attempted += int(lf.Fixed.astype(bool).sum())
-            learned = tool_path(pid, m, "tools").parent / "sl" / "learned.py"
-            names = (re.findall(r'Rule\("([^"]+)"', learned.read_text())
-                     if learned.exists() else [])
-            kept += len(names)
-            f = ROOT / "results" / ver / pid / "coep_l_sl.csv"
-            if not f.exists() or not names:
-                continue
-            sl = pd.read_csv(f, keep_default_na=False)
-            sl = sl[sl.Model == m]
-            was = dict(zip(l.Buggy.astype(str), l.Fixed.astype(bool)))
-            for _i, r in sl.iterrows():
-                k = str(r["Buggy"])
-                if k not in was:
-                    continue
-                now = bool(r["Fixed"])
-                if now and not was[k]:
-                    gain += 1
-                    fired |= set(json.loads(r["Rules_L"] or "[]")) & set(names)
-                elif was[k] and not now:
-                    loss += 1
-    rows = [("Submissions \\textsc{CoEP}\\textsubscript{L} failed to repair", failed),
-            ("\\quad of those, induction attempted", attempted),
-            ("\\quad\\quad new rules kept", kept),
-            ("\\quad\\quad\\quad rules that later repaired a submission", len(fired)),
-            ("Submissions newly repaired", gain),
-            ("\\quad regressed", loss)]
-    out = [r"\begin{tabular}{lr}", r"\toprule",
-           r"Stage & count \\", r"\midrule"]
-    for name, n in rows:
-        if name.startswith("Submissions newly"):
-            out.append(r"\midrule")
-        out.append(f"{name} & {n} \\\\")
-    out += [r"\bottomrule", r"\end{tabular}"]
-    return "\n".join(out) + "\n"
-
-
-
 def tab_cost(ver: str) -> str:
     """Escalation and what it costs, per assignment, over both builders."""
     out = [r"\begin{tabular}{lrrrr}", r"\toprule",
