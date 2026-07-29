@@ -46,7 +46,7 @@ builder because nothing the model wrote survives in it.
 
 \begin{table}[h]
 \centering\small\setlength{\tabcolsep}{5pt}
-\input{supp/tab_source}
+\resizebox{\columnwidth}{!}{\input{supp/tab_source}}
 \caption{Repair source, patch size, and labelling, with the framework-only
 ablation.}
 \label{tab:source}
@@ -66,7 +66,7 @@ alone.
 
 \begin{table}[h]
 \centering\small\setlength{\tabcolsep}{5pt}
-\input{supp/tab_cost}
+\resizebox{\columnwidth}{!}{\input{supp/tab_cost}}
 \caption{Escalation rate, calls, local CPU per submission, and build wall clock
 per assignment, over both builders.}
 \label{tab:cost}
@@ -78,10 +78,12 @@ The main paper's ablation compares the tool with and without the builder's
 rules on the benchmark as it stands, where every assignment arrives with
 hundreds of correct submissions already in hand. Table~\ref{tab:pool} varies
 that: each tool is held fixed and only the number of correct programs the
-transplant may draw on is restricted. \texttt{run.py pool} reproduces it.
+transplant may draw on is restricted, with the \texttt{claude-sonnet-5} tool.
+\texttt{run.py pool} reproduces it.
 
-Two properties of the design matter for reading the table. The 146 submissions
-are drawn only from those no builder was shown; roughly half of each
+Two properties of the design matter for reading the table. The 146 submissions are drawn only from those no builder was shown, and from ten
+assignments rather than eleven, since all three of C6's buggy programs are in
+its build set; roughly half of each
 assignment's buggy pool ends up in the build set, and scoring those would ask
 whether a rule remembers the program it was written from. And each sampled pool
 is drawn three times, since one draw of $k$ correct programs is one accident;
@@ -106,8 +108,8 @@ cold start would rebuild at each pool size and would cost a model call per
 size.
 
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{3pt}
-\input{supp/tab_pool}
+\centering\scriptsize\setlength{\tabcolsep}{2pt}
+\resizebox{\columnwidth}{!}{\input{supp/tab_pool}}
 \caption{Repair rate and patch size as the reference pool is restricted to $k$
 correct programs, over 146 held-out submissions; brackets are the range over
 three draws of each pool.}
@@ -122,8 +124,8 @@ eleven assignments as CS1, Codeforces 800--1000, and Codeforces 1200--2000, the
 last folding C6's three submissions in rather than reporting them alone.
 
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{1pt}
-\input{supp/tab_robust}
+\centering\scriptsize\setlength{\tabcolsep}{1pt}
+\resizebox{\columnwidth}{!}{\input{supp/tab_robust}}
 \caption{Difficulty, builder, and escalation threshold.}
 \label{tab:robust}
 \end{table}
@@ -144,6 +146,14 @@ them.}
 \label{fig:gate}
 \end{figure}
 
+\section{What the Builder Writes}
+
+% [번역] 규칙은 세 층위로 나뉜다. 빌더가 무엇을 쓰는지 보면 규칙이 하나의 종류가 아니라 일반성의 세 층위로 갈리고, 그 층위가 재사용 범위를 결정한다. 가장 일반적인 층은 언어 차원의 실수를 잡는다. add_missing_call_parens는 스스로를 "x.pop이나 x.reverse가 괄호 없이 문장이나 반환값으로 쓰였다"고 설명하는데, 이는 어떤 과제에도 없는 파이썬 자체의 함정이다. 빌더가 쓴 128개 규칙 중 두 과제 이상에서 발화한 유일한 규칙이 이것이고 R3과 C2에서 10건을 수리했다. 중간 층은 그 문제의 오개념을 잡는다. slice_case_check_to_equality는 "slice.isupper()가 한 글자 단어의 빈 슬라이스에서 실패한다"고 설명하며 C2에서 115건, 즉 그 과제 규칙 수리의 대부분을 처리한다. 다른 과제로 옮길 수는 없지만 이 과제를 낸 어느 학급에서나 통한다. 가장 특화된 층은 문제 서술 자체에 묶인다. carry_fix_two_value_print는 "인치가 12가 될 수 있는 '피트를 먼저 계산하고 나머지를 나중에 반올림하는' 오개념"을 고치려 최종 출력 앞에 인치→피트 올림 검사를 넣으며, C4의 38건 중 27건을 혼자 수리한다. 이 규칙은 다른 과제에서 의미가 없다. 따라서 작성 층이 과제 전용이라는 것은 결함이 아니라 층위의 함수다. 학급을 덮는 규칙은 그 학급의 오개념 수준에서 쓰이기 때문에 과제를 넘지 못하고, 과제를 넘는 규칙은 애초에 과제에 대해 아무것도 모르기 때문에 넘는다.
+\textbf{Three levels of generality.} What the builder writes is not one kind of thing, and the level predicts how far a rule travels. The most general level catches a language slip. \texttt{add\_missing\_call\_parens} describes itself as ``\texttt{x.pop} / \texttt{x.reverse} used as a statement or return value without \texttt{()}'', a Python trap that belongs to no assignment; it is the only one of the 128 builder-written rules that ever fired to do so on two assignments, repairing 8 submissions across R3 and C2. The middle level catches the misconception of one problem. \texttt{slice\_case\_check\_to\_equality} explains that ``\texttt{slice.isupper()} fails on empty slices (single char words)'' and repairs 108 submissions on C2, most of that assignment's rule-produced repairs; it cannot move to another problem but it would work for any class given this one. The most specific level is tied to the problem statement itself: \texttt{carry\_fix\_two\_value\_print} inserts an inch-to-foot carry check before the final print, fixing what it calls the ``compute feet first, round remainder second'' misconception, and repairs 28 of C4's 38 submissions on its own. That the authored layer is assignment-specific is therefore not a defect but a consequence of level. A rule that covers a class is written at the level of that class's misconception and so cannot cross assignments; a rule that crosses assignments does so because it knows nothing about the assignment.
+
+% [번역] 부산물로 얻는 오개념 프로파일. 규칙이 만든 모든 패치는 그것을 만든 규칙 이름을 지니므로, 학급 단위로 집계하면 교수자가 읽을 수 있는 보고서가 된다. R2에서 규칙이 수리한 145건은 다음과 같이 갈린다. count_compare_relax 112건, undefined_domain_var_rename 28건, missing_return_false_append 22건, month_day_index_fix 7건이다. 이는 패치 목록이 아니라 이름 붙은 실수의 도수분포이며, 학급의 3분의 2가 같은 비교 오류를 냈다는 사실을 교수자에게 곧바로 말해 준다. 이 보고서는 수리의 부산물로 추가 비용 없이 나오고, 제출물당 API는 어떤 가격으로도 이를 방출하지 않는다. 호출은 패치를 낳지만 이름을 남기지 않기 때문이다.
+\textbf{A misconception profile falls out of repairing.} Every rule-produced patch carries the name of the rule that produced it, so aggregating over a class yields a report an instructor can read. On R2, of the 145 submissions the rules repaired under \texttt{claude-sonnet-5}, \texttt{count\_compare\_relax} accounts for 58, \texttt{undefined\_domain\_var\_rename} 27, \texttt{missing\_return\_false\_append} 22, and \texttt{month\_day\_index\_fix} 7, with the always-on comparison flip taking 33; a repair may compose rules, so these overlap. That is not a list of patches but a frequency table of named mistakes, and it says at once that one relaxed comparison accounts for 40\% of everything the rules repaired on this assignment. The report costs nothing beyond the repairing, and a per-submission API emits none of it at any price, because a call yields a patch but leaves no name behind.
+
 \section{Rule Provenance}
 
 Table~\ref{tab:rules} lists the rules that carry the most submissions, counted
@@ -155,20 +165,23 @@ anything about a problem. The always-on rules recur everywhere by construction,
 which is why the builder's layer is priced per assignment and they are not.
 
 \begin{table}[h]
-\centering\footnotesize\setlength{\tabcolsep}{4pt}
-\input{supp/tab_rules}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\resizebox{\columnwidth}{!}{\input{supp/tab_rules}}
 \caption{The eight rules repairing the most submissions.}
 \label{tab:rules}
 \end{table}
 
-The eight rules self-learning absorbed read as misconceptions in the same way:
-\texttt{counter\_var\_confusion}, \texttt{uniqueness\_count\_gt1\_to\_neq1},
-\texttt{index\_vs\_count\_and\_uncalled\_bool} and
-\texttt{missing\_else\_false} on R2 with \texttt{claude-sonnet-5};
+\begingroup\sloppy
+The eight rules self-learning absorbed read as misconceptions in the same way.
+On R2 with \texttt{claude-sonnet-5}: \texttt{counter\_var\_confusion},
+\texttt{uniqueness\_\allowbreak count\_gt1\_to\_neq1},
+\texttt{index\_vs\_count\_\allowbreak and\_uncalled\_bool},
+\texttt{missing\_else\_false}. On R2 with \texttt{gpt-5.4-mini}:
 \texttt{count\_equality\_for\_uniqueness},
-\texttt{count\_uniqueness\_instead\_of\_direct\_membership} and
-\texttt{missing\_call\_and\_predicate\_fix} on R2 with \texttt{gpt-5.4-mini};
-and \texttt{binarysearch\_zero\_exit} on C3.
+\texttt{count\_uniqueness\_\allowbreak instead\_of\_\allowbreak direct\_membership},
+\texttt{missing\_call\_\allowbreak and\_predicate\_fix}. On C3:
+\texttt{binarysearch\_zero\_exit}.
+\endgroup
 
 \section{Reproducibility}
 

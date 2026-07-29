@@ -48,9 +48,14 @@ def main(argv: list[str] | None = None) -> int:
         buggy = load_pool(pid, "buggy")
         names = sorted(p.stem for p in (ROOT / "data" / pid / "buggy").glob("*.py"))
         # the builder was shown roughly half of these; scoring them would
-        # measure whether a rule remembers the program it was written from
-        seen = {dict(zip(buggy, names))[b]
-                for b, _f, _n in select_sample_pairs(buggy, correct)}
+        # measure whether a rule remembers the program it was written from.
+        # Submissions are deduplicated by text, so one source can carry several
+        # names and every one of them has to go, not just the last.
+        by_src: dict[str, list[str]] = {}
+        for src_text, name in zip(buggy, names):
+            by_src.setdefault(src_text, []).append(name)
+        seen = {n for b, _f, _n in select_sample_pairs(buggy, correct)
+                for n in by_src.get(b, ())}
         pool_of = [n for n in names if n not in seen]
         rng = random.Random(args.seed)
         pick = (pool_of if len(pool_of) <= args.per_problem
