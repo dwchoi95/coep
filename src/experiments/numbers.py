@@ -163,7 +163,7 @@ def main(argv: list[str]) -> int:
         "GateUsd": money(gusd),
     }
 
-    tex = (PAPER / "main.tex").read_text()
+    tex = (PAPER / "main" / "main.tex").read_text()
     absent = []
     for k, val in M.items():
         if val in tex:
