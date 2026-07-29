@@ -50,12 +50,15 @@ paper/             main.tex, references.bib, generated tables and figures
 
 ## Recomputing the paper
 
-Nothing below touches a model. Every number the paper reports is derived from
-the committed logs in `results/`:
+Nothing below touches a model, and nothing is fetched: the per-submission logs,
+the synthesized tools and both corpora are in this package. Every number the
+paper reports is derived from `results/`:
 
 ```bash
 pip install -r requirements.txt
 
+python run.py stats      # start here: repair rates with Wilson intervals and
+                         # exact McNemar for every pair the paper compares
 python run.py tables      # splice the generated tables into paper/main.tex
 python run.py figures     # regenerate paper/figures/*.pdf
 python run.py numbers     # recompute each quantity and report whether that
