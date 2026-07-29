@@ -77,27 +77,40 @@ per assignment, over both builders.}
 The main paper's ablation compares the tool with and without the builder's
 rules on the benchmark as it stands, where every assignment arrives with
 hundreds of correct submissions already in hand. Table~\ref{tab:pool} varies
-that. Each tool is held fixed and only the number of correct programs the
-transplant may draw on is restricted, over 203 sampled submissions and the
-frontier builder; \texttt{run.py pool} reproduces it.
+that: each tool is held fixed and only the number of correct programs the
+transplant may draw on is restricted. \texttt{run.py pool} reproduces it.
 
-Two readings. Coverage separates the layers only at the extreme: with two or
-more correct programs the arms are indistinguishable, with one the rules add
-2.5 points, and with none the substrate has nothing to transplant and falls to
-7.4\% where the rules carry 34.5\%. Patch size separates them everywhere, and
-by more as the pool thins: 3.4\% apart on the full pool, 9.6\% at ten, 14.7\%
-at one.
+Two properties of the design matter for reading the table. The 146 submissions
+are drawn only from those no builder was shown; roughly half of each
+assignment's buggy pool ends up in the build set, and scoring those would ask
+whether a rule remembers the program it was written from. And each sampled pool
+is drawn three times, since one draw of $k$ correct programs is one accident;
+the brackets are the range across draws.
+
+Coverage separates the layers only where the pool is gone. At one, two or five
+correct programs the arms are within half a point of each other and inside the
+spread across draws, which at this sample size is no separation at all; the
+full campaign, two orders of magnitude larger, does separate them, at 99.06\%
+against 98.69\%. With no pool the substrate has nothing to transplant and
+repairs 8.9\% where the same tool with its rules repairs 29.5\%.
+
+Patch size separates them at every pool size that has one, and by more as the
+pool thins: 4.1\% apart on the whole pool, 8.9\% at five, 12.4\% at one. The
+$k{=}0$ row is not comparable in that column, since the two arms repair
+different and differently hard sets.
 
 This is a repair-time restriction, not a cold start. Each tool was built with
 the whole pool available, since its worked pairs are drawn from it, so what the
 table isolates is the substrate's dependence on the pool at deployment. A true
-cold start would also rebuild, and would cost a model call per pool size.
+cold start would rebuild at each pool size and would cost a model call per
+size.
 
 \begin{table}[h]
-\centering\small\setlength{\tabcolsep}{6pt}
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
 \input{supp/tab_pool}
 \caption{Repair rate and patch size as the reference pool is restricted to $k$
-correct programs.}
+correct programs, over 146 held-out submissions; brackets are the range over
+three draws of each pool.}
 \label{tab:pool}
 \end{table}
 
