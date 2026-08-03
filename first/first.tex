@@ -247,7 +247,7 @@ Our objection to per-submission repair was structural: spending scales with enro
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.92\columnwidth]{../figures/fig_cost_first.pdf}
+\includegraphics[width=0.9\columnwidth]{../figures/fig_cost_first.pdf}
 \caption{Cumulative $C_{\mathrm{tot}}$ for one assignment against its enrollment, solid for claude-sonnet-5 and dotted for gpt-5.4-mini. Dots mark where \textsc{CoEP}\textsubscript{LF} overtakes each baseline; ticks along the axis are the eleven assignments' actual sizes, ten of which clear $N^{*}$.}
 \label{fig:cost}
 \end{figure}
@@ -270,11 +270,6 @@ PyDex & \texttt{gpt-5.4-mini} & 0.73 & 1.41 & 2.14 \\
 \caption{Turnaround per submission, in seconds. Nearly all of PyDex's wait is the model and nearly all of ours is local search, which is why the ordering depends on how fast the model answers.}
 \label{tab:att}
 \end{table}
-
-% [번역] 세 가지 발견이 따라 나온다. (1) 비용에서 CoEP_LF는 벤치마크 전체에 claude-sonnet-5에서 C_tot = $13.58, gpt-5.4-mini에서 $1.00을 쓰는 반면 PyDex는 $292.77과 $28.42로 21.6배와 28.4배이다. 프롬프트 캐싱을 적용해도 PyDex_PC는 $263.05와 $23.50에 머물러 여전히 19.4배와 23.5배인데, 캐싱은 공유된 선두 접두사에 값을 매기지만 가변적인 버기 프로그램과 예시가 먼저 와서 동일 접두사가 열 토큰 남짓이기 때문이다. (2) 손익분기에서 한 과제는 PyDex 상대로 제출물 11건, PyDex_PC 상대로 13건에서 빌드를 회수하며 11개 과제 중 10개가 그 지점을 대부분 자릿수만큼 넘었다. N*는 C_build와 Δ가 함께 비례하므로 토큰 가격에 불변이고, 따라서 값싼 모델은 두 팔을 함께 내릴 뿐 교차점을 옮기지 못한다. (3) 턴어라운드에서 ATT_tot는 claude-sonnet-5에서 3.06초 대 14.64초지만 gpt-5.4-mini에서는 3.22초 대 2.14초로, 제출물당 팔이 이길 수 있는 유일한 지표다. 작은 모델이 완성 하나를 돌려주는 것이 우리 탐색이 후보를 열거하고 재실행하는 것보다 빠르기 때문이다. PyDex_PC가 Table 2에 없는 것은 이미 발행된 질의를 다시 보내지 않고 가격만 다시 매긴 팔이어서 턴어라운드가 PyDex와 정확히 같기 때문이다. 앞의 둘을 위해 우리가 지불하는 것은 과제당 평균 22분(5.9~40.0분)의 빌드 시간이며 한 번, 오프라인으로 지불한다. N* 아래에서는 제출물당 수리기가 옳은 도구이고, 모든 팔이 캐싱이 동작하는 최저가 티어에서 돌므로 측정된 격차는 하한이다. 종합하면 호출을 제출물에서 과제로 옮기는 것은 두 모델 모두에서 지출을 한 자릿수 이상 줄이고 열두 건 안에 스스로를 회수하며, 그 대가는 값싼 모델에서의 몇 초다.
-Three findings follow. \textbf{(1) In dollars}, \textsc{CoEP}\textsubscript{LF} spends $C_{\mathrm{tot}} = \$13.58$ over the whole benchmark on claude-sonnet-5 and \$1.00 on gpt-5.4-mini, against PyDex's \$292.77 and \$28.42, \textbf{21.6 and 28.4 times} ours. Prompt caching leaves PyDex\textsubscript{PC} at \$263.05 and \$23.50, \textbf{still 19.4 and 23.5 times}, because caching pays for a shared leading \emph{prefix} and the variable buggy program and its exemplars come first, leaving an identical prefix of about ten tokens. \textbf{(2) In break-even}, an assignment repays its build after $N^{*}=\textbf{11}$ submissions against PyDex and 13 against PyDex\textsubscript{PC}, and ten of the eleven assignments are past that point, most by an order of magnitude; $N^{*}$ is invariant to token price, since $C_{\mathrm{build}}$ and $\Delta$ scale together, so a cheaper model lowers both arms without moving the crossing. \textbf{(3) In turnaround}, $\mathrm{ATT}_{\mathrm{tot}}$ is 3.06\,s against 14.64\,s on claude-sonnet-5 but 3.22\,s against 2.14\,s on gpt-5.4-mini, the one measure on which a per-submission arm can win, because a small model returns one completion faster than our search enumerates and re-executes candidates. PyDex\textsubscript{PC} is absent from Table~\ref{tab:att}: it re-prices queries PyDex already issued rather than re-issuing them, so its turnaround is PyDex's exactly. What we pay for the first two is 22 minutes of build wall clock per assignment (5.9--40.0), once and offline; below $N^{*}$ a per-query repairer is the right tool, and since every arm runs at the cheapest tier where caching functions the measured gaps are a \emph{floor}. Overall, moving the call from the submission to the assignment cuts spend by more than an order of magnitude on both models and repays itself within a dozen submissions, at a cost of seconds on the cheaper one.
-
-\subsubsection{RQ2: Repair Effectiveness.}
 
 \begin{table*}[t]
 \centering\small\setlength{\tabcolsep}{3pt}
@@ -306,6 +301,11 @@ Three findings follow. \textbf{(1) In dollars}, \textsc{CoEP}\textsubscript{LF} 
 \label{tab:effect}
 \end{table*}
 
+% [번역] 세 가지 발견이 따라 나온다. (1) 비용에서 CoEP_LF는 벤치마크 전체에 claude-sonnet-5에서 C_tot = $13.58, gpt-5.4-mini에서 $1.00을 쓰는 반면 PyDex는 $292.77과 $28.42로 21.6배와 28.4배이다. 프롬프트 캐싱을 적용해도 PyDex_PC는 $263.05와 $23.50에 머물러 여전히 19.4배와 23.5배인데, 캐싱은 공유된 선두 접두사에 값을 매기지만 가변적인 버기 프로그램과 예시가 먼저 와서 동일 접두사가 열 토큰 남짓이기 때문이다. (2) 손익분기에서 한 과제는 PyDex 상대로 제출물 11건, PyDex_PC 상대로 13건에서 빌드를 회수하며 11개 과제 중 10개가 그 지점을 대부분 자릿수만큼 넘었다. N*는 C_build와 Δ가 함께 비례하므로 토큰 가격에 불변이고, 따라서 값싼 모델은 두 팔을 함께 내릴 뿐 교차점을 옮기지 못한다. (3) 턴어라운드에서 ATT_tot는 claude-sonnet-5에서 3.06초 대 14.64초지만 gpt-5.4-mini에서는 3.22초 대 2.14초로, 제출물당 팔이 이길 수 있는 유일한 지표다. 작은 모델이 완성 하나를 돌려주는 것이 우리 탐색이 후보를 열거하고 재실행하는 것보다 빠르기 때문이다. PyDex_PC가 Table 2에 없는 것은 이미 발행된 질의를 다시 보내지 않고 가격만 다시 매긴 팔이어서 턴어라운드가 PyDex와 정확히 같기 때문이다. 앞의 둘을 위해 우리가 지불하는 것은 과제당 평균 22분(5.9~40.0분)의 빌드 시간이며 한 번, 오프라인으로 지불한다. N* 아래에서는 제출물당 수리기가 옳은 도구이고, 모든 팔이 캐싱이 동작하는 최저가 티어에서 돌므로 측정된 격차는 하한이다. 종합하면 호출을 제출물에서 과제로 옮기는 것은 두 모델 모두에서 지출을 한 자릿수 이상 줄이고 열두 건 안에 스스로를 회수하며, 그 대가는 값싼 모델에서의 몇 초다.
+Three findings follow. \textbf{(1) In dollars}, \textsc{CoEP}\textsubscript{LF} spends $C_{\mathrm{tot}} = \$13.58$ over the whole benchmark on claude-sonnet-5 and \$1.00 on gpt-5.4-mini, against PyDex's \$292.77 and \$28.42, \textbf{21.6 and 28.4 times} ours. Prompt caching leaves PyDex\textsubscript{PC} at \$263.05 and \$23.50, \textbf{still 19.4 and 23.5 times}, because caching pays for a shared leading \emph{prefix} and the variable buggy program and its exemplars come first, leaving an identical prefix of about ten tokens. \textbf{(2) In break-even}, an assignment repays its build after $N^{*}=\textbf{11}$ submissions against PyDex and 13 against PyDex\textsubscript{PC}, and ten of the eleven assignments are past that point, most by an order of magnitude; $N^{*}$ is invariant to token price, since $C_{\mathrm{build}}$ and $\Delta$ scale together, so a cheaper model lowers both arms without moving the crossing. \textbf{(3) In turnaround}, $\mathrm{ATT}_{\mathrm{tot}}$ is 3.06\,s against 14.64\,s on claude-sonnet-5 but 3.22\,s against 2.14\,s on gpt-5.4-mini, the one measure on which a per-submission arm can win, because a small model returns one completion faster than our search enumerates and re-executes candidates. PyDex\textsubscript{PC} is absent from Table~\ref{tab:att}: it re-prices queries PyDex already issued rather than re-issuing them, so its turnaround is PyDex's exactly. What we pay for the first two is 22 minutes of build wall clock per assignment (5.9--40.0), once and offline; below $N^{*}$ a per-query repairer is the right tool, and since every arm runs at the cheapest tier where caching functions the measured gaps are a \emph{floor}. Overall, moving the call from the submission to the assignment cuts spend by more than an order of magnitude on both models and repays itself within a dozen submissions, at a cost of seconds on the cheaper one.
+
+\subsubsection{RQ2: Repair Effectiveness.}
+
 % [번역] 수리기는 두 가지로 판정된다. 몇 건을 고치는가, 그리고 고치면서 학생의 프로그램을 얼마나 건드리는가다. 이 질문은 과제당 한 번 합성된 도구가 두 기준 모두에서 어디에 서는지, 그리고 그 답이 과제마다 어떻게 달라지는지에 답한다. Table 3은 과제별 RR과 RPS를 두 빌더를 합쳐 보고한다.
 A repairer is judged on two things: how many submissions it fixes, and how much of the student's program it disturbs while fixing them. This question answers where a tool synthesized once per assignment stands on both, and how that varies across assignments. Table~\ref{tab:effect} reports per-assignment RR and RPS with the two builders pooled.
 
@@ -319,7 +319,7 @@ The previous two questions treated the tool as one object. This one opens it and
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.92\columnwidth]{../figures/fig_source_first.pdf}
+\includegraphics[width=0.9\columnwidth]{../figures/fig_source_first.pdf}
 \caption{Repairs by the strategy that produced them.}
 \label{fig:source}
 \end{figure}
@@ -334,7 +334,7 @@ The frozen tool leaves a record of what it could not repair, and the fallback's 
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.92\columnwidth]{../figures/fig_learn_first.pdf}
+\includegraphics[width=0.9\columnwidth]{../figures/fig_learn_first.pdf}
 \caption{Self-learning, from the frozen tool's failures to the repairs its new rules produce.}
 \label{fig:learn}
 \end{figure}

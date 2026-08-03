@@ -1,20 +1,14 @@
 #!/bin/sh
-# Build one track's documents.
+# Build the paper and the two documents that go with it.
 #
-#   ./build.sh main     -> main/main.pdf, main/supplementary.pdf, main/Reproducibility...pdf
-#   ./build.sh first    -> first/first.pdf, first/first_supplementary.pdf, ...
-#   ./build.sh          -> both
+#   ./build.sh
 #
-# The two tracks are separate submissions that share this directory's
-# figures/, references.bib and supp/. TEXINPUTS points at paper/ so the shared
-# aaai2027.sty and .bst resolve from inside a track directory; BIBINPUTS does
-# the same for the merged bibliography.
+# figures/, tables/ and references.bib are reached by relative path from the
+# sources, and first/ holds its own copy of the AAAI style files, so latexmk,
+# an editor or a bare pdflatex run from inside first/ all work the same way
+# this script does. No search paths are set.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
-# No search paths are set. Each track directory holds its own copy of the AAAI
-# style files, and figures/, tables/ and references.bib are reached by relative
-# path from the sources, so latexmk, an editor or a bare pdflatex run from
-# inside a track directory all work the same way this script does.
 
 build_one() {
     dir=$1; stem=$2
@@ -31,21 +25,6 @@ build_one() {
     printf '  %-34s %s pages, %s errors, %s unresolved\n' "$dir/$stem.pdf" "$pg" "$err" "$und"
 }
 
-case "${1:-both}" in
-  main)  set -- main ;;
-  first) set -- first ;;
-  both)  set -- main first ;;
-  *) echo "usage: $0 [main|first]" >&2; exit 2 ;;
-esac
-
-for track in "$@"; do
-    echo "$track:"
-    case $track in
-      main)  build_one main main
-             build_one main supplementary
-             build_one main ReproducibilityChecklist ;;
-      first) build_one first first
-             build_one first supplementary
-             build_one first ReproducibilityChecklist ;;
-    esac
+for stem in first supplementary ReproducibilityChecklist; do
+    build_one first "$stem"
 done
