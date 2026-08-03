@@ -1,8 +1,8 @@
 """`run.py numbers` — recompute every number the paper quotes, from results/.
 
 The paper used to hold a spliced \\newcommand block; it now carries the values
-literally, so this command no longer writes to first.tex. It prints each
-quantity next to whether that exact string still occurs in first.tex, which is
+literally, so this command no longer writes to main.tex. It prints each
+quantity next to whether that exact string still occurs in main.tex, which is
 how a number that drifted from the logs gets caught. Every value is read from
 results/<ver>/, never recomputed.
 """
@@ -163,15 +163,15 @@ def main(argv: list[str]) -> int:
         "GateUsd": money(gusd),
     }
 
-    tex = (PAPER / "first" / "first.tex").read_text()
+    tex = (PAPER / "main.tex").read_text()
     absent = []
     for k, val in M.items():
         if val in tex:
-            print(f"  {k:<20}{val:>12}   in first.tex")
+            print(f"  {k:<20}{val:>12}   in main.tex")
         else:
             absent.append((k, val))
             print(f"  {k:<20}{val:>12}   ABSENT")
-    print(f"{len(M) - len(absent)}/{len(M)} quantities occur verbatim in first.tex")
+    print(f"{len(M) - len(absent)}/{len(M)} quantities occur verbatim in main.tex")
     if absent:
         print("  absent values are either superseded or quoted with different "
               "formatting; check each before assuming the paper is stale")

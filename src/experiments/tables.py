@@ -406,7 +406,7 @@ def main(argv: list[str]) -> int:
                        ("tab_att", tab_att(args.ver)),
                        ):
         where = splice(name, body, "run.py tables")
-        print(f"  spliced {name} into paper/{where.parent.name}/{where.name}")
+        print(f"  spliced {name} into paper/{where.name}")
     for name, body in (("tab_cost", tab_cost(args.ver)),
                        ("tab_rules", tab_rules(args.ver)),
                        ("tab_robust", tab_robust(args.ver)),

@@ -1,4 +1,4 @@
-"""`run.py package [main|first]` — build a track's AAAI Code and Data Package.
+"""`run.py package` — build the AAAI Code and Data Package.
 
 Reviewers are told to assume anything not in the submission will never exist,
 so the package has to carry the harness, the logs and the synthesized tools
@@ -23,13 +23,12 @@ KOREAN = re.compile(r"^% \[번역\].*$", re.M)
 # The two papers are separate submissions and ship separate packages. They share
 # the harness and the logs; what differs is which .tex sources go in, since a
 # package that carried both would tell a reviewer of one about the other.
-TRACK = "first"
-PAPERS = ("first.tex", "supplementary.tex", "ReproducibilityChecklist.tex")
+PAPERS = ("main.tex", "supplementary.tex", "ReproducibilityChecklist.tex")
 
 
 def main(argv: list[str] | None = None) -> int:
-    track, papers = TRACK, PAPERS
-    OUT = ROOT / f"artifact_{track}" / "code_and_data"
+    papers = PAPERS
+    OUT = ROOT / "artifact" / "code_and_data"
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
@@ -53,15 +52,15 @@ def main(argv: list[str] | None = None) -> int:
     # this track's sources only, minus the glosses, plus the shared assets they
     # reference: the two papers are separate submissions, so a package that
     # carried both would tell a reviewer of one about the other
-    (OUT / "paper" / track).mkdir(parents=True)
+    (OUT / "paper").mkdir(parents=True)
     for f in papers:
-        src = ROOT / "paper" / track / f
+        src = ROOT / "paper" / f
         if not src.exists():
-            print(f"  missing: paper/{track}/{f}")
+            print(f"  missing: paper/{f}")
             continue
-        (OUT / "paper" / track / f).write_text(KOREAN.sub("", src.read_text()))
+        (OUT / "paper" / f).write_text(KOREAN.sub("", src.read_text()))
     for name in ("aaai2027.sty", "aaai2027.bst"):
-        shutil.copy2(ROOT / "paper" / track / name, OUT / "paper" / track / name)
+        shutil.copy2(ROOT / "paper" / name, OUT / "paper" / name)
     for shared in ("references.bib", "build.sh"):
         shutil.copy2(ROOT / "paper" / shared, OUT / "paper" / shared)
     # only the side tables this track's sources actually \input: shipping the
@@ -69,23 +68,23 @@ def main(argv: list[str] | None = None) -> int:
     # front of a reviewer
     wanted, figs = set(), set()
     for f in papers:
-        src = ROOT / "paper" / track / f
+        src = ROOT / "paper" / f
         if src.exists():
             text = src.read_text()
-            wanted |= set(re.findall(r"\\input\{\.\./tables/([A-Za-z0-9_]+)\}", text))
-            figs |= set(re.findall(r"\\includegraphics\[[^]]*\]\{\.\./figures/([^}]+)\}",
+            wanted |= set(re.findall(r"\\input\{tables/([A-Za-z0-9_]+)\}", text))
+            figs |= set(re.findall(r"\\includegraphics\[[^]]*\]\{figures/([^}]+)\}",
                                    text))
     (OUT / "paper" / "figures").mkdir()
     for name in sorted(figs):
         shutil.copy2(ROOT / "paper" / "figures" / name,
                      OUT / "paper" / "figures" / name)
-    print(f"  paper/figures/: {len(figs)} used by this track")
+    print(f"  paper/figures/: {len(figs)} used")
     (OUT / "paper" / "tables").mkdir()
     for name in sorted(wanted):
         shutil.copy2(ROOT / "paper" / "tables" / f"{name}.tex",
                      OUT / "paper" / "tables" / f"{name}.tex")
     print(f"  paper/tables/: {', '.join(sorted(wanted)) or 'none'}")
-    print(f"  paper/{track}/: {', '.join(papers)} (Korean glosses stripped)")
+    print(f"  paper/: {', '.join(papers)} (Korean glosses stripped)")
 
     # a representative subset of the corpora if the whole thing is too large
     size = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file())
@@ -109,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
                 leaks.append((p.relative_to(OUT), pat))
     print("identity leaks:", leaks or "none")
 
-    zf = ROOT / f"artifact_{track}" / "code_and_data.zip"
+    zf = ROOT / "artifact" / "code_and_data.zip"
     if zf.exists():
         zf.unlink()
     subprocess.run(["zip", "-qr", str(zf), "."], cwd=OUT, check=True)
