@@ -1,4 +1,4 @@
-"""Rewrite a generated block inside paper/main.tex in place.
+"""Rewrite a generated block inside the paper in place.
 
 The paper is a single main.tex plus references.bib, so generated tables and
 macros live inside it rather than in \\input files. Each block is delimited by
@@ -16,12 +16,11 @@ from __future__ import annotations
 from pathlib import Path
 
 PAPER = Path(__file__).resolve().parents[2] / "paper"
-MAIN = PAPER / "main" / "main.tex"
-# A table lives wherever the paper puts it, and floats move between the main
-# paper and the supplement as the page budget shifts. The generator follows the
-# fence rather than assuming a file. Only the main track is generated; the first
-# track is edited by hand and its tables are static by design.
-TARGETS = (MAIN, PAPER / "main" / "supplementary.tex")
+MAIN = PAPER / "first" / "first.tex"
+# A table lives wherever the paper puts it, and floats move between the paper
+# and the supplement as the page budget shifts, so the generator follows the
+# fence rather than assuming a file.
+TARGETS = (MAIN, PAPER / "first" / "supplementary.tex")
 
 
 def splice(name: str, body: str, by: str) -> Path:

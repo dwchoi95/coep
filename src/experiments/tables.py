@@ -102,15 +102,15 @@ def _pooled(ver: str, pid: str, approach: str) -> tuple[int, int, float] | None:
 def tab_effect(ver: str) -> str:
     SHORT = {"Measuring Lengths in Baden": "Measuring Lengths",
              "Planning The Expedition": "Planning Expedition"}
-    arms = [("Refactory", "none"), ("PyDex", FRONTIER), ("CoEP_L_fw", FRONTIER),
+    arms = [("Refactory", "none"), ("PyDex", FRONTIER),
             ("CoEP_L", FRONTIER), ("CoEP_LF", FRONTIER)]
-    head = " & ".join(["Refactory", "PyDex", r"\textsc{CoEP}\textsubscript{fw}",
+    head = " & ".join(["Refactory", "PyDex",
                        r"\textsc{CoEP}\textsubscript{L}",
                        r"\textsc{CoEP}\textsubscript{LF}"])
-    out = [r"\begin{tabular}{crlc rrrrr c rrrrr}", r"\toprule",
-           r"& & & & \multicolumn{5}{c}{\textbf{RR} (\%)} & & "
-           r"\multicolumn{5}{c}{\textbf{RPS}} \\",
-           r"\cmidrule(lr){5-9}\cmidrule(lr){11-15}",
+    out = [r"\begin{tabular}{crlc rrrr c rrrr}", r"\toprule",
+           r"& & & & \multicolumn{4}{c}{\textbf{RR} (\%)} & & "
+           r"\multicolumn{4}{c}{\textbf{RPS}} \\",
+           r"\cmidrule(lr){5-8}\cmidrule(lr){10-13}",
            r"& ID & Assignment & Rating & " + head + " & & " + head + r" \\",
            r"\midrule"]
     acc = {a: [0.0, 0.0, 0, 0] for a, _m in arms}      # rr*n, rps*rep, n, rep
@@ -401,17 +401,13 @@ def main(argv: list[str]) -> int:
                     help="optional subdirectory under results/; empty means "
                          "results/ itself, which is where the campaign wrote")
     args = ap.parse_args(argv)
-    # tab_pool is spliced, not written aside: the pool ablation moved into the
-    # main paper when RQ3 was rebalanced, and its fence there was left empty.
     for name, body in (("tab_data", tab_data(args.ver)),
                        ("tab_effect", tab_effect(args.ver)),
                        ("tab_att", tab_att(args.ver)),
-                       ("tab_pool", tab_pool(args.ver)),
                        ):
         where = splice(name, body, "run.py tables")
         print(f"  spliced {name} into paper/{where.parent.name}/{where.name}")
-    for name, body in (("tab_source", tab_source(args.ver)),
-                       ("tab_cost", tab_cost(args.ver)),
+    for name, body in (("tab_cost", tab_cost(args.ver)),
                        ("tab_rules", tab_rules(args.ver)),
                        ("tab_robust", tab_robust(args.ver)),
                        ):

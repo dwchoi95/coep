@@ -23,21 +23,13 @@ KOREAN = re.compile(r"^% \[번역\].*$", re.M)
 # The two papers are separate submissions and ship separate packages. They share
 # the harness and the logs; what differs is which .tex sources go in, since a
 # package that carried both would tell a reviewer of one about the other.
-TRACKS = {
-    "main": ("main.tex", "supplementary.tex", "ReproducibilityChecklist.tex"),
-    "first": ("first.tex", "supplementary.tex",
-              "ReproducibilityChecklist.tex"),
-}
+TRACK = "first"
+PAPERS = ("first.tex", "supplementary.tex", "ReproducibilityChecklist.tex")
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = sys.argv[1:] if argv is None else list(argv)
-    track = argv[0] if argv else "main"
-    if track not in TRACKS:
-        raise SystemExit(f"track must be one of {', '.join(TRACKS)}")
-    papers = TRACKS[track]
+    track, papers = TRACK, PAPERS
     OUT = ROOT / f"artifact_{track}" / "code_and_data"
-    print(f"track: {track}")
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
