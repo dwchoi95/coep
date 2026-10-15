@@ -19,7 +19,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--model", default=["claude-sonnet-5", "gpt-5.4-mini"], nargs="+",
                     help="builder model(s)")
     ap.add_argument("--r-max", type=int, default=3)
-    ap.add_argument("--data-root", default="data")
+    ap.add_argument("--data-root", default="benchmark")
     ap.add_argument("--tools-root", default="tools",
                     help="where to write <p_id>/<model>/; use a separate root to "
                          "compare configurations without clobbering the campaign")

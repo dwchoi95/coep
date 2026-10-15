@@ -179,7 +179,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--with-learned", action="store_true",
                     help="evaluate the frozen self-learned tool (CoEP_L+SL) "
                          "instead of running the main pass")
-    ap.add_argument("--data-root", default="data")
+    ap.add_argument("--data-root", default="benchmark")
+    ap.add_argument("--amplified", action="store_true",
+                    help="accept against T+, the builder's amplified suite (R1-R5)")
     ap.add_argument("--tools-root", default="tools",
                     help="read tools from this root; pair with build's "
                          "--tools-root to evaluate an alternate configuration")
@@ -201,7 +203,8 @@ def main(argv: list[str]) -> int:
     if not args.no_llm:
         load_env()
 
-    prob = load_problem(args.problem, args.data_root)
+    prob = load_problem(args.problem, args.data_root,
+                        args.model if args.amplified else None)
     model_label = args.model
     files = _load_files(args, model_label)
     if not files:

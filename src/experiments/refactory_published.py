@@ -6,7 +6,7 @@ on their own corpus leaves no room to argue we configured their tool wrongly.
 
 ``refactory_results`` can also collect the authors' shipped run of the tool and
 re-measure it on our footing; that output is archived at
-``results/_refactory_ours.json`` and reproduces these published repair rates
+``archive/results/refactory_ours.json`` (dev branch) and reproduces these published repair rates
 to 0.05 points corpus-wide, but it is not what the paper reports.
 
 Usage: python3 -m src.experiments.refactory_published

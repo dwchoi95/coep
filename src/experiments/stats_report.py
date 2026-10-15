@@ -26,17 +26,16 @@ from src.utils.stats import mcnemar, wilson
 ROOT = Path(__file__).resolve().parents[2]
 
 # event file -> arm label; the order is the order the paper compares in
-ARMS = [("refactory.csv", "Refactory"), ("brafar.csv", "BRAFAR"),
-        ("mentored.csv", "MENTORED"), ("pydex.csv", "PyDex"),
+ARMS = [("refactory.csv", "Refactory"), ("pydex.csv", "PyDex"),
+        ("direct_llm.csv", "LLM_Direct"),
         ("coep_l.csv", "CoEP_L"),
         ("coep_l_fw.csv", "CoEP_L_fw"), ("coep_lf.csv", "CoEP_LF"),
         ("coep_l_sl.csv", "CoEP_L+SL")]
-MODEL_FREE = {"Refactory", "BRAFAR", "MENTORED"}
+MODEL_FREE = {"Refactory"}
 # every pairing the paper asserts, as (a, b) with a the reference arm
 PAIRS = [("CoEP_L", "Refactory"), ("CoEP_LF", "Refactory"),
-         ("CoEP_L", "BRAFAR"), ("CoEP_LF", "BRAFAR"),
-         ("CoEP_L", "MENTORED"), ("CoEP_LF", "MENTORED"),
          ("CoEP_L", "PyDex"), ("CoEP_LF", "PyDex"),
+         ("CoEP_LF", "LLM_Direct"),    # what the local-first architecture adds
          ("CoEP_L", "CoEP_L_fw"),      # what the builder's rules add
          ("CoEP_L+SL", "CoEP_L")]
 

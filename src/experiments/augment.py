@@ -1,28 +1,33 @@
-"""`run.py augment` — do the repairs still pass tests nobody searched against?
+"""`run.py augment` — the two suites R1-R5 add to the instructor's tests.
 
-R1-R5 ship 7.4 instructor tests per assignment, and those same tests guide every
-arm's search and decide what counts as a repair. This driver draws fresh inputs
-from a per-assignment generator, labels each by differential testing -- the
-majority output of the class's correct programs (a sample of them plus the
-instructor's reference) -- and keeps only inputs on which at least 90% of them
-agree, so an input outside the specification (where correct programs disagree)
-never becomes a test. Every arm's repairs are then re-run on the original suite
-plus these held-out tests. C1-C6 are skipped: their suites are Codeforces' full
-official test sets.
+R1-R5 ship 7.4 instructor tests per assignment. Both suites draw inputs from a
+generator and label each by differential testing -- the majority output of a
+sample of the class's correct programs plus the instructor's reference -- and
+keep an input only where at least 90% of them agree, so an input outside the
+specification (where correct programs disagree) never becomes a test.
 
-    python run.py augment make     # data_aug/<pid>/problem.json (original + new)
-    python run.py augment make-search   # data_dt/: CoEP+DT's repair-time suite (disjoint)
-    python run.py augment make-search --gen llm --model M   # data_dtg/M/: builder-written generator
-    python run.py augment link     # copy data/'s programs back into data_dt*/ (not tracked)
-    python run.py augment check [--ver V]   # results/<V>/augmented.csv, per arm
-    python run.py augment pairs --ver dt,dtg  # McNemar/Wilcoxon vs PyDex -> results/heldout_pairs.csv
+* The **amplified** suite is part of CoEP (Section III-D): the builder writes
+  the generator (benchmark/<pid>/amplified/<model>/generator.py), and the
+  suite (tests.json) joins T in every acceptance check (`--amplified`).
+* The **held-out** suite is the evaluation's (benchmark/<pid>/heldout.json):
+  our own generator, another seed and voter sample, and no input in common
+  with any amplified suite, so no arm has searched against it.
+
+C1-C6 need neither: their suites are Codeforces' full official test sets.
+
+    python run.py augment heldout                    # benchmark/<pid>/heldout.json
+    python run.py augment amplify --model M          # benchmark/<pid>/amplified/M/
+    python run.py augment check                      # results/heldout.csv
+    python run.py augment pairs                      # results/heldout_pairs.csv
+
+`amplify` relabels the stored generator.py when there is one, so it needs no
+API key; `--regenerate` asks the builder for a new generator.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import random
-import shutil
 import subprocess
 import sys
 from collections import Counter
@@ -38,9 +43,9 @@ from src.runner.testing import run_tests
 from src.utils import llm as llm_mod
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "data_aug"
-DT = ROOT / "data_dt"
+BENCH = ROOT / "benchmark"
 CS1 = ["refactory_q1", "refactory_q2", "refactory_q3", "refactory_q4", "refactory_q5"]
+MODELS = ["claude-sonnet-5", "gpt-5.4-mini"]
 N_CAND, N_KEEP, N_VOTERS, AGREE = 300, 100, 40, 0.9
 SENTINEL = "__no_such_output__"
 MONTHS = ["January", "February", "March", "April", "May", "June", "July",
@@ -107,11 +112,11 @@ def _vote(pid: str, cands: list[dict], voter_seed: int,
     Voters are a sample of the correct programs in pool_dir (default: the whole
     class) plus the instructor's reference.
     """
-    problem = load_problem(pid)
-    pool = sorted((pool_dir or ROOT / "data" / pid / "correct").glob("*.py"))
+    problem = load_problem(pid, str(BENCH))
+    pool = sorted((pool_dir or BENCH / pid / "correct").glob("*.py"))
     voters = [p.read_text() for p in
               random.Random(voter_seed).sample(pool, min(N_VOTERS, len(pool)))]
-    voters.append((ROOT / "data" / pid / "reference.py").read_text())
+    voters.append((BENCH / pid / "reference.py").read_text())
     with ThreadPoolExecutor(16) as ex:
         votes = list(ex.map(lambda s: _outputs(s, problem, cands), voters))
     kept = []
@@ -153,16 +158,35 @@ def _draw(code: str, seed: str, n: int = 20 * N_CAND) -> tuple[list[dict], str |
     return ok, res["error"]
 
 
-def _llm_inputs(pid: str, model: str, seen: set[str], rounds: int = 3):
+def held_keys(pid: str) -> set[str]:
+    """Inputs an amplified suite must avoid: T and the held-out suite."""
+    tests = load_problem(pid, str(BENCH))["tests"]
+    tests += json.loads((BENCH / pid / "heldout.json").read_text())
+    return {_key(t) for t in tests}
+
+
+def amplified_tests(pid: str, code: str, pool_dir: Path | None = None) -> list[dict]:
+    """T_amp from a builder's generator: draws (seed `<pid>:llm`) the reference
+    accepts, none in T or the held-out suite, labelled by the voters (seed 1)
+    drawn from pool_dir (default: the whole class)."""
+    problem = load_problem(pid, str(BENCH))
+    reference = (BENCH / pid / "reference.py").read_text()
+    inputs, _ = _draw(code, f"{pid}:llm")
+    cands = _fresh(inputs, held_keys(pid))
+    outs = _outputs(reference, problem, cands) if cands else []
+    return _vote(pid, [t for t, o in zip(cands, outs) if o != "!err"], 1, pool_dir)
+
+
+def _ask_builder(pid: str, model: str, rounds: int = 3) -> tuple[str, dict]:
     """The builder writes gen(rng); validate it against the reference and refine.
 
     A round fails if gen raises, returns a malformed input, or the reference
     rejects more than 10% of its inputs; the next round sees why. The round
     with the most inputs the reference accepts is kept.
     """
-    problem = load_problem(pid)
-    reference = (ROOT / "data" / pid / "reference.py").read_text()
-    best, cost, feedback = (None, []), {"in": 0, "out": 0, "usd": 0.0, "s": 0.0}, ""
+    problem = load_problem(pid, str(BENCH))
+    reference = (BENCH / pid / "reference.py").read_text()
+    best, cost, feedback = ("", -1), {"in": 0, "out": 0, "usd": 0.0, "s": 0.0}, ""
     for rnd in range(rounds):
         call = llm_mod.complete(render(
             "input_gen", description=problem.get("description", ""), reference=reference,
@@ -172,14 +196,13 @@ def _llm_inputs(pid: str, model: str, seen: set[str], rounds: int = 3):
             cost[k] += getattr(call, a)
         code = call.code or ""
         inputs, err = _draw(code, f"{pid}:llm")
-        cands = _fresh(inputs, set(seen))
+        cands = _fresh(inputs, held_keys(pid))
         outs = _outputs(reference, problem, cands) if cands else []
         rejected = [t for t, o in zip(cands, outs) if o == "!err"]
-        valid = [t for t, o in zip(cands, outs) if o != "!err"]
         print(f"  {pid} {model} round {rnd + 1}: {len(cands)} distinct, "
               f"{len(rejected)} rejected by the reference" + (f", error: {err}" if err else ""))
-        if len(valid) > len(best[1]):
-            best = (code, valid)
+        if len(cands) - len(rejected) > best[1]:
+            best = (code, len(cands) - len(rejected))
         if not err and cands and len(rejected) <= 0.1 * len(cands):
             break
         why = err or (f"the reference raised an error or timed out on {len(rejected)} of "
@@ -188,87 +211,60 @@ def _llm_inputs(pid: str, model: str, seen: set[str], rounds: int = 3):
         feedback = (f"\n## This is a refinement round\nYour previous generator:\n"
                     f"```python\n{code}\n```\nIt failed because {why}.\n")
     cost["rounds"] = rnd + 1
-    seen.update(_key(t) for t in best[1])
-    return best[0], best[1], cost
+    return best[0], cost
 
 
-def make() -> None:
-    """The held-out evaluation suite: data_aug/<pid>/problem.json."""
+def heldout() -> None:
+    """The held-out evaluation suite: benchmark/<pid>/heldout.json."""
     for pid in CS1:
-        problem = load_problem(pid)
+        problem = load_problem(pid, str(BENCH))
         rng = random.Random(pid)
         cands = _fresh(iter(lambda: _gen(pid, rng), None), {_key(t) for t in problem["tests"]})
         kept = _vote(pid, cands, 0)
-        d = OUT / pid
-        d.mkdir(parents=True, exist_ok=True)
-        aug = dict(problem, tests=problem["tests"] + kept, n_original=len(problem["tests"]))
-        (d / "problem.json").write_text(json.dumps(aug, indent=1))
-        print(f"{pid}: {len(problem['tests'])} original + {len(kept)} held-out tests")
+        (BENCH / pid / "heldout.json").write_text(json.dumps(kept, indent=1))
+        print(f"{pid}: {len(problem['tests'])} instructor + {len(kept)} held-out tests")
 
 
-def make_search(gen: str = "hand", model: str = "") -> None:
-    """The repair-time suite of CoEP+DT, with the buggy and correct programs.
-
-    gen=hand: our per-assignment generators -> data_dt/<pid>/
-    gen=llm:  a generator the builder `model` writes -> data_dtg/<model>/<pid>/
-
-    Drawn with its own seed and voter sample, and disjoint from the held-out
-    suite, so a repair accepted against it is still judged on inputs it never saw.
-    Everything it uses -- the class's correct programs, the reference, and a
-    generator of valid inputs -- is available at deployment; no instructor test
-    is added.
-    """
-    if gen == "llm":
-        load_env()
+def amplify(model: str, regenerate: bool = False) -> None:
+    """CoEP's amplified suite: benchmark/<pid>/amplified/<model>/{generator.py,
+    tests.json, cost.json}. Everything it uses -- the class's correct programs,
+    the reference, and the builder -- is available at deployment."""
     for pid in CS1:
-        problem = load_problem(pid)
-        held = json.loads((OUT / pid / "problem.json").read_text())["tests"]
-        seen = {_key(t) for t in held}
-        n_held = len(held) - len(problem["tests"])
-        d = (DT / pid) if gen == "hand" else (ROOT / "data_dtg" / model / pid)
-        shutil.rmtree(d, ignore_errors=True)
-        shutil.copytree(ROOT / "data" / pid, d)
-        if gen == "hand":
-            rng = random.Random(f"{pid}:search")
-            cands = _fresh(iter(lambda: _gen(pid, rng), None), seen)
-        else:
-            code, cands, cost = _llm_inputs(pid, model, seen)
-            (d / "gen.py").write_text(code or "")
-            (d / "gen_cost.json").write_text(json.dumps(cost))
-        kept = _vote(pid, cands, 1)
-        dt = dict(problem, tests=problem["tests"] + kept, n_original=len(problem["tests"]))
-        (d / "problem.json").write_text(json.dumps(dt, indent=1))
-        print(f"{pid}: {len(problem['tests'])} instructor + {len(kept)} differential tests "
-              f"(disjoint from the {n_held} held-out ones)")
+        d = BENCH / pid / "amplified" / model
+        gen = d / "generator.py"
+        if regenerate or not gen.exists():
+            load_env()
+            code, cost = _ask_builder(pid, model)
+            d.mkdir(parents=True, exist_ok=True)
+            gen.write_text(code)
+            (d / "cost.json").write_text(json.dumps(cost))
+        kept = amplified_tests(pid, gen.read_text())
+        (d / "tests.json").write_text(json.dumps(kept, indent=1))
+        print(f"{pid} {model}: {len(kept)} amplified tests")
 
 
-def link() -> None:
-    """Restore the programs a CoEP+DT suite runs on.
-
-    data_dt/ and data_dtg/ keep only what amplification produced (problem.json,
-    plus the builder's gen.py and gen_cost.json); their buggy and correct
-    programs are data/<pid>/'s, copied back so `--data-root data_dtg/<model>`
-    works as data/ does.
-    """
-    for prob in [*DT.glob("*/problem.json"), *(ROOT / "data_dtg").glob("*/*/problem.json")]:
-        d, src = prob.parent, ROOT / "data" / prob.parent.name
-        for kind in ("buggy", "correct"):
-            if not (d / kind).exists():
-                shutil.copytree(src / kind, d / kind)
-        if not (d / "reference.py").exists():
-            shutil.copy(src / "reference.py", d / "reference.py")
-
-
+# (event file, arm) judged on the held-out suite; no_amplification/ holds the
+# same arms accepting against T alone
 ARMS = [("refactory", "Refactory"), ("pydex", "PyDex"), ("direct_llm", "LLM_Direct"),
-        ("coep_l_fw", "CoEP_L_fw"), ("coep_l", "CoEP_L"), ("coep_lf", "CoEP_LF")]
+        ("coep_l_fw", "CoEP_L_fw"), ("coep_l", "CoEP_L"), ("coep_lf", "CoEP_LF"),
+        ("no_amplification/direct_llm", "LLM_Direct (T)"),
+        ("no_amplification/coep_l", "CoEP_L (T)"), ("no_amplification/coep_lf", "CoEP_LF (T)")]
 
 
-def check(ver: str = "") -> pd.DataFrame:
+def _suite(pid: str) -> dict:
+    """T plus the held-out tests."""
+    problem = load_problem(pid, str(BENCH))
+    return dict(problem, tests=problem["tests"]
+                + json.loads((BENCH / pid / "heldout.json").read_text()))
+
+
+def check() -> pd.DataFrame:
+    """Re-run every arm's repairs on T plus the held-out suite -> results/heldout.csv."""
     rows = []
     for pid in CS1:
-        aug = json.loads((OUT / pid / "problem.json").read_text())
+        suite = _suite(pid)
         for stem, arm in ARMS:
-            f = ROOT / "results" / ver / pid / f"{stem}.csv"
+            f = ROOT / "results" / pid / f"{stem}.csv"
             if not f.exists():
                 continue
             d = pd.read_csv(f, keep_default_na=False)
@@ -277,87 +273,74 @@ def check(ver: str = "") -> pd.DataFrame:
             unwrap_ = stem == "refactory"
 
             def passes(p: str) -> bool:
-                r = run_tests(unwrap(p) if unwrap_ else p, aug)
+                r = run_tests(unwrap(p) if unwrap_ else p, suite)
                 return r.error is None and r.total > 0 and r.passed == r.total
 
             with ThreadPoolExecutor(16) as ex:
                 verdict = dict(zip(patches, ex.map(passes, patches)))
             for model, g in d.groupby(d.Model.astype(str)):
                 gok = g[g.Fixed.astype(str) == "True"]
-                still = sum(verdict[p] for p in gok.Patch.astype(str))
                 rows.append({"pid": pid, "arm": arm, "model": model, "n": len(g),
-                             "fixed": len(gok), "fixed_aug": int(still)})
+                             "fixed": len(gok),
+                             "fixed_heldout": int(sum(verdict[p] for p in gok.Patch.astype(str)))})
             print(f"{pid} {arm}: " + ", ".join(
-                f"{r['model']} {r['fixed']}->{r['fixed_aug']}" for r in rows
+                f"{r['model']} {r['fixed']}->{r['fixed_heldout']}" for r in rows
                 if r["pid"] == pid and r["arm"] == arm))
     df = pd.DataFrame(rows)
-    df.to_csv(ROOT / "results" / ver / "augmented.csv", index=False)
+    df.to_csv(ROOT / "results" / "heldout.csv", index=False)
     return df
 
 
-def pairs(vers: list[str]) -> pd.DataFrame:
-    """Per-program held-out verdicts of CoEP_LF under each results/<ver>/ against
-    PyDex and the campaign's CoEP_LF: exact McNemar on held-out repair, and
-    Wilcoxon on RPS over the programs both arms repaired that survive.
-    -> results/heldout_pairs.csv
+def pairs() -> pd.DataFrame:
+    """Per-program held-out verdicts of CoEP_LF against PyDex and against CoEP_LF
+    accepting T alone: exact McNemar on held-out repair, and Wilcoxon on RPS over
+    the programs both arms repaired that survive. -> results/heldout_pairs.csv
     """
     from scipy.stats import binomtest, wilcoxon
 
-    def verdicts(f: Path, aug: dict) -> dict:
+    def verdicts(f: Path, suite: dict) -> dict:
         d = pd.read_csv(f, keep_default_na=False)
         ok = [r for _, r in d[d.Fixed.astype(str) == "True"].iterrows()]
         with ThreadPoolExecutor(16) as ex:
-            got = ex.map(lambda r: run_tests(r.Patch, aug).all_pass, ok)
-        return {(r.Model, r.Buggy): (v, float(r.RPS)) for r, v in zip(ok, got)}
+            got = ex.map(lambda r: run_tests(r.Patch, suite).all_pass, ok)
+        return {(r.Model, str(r.Buggy)): (v, float(r.RPS)) for r, v in zip(ok, got)}
 
-    arms = {"pydex": "pydex", "campaign": "coep_lf"} | {v: "coep_lf" for v in vers}
+    arms = {"coep_lf": "coep_lf", "pydex": "pydex", "coep_lf_t": "no_amplification/coep_lf"}
     rows = []
     for pid in CS1:
-        aug = json.loads((OUT / pid / "problem.json").read_text())
-        got = {a: verdicts(ROOT / "results" / ("" if a in ("pydex", "campaign") else a)
-                           / pid / f"{stem}.csv", aug) for a, stem in arms.items()}
-        subs = sorted(p.stem for p in (ROOT / "data" / pid / "buggy").glob("*.py"))
-        for m in ("claude-sonnet-5", "gpt-5.4-mini"):
-            for b in subs:
+        suite = _suite(pid)
+        got = {a: verdicts(ROOT / "results" / pid / f"{stem}.csv", suite)
+               for a, stem in arms.items()}
+        for m in MODELS:
+            for b in sorted(p.stem for p in (BENCH / pid / "buggy").glob("*.py")):
                 row = {"pid": pid, "model": m, "buggy": b}
                 for a in arms:
-                    v, r = got[a].get((m, b), (False, None))
-                    row[a], row[f"{a}_rps"] = v, r
+                    row[a], row[f"{a}_rps"] = got[a].get((m, b), (False, None))
                 rows.append(row)
     df = pd.DataFrame(rows)
     df.to_csv(ROOT / "results" / "heldout_pairs.csv", index=False)
-    for m, g in df.groupby("model"):
-        for v in vers:
-            for other in ("pydex", "campaign"):
-                b10, b01 = int((g[v] & ~g[other]).sum()), int((~g[v] & g[other]).sum())
-                p = binomtest(min(b10, b01), b10 + b01).pvalue if b10 + b01 else 1.0
-                print(f"{m} {v} vs {other}: held-out RR {100 * g[v].mean():.1f} vs "
-                      f"{100 * g[other].mean():.1f} (only {v} {b10}, only {other} {b01}, "
-                      f"McNemar p={p:.2g})")
-            c = g[g[v] & g.pydex]
-            print(f"{m} {v} vs pydex on {len(c)} common survivors: RPS "
-                  f"{c[f'{v}_rps'].mean():.3f} vs {c.pydex_rps.mean():.3f} "
-                  f"(Wilcoxon p={wilcoxon(c[f'{v}_rps'], c.pydex_rps).pvalue:.2g})")
+    for name, g in [*df.groupby("model"), ("pooled", df)]:
+        for other in ("pydex", "coep_lf_t"):
+            b10 = int((g.coep_lf & ~g[other]).sum())
+            b01 = int((~g.coep_lf & g[other]).sum())
+            p = binomtest(min(b10, b01), b10 + b01).pvalue if b10 + b01 else 1.0
+            print(f"{name}: held-out RR CoEP_LF {100 * g.coep_lf.mean():.1f} vs {other} "
+                  f"{100 * g[other].mean():.1f} (McNemar b={b10}, c={b01}, p={p:.2g})")
+        c = g[g.coep_lf & g.pydex]
+        print(f"{name}: RPS on {len(c)} common survivors {c.coep_lf_rps.mean():.3f} vs PyDex "
+              f"{c.pydex_rps.mean():.3f} (Wilcoxon p={wilcoxon(c.coep_lf_rps, c.pydex_rps).pvalue:.2g})")
     return df
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="run.py augment")
-    ap.add_argument("action", choices=["make", "make-search", "link", "check", "pairs"])
-    ap.add_argument("--ver", default="", help="results/<ver>/ to judge (check)")
-    ap.add_argument("--gen", choices=["hand", "llm"], default="hand", help="make-search")
-    ap.add_argument("--model", default="claude-sonnet-5", help="make-search --gen llm")
+    ap.add_argument("action", choices=["heldout", "amplify", "check", "pairs"])
+    ap.add_argument("--model", default="claude-sonnet-5", help="amplify: the builder")
+    ap.add_argument("--regenerate", action="store_true",
+                    help="amplify: ask the builder for a new generator")
     args = ap.parse_args(argv)
-    if args.action == "check":
-        check(args.ver)
-    elif args.action == "pairs":
-        pairs(args.ver.split(","))
-    elif args.action == "link":
-        link()
-    elif args.action == "make":
-        make()
-    else:
-        make_search(args.gen, args.model)
+    {"heldout": heldout, "check": check, "pairs": pairs}.get(
+        args.action, lambda: amplify(args.model, args.regenerate))()
     return 0
 
 

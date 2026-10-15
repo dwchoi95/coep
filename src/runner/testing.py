@@ -230,5 +230,5 @@ def passes(source: str, problem: dict, timeout: float | None = None) -> bool:
     return run_tests(source, problem, timeout=timeout, stop_early=True).all_pass
 
 
-def load_problem(pid: str, root: str | Path = "data") -> dict:
+def load_problem(pid: str, root: str | Path = "benchmark") -> dict:
     return json.loads((Path(root) / pid / "problem.json").read_text())

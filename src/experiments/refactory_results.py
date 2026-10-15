@@ -92,7 +92,7 @@ def collect(pid: str, ver: str = "") -> dict:
     csv = source_csv(pid)
     df = pd.read_csv(csv, keep_default_na=False)
     by_name = {r["File Name"]: r for _, r in df.iterrows()}
-    buggy_dir = ROOT / "data" / pid / "buggy"
+    buggy_dir = ROOT / "benchmark" / pid / "buggy"
     all_buggy = sorted(p.name for p in buggy_dir.glob("*.py"))
 
     rows = []
