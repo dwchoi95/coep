@@ -301,38 +301,65 @@ def fig_general():
 
 
 def fig_heldout():
-    """Repair rate on T and on the held-out suite, per builder."""
+    """(a) held-out repair rate per arm and builder, PyDex given CoEP's oracle
+    included; (b) PyDex's held-out repair rate against its number of samples k,
+    accepting T or T+ (gpt-5.4-mini), the breadth effect of Theorem 4.3."""
     plt = _mpl()
+    from matplotlib.patches import Patch
     h = pd.read_csv(RES / "heldout.csv")
+    po = RES / "pydex_oracle"
+    hyb = pd.read_csv(po / "hybrid_claude-sonnet-5.csv")
+    pairs = pd.read_csv(po / "pairs_gpt-5.4-mini.csv")
+    tplus = {FRONTIER: 100 * hyb[hyb.arm == "PyDex+T+"].held.mean(),
+             CHEAP: 100 * pairs[(pairs.arm == "PyDex-10") & (pairs.accept == "T+")].held.mean()}
     arms = [("Refactory", "Refactory"), ("PyDex", "PyDex"),
+            ("PyDex+T+", "PyDex accepting $T^{+}$"),
             ("LLM_Direct", ARM["LLM_Direct"][0]),
             ("CoEP_LF (T)", ARM["CoEP_LF"][0] + " accepting $T$"),
             ("CoEP_L", ARM["CoEP_L"][0]), ("CoEP_LF", ARM["CoEP_LF"][0])]
-    color = [ARM.get(a, (0, "#6C8EBF"))[1] for a, _ in arms]   # muted blue: T only
-    fig, axes = plt.subplots(1, 2, figsize=(W, 1.75), sharey=True)
+    color = {"PyDex+T+": "#E8A08A", "CoEP_LF (T)": "#6C8EBF"}
+    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 2.05),
+                               gridspec_kw={"width_ratios": [1.35, 1]})
     y = np.arange(len(arms))[::-1]
-    for ax, (m, name) in zip(axes, MODELS):
-        t, ho = [], []
+    for dy, (m, _name), hatch in ((0.19, MODELS[0], ""), (-0.19, MODELS[1], "////")):
+        vals = []
         for arm, _ in arms:
+            if arm == "PyDex+T+":
+                vals.append(tplus[m]); continue
             d = h[(h.arm == arm) & (h.model == ("none" if arm == "Refactory" else m))]
-            t.append(100 * d.fixed.sum() / d.n.sum())
-            ho.append(100 * d.fixed_heldout.sum() / d.n.sum())
-        ax.barh(y + 0.19, t, 0.38, color="white", edgecolor=color, lw=0.6,
-                hatch="////")
-        bars = ax.barh(y - 0.19, ho, 0.38, color=color, edgecolor="black", lw=0.5)
-        ax.bar_label(bars, fmt="%.1f", fontsize=6, padding=1.5)
-        ax.set_xlim(80, 100)
-        ax.set_xlabel("repair rate (%)")
-        ax.spines["left"].set_visible(False)
-        ax.tick_params(axis="y", length=0)
-    axes[0].set_yticks(y, [lab for _, lab in arms])
-    from matplotlib.patches import Patch
-    fig.legend([Patch(facecolor="white", edgecolor="#555555", hatch="////"),
-                Patch(facecolor="#888888", edgecolor="black", lw=0.5)],
-               ["instructor's tests $T$", "held-out suite"], ncol=2,
-               loc="lower center", bbox_to_anchor=(0.55, 0.93))
-    fig.tight_layout(w_pad=1.5, rect=(0, 0, 1, 0.93))
-    _sub(fig, axes, [f"({'ab'[i]}) {name}" for i, (_m, name) in enumerate(MODELS)])
+            vals.append(100 * d.fixed_heldout.sum() / d.n.sum())
+        cols = [color.get(arm, ARM.get(arm, (0, "#999999"))[1]) for arm, _ in arms]
+        bars = a.barh(y + dy, vals, 0.38, color=cols, edgecolor="black", lw=0.4,
+                      hatch=hatch)
+        a.bar_label(bars, fmt="%.1f", fontsize=5.5, padding=1.2)
+    a.set_yticks(y, [lab for _, lab in arms], fontsize=6.5)
+    a.set_xlim(80, 101.5)
+    a.set_xlabel("held-out repair rate (%)")
+    a.spines["left"].set_visible(False)
+    a.tick_params(axis="y", length=0)
+    a.legend([Patch(facecolor="#888888", edgecolor="black", lw=0.4),
+              Patch(facecolor="#888888", edgecolor="black", lw=0.4, hatch="////")],
+             [MODELS[0][1], MODELS[1][1]], loc="lower center", ncol=2, fontsize=6,
+             bbox_to_anchor=(0.45, 1.0), handlelength=1.2, borderaxespad=0.1)
+
+    ks = [1, 2, 5, 10]
+    for acc, ls, mk, lab in (("T", "--", "o", "PyDex accepting $T$"),
+                             ("T+", "-", "s", "PyDex accepting $T^{+}$")):
+        v = [100 * pairs[(pairs.arm == f"PyDex-{k}") & (pairs.accept == acc)].held.mean()
+             for k in ks]
+        b.plot(range(len(ks)), v, ls=ls, marker=mk, color=RED, ms=3.5, lw=1.2,
+               mfc="white" if acc == "T" else RED, mew=0.9, label=lab)
+    d = h[(h.arm == "CoEP_LF") & (h.model == CHEAP)]
+    b.axhline(100 * d.fixed_heldout.sum() / d.n.sum(), color=BLUE, lw=1.4,
+              label=ARM["CoEP_LF"][0])
+    b.set_xticks(range(len(ks)), [str(k) for k in ks])
+    b.set_xlabel("samples per program $k$ (gpt-5.4-mini)")
+    b.set_ylabel("held-out repair rate (%)")
+    b.set_ylim(91.5, 100)
+    b.legend(loc="lower right", fontsize=6.3, handlelength=2.0)
+    fig.tight_layout(w_pad=1.5)
+    _sub(fig, (a, b), ("(a) Held-out repair rate of each arm",
+                       "(b) PyDex's samples against its oracle"))
     _save(fig, "fig_heldout")
     plt.close(fig)
 

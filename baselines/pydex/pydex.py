@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import io
 import tokenize
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from src.runner.testing import run_tests
@@ -178,6 +178,9 @@ class PyDexResult:
     seconds: float = 0.0           # summed API latency across ALL calls
     usd: float = 0.0
     prompt: str = ""               # the prompt used (for prefix analysis)
+    # every sampled candidate with its own accounting, in call order, so a
+    # different oracle or a smaller K can be judged later without re-querying
+    candidates: list[dict] = field(default_factory=list)
 
 
 def repair(buggy: str, problem: dict, model: str = "claude-sonnet-5",
@@ -204,6 +207,8 @@ def repair(buggy: str, problem: dict, model: str = "claude-sonnet-5",
         res.out_tokens += comp.out_tokens
         res.usd += comp.usd
         code = comp.code
+        res.candidates.append({"code": code, "in": comp.in_tokens,
+                               "out": comp.out_tokens, "usd": comp.usd})
         if not code:
             continue
         if run_tests(code, problem).all_pass:
