@@ -20,7 +20,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 days = days + (i[1],)
     return len(days) >= 1
-",True,0.0105,0.1252,0.1252,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0105,0.1033,0.1033,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
 wrong_2_003,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -42,8 +42,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 days = days + (i[1],)
     return len(days) >= 1
-",True,0.0105,0.0803,0.0803,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_006,claude-sonnet-5,none,,False,,3.7272,3.7272,0.0,0,0,0.0,[],[]
+",True,0.0105,0.0749,0.0749,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_2_006,claude-sonnet-5,none,,False,,3.8958,3.8958,0.0,0,0,0.0,[],[]
 wrong_2_010,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
        
     days = 0 
@@ -85,7 +85,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0227,7.84,7.84,0.0,0,0,0.0,[],[]
+",True,0.0227,7.8635,7.8635,0.0,0,0,0.0,[],[]
 wrong_2_013,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
        
     days = 0 
@@ -128,7 +128,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0076,0.0933,0.0933,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
+",True,0.0076,0.0857,0.0857,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
 wrong_2_015,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
        
     days = 0 
@@ -172,7 +172,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0076,0.1113,0.1113,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
+",True,0.0076,0.0985,0.0985,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
 wrong_2_018,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     count_day = 0
     for birthday in possible_birthdays:
@@ -193,7 +193,7 @@ def contains_unique_day(month, possible_birthdays):
             day = birthday[1]
             if unique_day(day, possible_birthdays): return True
     return False
-",True,0.2637,4.8907,4.8907,0.0,0,0,0.0,[],[]
+",True,0.2637,4.8331,4.8331,0.0,0,0,0.0,[],[]
 wrong_2_022,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     if (tuple(map(lambda x: x[1], possible_birthdays))).count(day) == 1:
         return True
@@ -210,24 +210,24 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(i,possible_birthdays):
             return True
     return False
-",True,0.3876,7.9501,7.9501,0.0,0,0,0.0,[],[]
-wrong_2_023,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
+",True,0.3876,7.4388,7.4388,0.0,0,0,0.0,[],[]
+wrong_2_023,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for birthdays in possible_birthdays:
-        if birthdays[1] <= day:
-            count +=1
-            if count == 2:
-                return False
-    return True
+        if birthdays[1]==day:
+            count+=1
+    if count==1:
+        return True
+    return False
 
 def unique_month(month, possible_birthdays):
     count = 0
-    for birthdays in possible_birthdays:
-        if birthdays[0] == month:
-            count +=1
-            if count >= 2:
-                return False
-    return count == 1
+    for i in possible_birthdays:
+        if i[0]==month:
+            count+=1
+    if count==1:
+        return True
+    return False
 
 def contains_unique_day(month, possible_birthdays):
     count = ()
@@ -238,7 +238,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(sub_birthday[1], possible_birthdays):
             return True
     return False 
-",True,0.0606,1.7487,1.7487,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_flip_compare"", ""sequential_threshold_then_return_true""]",[]
+",True,0.1616,5.9632,5.9632,0.0,0,0,0.0,[],[]
 wrong_2_025,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     checker = 0
     for bday in possible_birthdays:
@@ -263,7 +263,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(bday[1], possible_birthdays) == True:
                 return True
     return False
-",True,0.3967,6.2592,6.2592,0.0,0,0,0.0,[],[]
+",True,0.3967,5.9637,5.9637,0.0,0,0,0.0,[],[]
 wrong_2_027,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     if (tuple(map(lambda x: x[1], possible_birthdays))).count(day) == 1:
         return True
@@ -281,7 +281,7 @@ def contains_unique_day(month, possible_birthdays):
     unique_day_list = list(filter(lambda day: unique_day(day, possible_birthdays)\
                                   , birthday_day))
     return len(unique_day_list) > 0
-",True,0.3529,9.136,9.136,0.0,0,0,0.0,[],[]
+",True,0.3529,9.0479,9.0479,0.0,0,0,0.0,[],[]
 wrong_2_029,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     tpl = 0
     for i in possible_birthdays:
@@ -309,7 +309,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(l, possible_birthdays) == True:
             return True
     return False        
-",True,0.34,4.4848,4.4848,0.0,0,0,0.0,[],[]
+",True,0.34,4.2387,4.2387,0.0,0,0,0.0,[],[]
 wrong_2_030,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter =0
     for elements in possible_birthdays:
@@ -333,7 +333,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(elements,possible_birthdays):
             return True
     return False
-",True,1.8095,3.5856,3.5856,0.0,0,0,0.0,[],[]
+",True,1.8095,3.5144,3.5144,0.0,0,0,0.0,[],[]
 wrong_2_031,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter =0
     for elements in possible_birthdays:
@@ -357,7 +357,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(elements,possible_birthdays):
             return True
     return False
-",True,1.1818,3.5943,3.5943,0.0,0,0,0.0,[],[]
+",True,1.1818,3.5073,3.5073,0.0,0,0,0.0,[],[]
 wrong_2_032,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter =0
     for elements in possible_birthdays:
@@ -381,7 +381,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(elements,possible_birthdays):
             return True
     return False
-",True,1.1818,3.6463,3.6463,0.0,0,0,0.0,[],[]
+",True,1.1818,3.5636,3.5636,0.0,0,0,0.0,[],[]
 wrong_2_034,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     tpl = 0
     for i in possible_birthdays:
@@ -409,7 +409,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(l, possible_birthdays) == True:
             return True
     return False        
-",True,0.34,4.313,4.313,0.0,0,0,0.0,[],[]
+",True,0.34,4.4324,4.4324,0.0,0,0,0.0,[],[]
 wrong_2_036,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     a = 0
     for date in possible_birthdays:
@@ -430,7 +430,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(date[1], possible_birthdays):
                 return True
     return False
-",True,0.4222,4.5874,4.5874,0.0,0,0,0.0,[],[]
+",True,0.4222,4.7455,4.7455,0.0,0,0,0.0,[],[]
 wrong_2_045,claude-sonnet-5,reference,"
 def unique_day(day, possible_birthdays):
     
@@ -469,7 +469,7 @@ def contains_unique_day(month, possible_birthdays):
             return True
     return False
     
-",True,0.0097,10.0117,10.0117,0.0,0,0,0.0,[],[]
+",True,0.0097,11.0739,11.0739,0.0,0,0,0.0,[],[]
 wrong_2_058,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     total_day = 0
     for birthday in possible_birthdays:
@@ -496,7 +496,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2941,0.0826,0.0826,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2941,0.1011,0.1011,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_065,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
@@ -517,7 +517,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2762,0.098,0.098,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2762,0.0942,0.0942,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_072,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
@@ -538,7 +538,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2762,0.1039,0.1039,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2762,0.0928,0.0928,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_073,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     no_of_days = 0
     for i in possible_birthdays:
@@ -570,32 +570,32 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False 
-",True,0.0088,0.0939,0.0939,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_086,claude-sonnet-5,rules,"def unique_month(month, possible_birthdays):
+",True,0.0088,0.0826,0.0826,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_2_086,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
+    counted = 0
+    for birthdays in possible_birthdays:
+        if birthdays[1]==day:
+            counted+=1
+    if counted==1:
+        return True
+    return False
+
+def unique_month(month, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if month == i[0]:
-            count += 1
-    return count == 1
+        if i[0]==month:
+            count+=1
+    if count==1:
+        return True
+    return False
 
 def contains_unique_day(month, possible_birthdays):
     for i in possible_birthdays:
-        if month == i[0]:
+        if month==i[0]:
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-
-def unique_day(day, possible_birthdays):
-    counted = ()
-    for birthdays in possible_birthdays:
-        if birthdays[1] <= day:
-            if day not in counted:
-                counted += (day,)
-            else:
-                return False
-    
-    return True
-",True,1.625,0.1968,0.1968,0.0,0,0,0.0,"[""missing_required_functions"", ""generic_flip_compare""]",[]
+",True,2.25,3.3403,3.3403,0.0,0,0,0.0,[],[]
 wrong_2_089,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for dates in possible_birthdays:
@@ -621,7 +621,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.7885,0.1783,0.1783,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.7885,0.1318,0.1318,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_094,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -642,7 +642,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,1.1556,3.7618,3.7618,0.0,0,0,0.0,[],[]
+",True,1.1556,3.7654,3.7654,0.0,0,0,0.0,[],[]
 wrong_2_097,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -663,14 +663,13 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,1.1111,3.8137,3.8137,0.0,0,0,0.0,[],[]
-wrong_2_103,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
+",True,1.1111,3.8439,3.8439,0.0,0,0,0.0,[],[]
+wrong_2_103,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] > date:
-            count += 1
-    return count
-    if count == 1:
+        if i[1]==date:
+            count+=1
+    if count==1:
         return True
     else:
         return False
@@ -679,24 +678,25 @@ wrong_2_103,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
 def unique_month(month, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if month == i[0]:
-            count += 1
-    return count == 1
+        if i[0]==month:
+            count+=1
+    if count==1:
+        return True
+    return False
 
 def contains_unique_day(month, possible_birthdays):
     for i in possible_birthdays:
-        if month == i[0]:
+        if month==i[0]:
             if unique_day(i[1], possible_birthdays):
                 return True
-    return False 
-",True,0.9333,1.5932,1.5932,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
-wrong_2_105,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
+    return False
+",True,1.0444,3.6145,3.6145,0.0,0,0,0.0,[],[]
+wrong_2_105,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] > date:
-            count += 1
-    return count
-    if count == 1:
+        if i[1]==date:
+            count+=1
+    if count==1:
         return True
     else:
         return False
@@ -705,17 +705,19 @@ wrong_2_105,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
 def unique_month(month, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if month == i[0]:
-            count += 1
-    return count == 1
+        if i[0]==month:
+            count+=1
+    if count==1:
+        return True
+    return False
 
 def contains_unique_day(month, possible_birthdays):
     for i in possible_birthdays:
-        if month == i[0]:
+        if month==i[0]:
             if unique_day(i[1], possible_birthdays):
                 return True
-    return False 
-",True,0.9333,1.4148,1.4148,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+    return False
+",True,1.0444,3.6727,3.6727,0.0,0,0,0.0,[],[]
 wrong_2_111,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -743,7 +745,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.7736,0.1568,0.1568,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.7736,0.1508,0.1508,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_112,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -777,7 +779,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2955,1.069,1.069,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""generic_shift_index"", ""generic_shift_index""]",[]
+",True,0.2955,1.051,1.051,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""generic_shift_index"", ""generic_shift_index""]",[]
 wrong_2_113,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -810,7 +812,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2273,0.097,0.097,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2273,0.1011,0.1011,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_117,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -842,17 +844,12 @@ def contains_unique_day(month, possible_birthdays):
         if month==i[0]:
             if unique_day(i[1], possible_birthdays):
                 return True
-            else:
-                return False
-    
-    
-    
-   
-",True,0.066,4.1804,4.1804,0.0,0,0,0.0,[],[]
-wrong_2_121,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
+    return False
+",True,0.1038,3.9798,3.9798,0.0,0,0,0.0,[],[]
+wrong_2_121,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             count += 1
     return count
     
@@ -880,15 +877,8 @@ def contains_unique_day(month, possible_birthdays):
         if i[0] == month:
             if unique_day(i[1], possible_birthdays):
                 return True
-            else:
-                return False
-        else:
-            continue
-    
-    
-    
-   
-",True,0.0092,0.0928,0.0928,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+    return False
+",True,0.0459,4.3587,4.3587,0.0,0,0,0.0,[],[]
 wrong_2_124,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     tester = 0
     for i in possible_birthdays:
@@ -915,7 +905,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.35,0.2875,0.2875,0.0,0,0,0.0,"[""undefined_name_use_param"", ""contains_unique_day_missing_helper_call""]",[]
+",True,0.35,0.434,0.434,0.0,0,0,0.0,"[""undefined_name_use_param"", ""contains_unique_day_missing_helper_call""]",[]
 wrong_2_133,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     unique_day_counter = 0
     for i in possible_birthdays:
@@ -940,7 +930,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2941,0.0801,0.0801,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2941,0.0813,0.0813,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_138,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -980,7 +970,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.127,4.7201,4.7201,0.0,0,0,0.0,[],[]
+",True,0.127,4.4246,4.4246,0.0,0,0,0.0,[],[]
 wrong_2_164,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -1009,25 +999,17 @@ def unique_month(month, possible_birthdays):
 
 def days(month, possible_birthdays):
     days_in_month = ()
-    for i in range(len(possible_birthdays)):
-        if possible_birthdays[i][0] == month:
-            days_in_month += (possible_birthdays[i],)
+    for i in possible_birthdays:
+        if i[0] == month:
+            days_in_month += (i[1],)
     return days_in_month
 
 def contains_unique_day(month, possible_birthdays):
-    for x in range(len(days(month, possible_birthdays))):
-        if unique_day(days(month, possible_birthdays)[x][1], possible_birthdays):
+    for date in possible_birthdays:
+        if unique_day(date[1], possible_birthdays) == True and month == date[0]:
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.125,4.1394,4.1394,0.0,0,0,0.0,[],[]
+    return False       
+",True,0.1691,3.779,3.779,0.0,0,0,0.0,[],[]
 wrong_2_168,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -1056,29 +1038,22 @@ def unique_month(month, possible_birthdays):
 
 def days(month, possible_birthdays):
     days_in_month = ()
-    for i in range(len(possible_birthdays)):
-        if possible_birthdays[i][0] == month:
-            days_in_month += (possible_birthdays[i],)
+    for i in possible_birthdays:
+        if i[0] == month:
+            days_in_month += (i[1],)
     return days_in_month
 
 def contains_unique_day(month, possible_birthdays):
-    for x in range(len(days(month, possible_birthdays))):
-        if unique_day(days(month, possible_birthdays)[x][1], possible_birthdays):
-            return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0956,6.3828,6.3828,0.0,0,0,0.0,[],[]
-wrong_2_172,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
+    for i in possible_birthdays:
+        if month==i[0]:
+            if unique_day(i[1], possible_birthdays):
+                return True
+    return False
+",True,0.1397,3.8017,3.8017,0.0,0,0,0.0,[],[]
+wrong_2_172,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             count += 1
     return count
     
@@ -1112,20 +1087,13 @@ def contains_unique_day(month, possible_birthdays):
     for x in range(len(days(month, possible_birthdays))):
         if unique_day(days(month, possible_birthdays)[x], possible_birthdays):
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0072,0.1141,0.1141,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_173,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
+    else:
+        return False
+",True,0.0145,4.3358,4.3358,0.0,0,0,0.0,[],[]
+wrong_2_173,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             count += 1
     return count
     
@@ -1163,16 +1131,9 @@ def contains_unique_day(month, possible_birthdays):
     for x in range(len(days(month, possible_birthdays))):
         if unique_day(days(month, possible_birthdays)[x], possible_birthdays):
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0063,0.1092,0.1092,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+    else:
+        return False
+",True,0.0127,4.6173,4.6173,0.0,0,0,0.0,[],[]
 wrong_2_175,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -1208,16 +1169,8 @@ def contains_unique_day(month, possible_birthdays):
     for i in days:
         if unique_day(i, possible_birthdays):
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.041,4.8886,4.8886,0.0,0,0,0.0,[],[]
+    return False
+",True,0.0738,4.243,4.243,0.0,0,0,0.0,[],[]
 wrong_2_178,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
@@ -1233,68 +1186,13 @@ def unique_month(month, possible_birthdays):
     return counter == 1
 
 def contains_unique_day(month, possible_birthdays):
-    filtered = tuple(filter(lambda x: x[0] == month, possible_birthdays))
-    tup1 = tuple(filter(lambda x: x[0] != month, possible_birthdays)) # Remaining dates
-    tup2 = tuple(map(lambda x: x[1], tup1)) # Day of the remaining dates
-    def unique(tup):
-        output = ()
-        for i in tup:
-            if i not in output:
-                output += (i,)
-        return output
-    dates = unique(tup2)
-    
-    for i in filtered:
-        if i[1] not in dates:
+    mth = tuple(filter(lambda bd: month == bd[0], possible_birthdays))
+    for i in mth:
+        if unique_day(i[1], possible_birthdays):
             return True
     return False
-",True,0.1974,9.1797,9.1797,0.0,0,0,0.0,[],[]
-wrong_2_182,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        if i[1] <= date:
-            count += 1
-    return count
-    
-def unique_day(date, possible_birthdays):
-    if count_dates(date, possible_birthdays) == 1:
-        return True
-    else:
-        return False
-    
-def count_months(month, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        if i[0] == month:
-            count += 1
-    return count
-    
-def unique_month(month, possible_birthdays):
-    if count_months(month, possible_birthdays) == 1:
-        return True
-    else:
-        return False
-
-
-def contains_unique_day(month, possible_birthdays):
-    days_in_month = ()
-    for i in possible_birthdays:
-        if i[0] == month:
-            days_in_month += (i,)
-    for x in range(len(days_in_month)):
-        if unique_day(days_in_month[x][1], possible_birthdays):
-            return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.008,0.0877,0.0877,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_186,claude-sonnet-5,rules,"def count_dates(date, possible_birthdays):
+",True,0.6382,4.5763,4.5763,0.0,0,0,0.0,[],[]
+wrong_2_182,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
         if i[1] == date:
@@ -1327,18 +1225,51 @@ def contains_unique_day(month, possible_birthdays):
         if i[0] == month:
             days_in_month += (i,)
     for x in range(len(days_in_month)):
-        if unique_day(days_in_month[x][1], possible_birthdays) != False:
+        if unique_day(days_in_month[x][1], possible_birthdays):
             return True
+    else:
+        return False
+",True,0.016,4.9126,4.9126,0.0,0,0,0.0,[],[]
+wrong_2_186,claude-sonnet-5,reference,"def count_dates(date, possible_birthdays):
+    count = 0
+    for i in possible_birthdays:
+        if i[1] == date:
+            count += 1
+    return count
+    
+def unique_day(date, possible_birthdays):
+    if count_dates(date, possible_birthdays) == 1:
+        return True
+    else:
+        return False
+    
+def count_months(month, possible_birthdays):
+    count = 0
+    for i in possible_birthdays:
+        if i[0] == month:
+            count += 1
+    return count
+    
+def unique_month(month, possible_birthdays):
+    if count_months(month, possible_birthdays) == 1:
+        return True
+    else:
+        return False
+
+
+def contains_unique_day(month, possible_birthdays):
+    selected_month = ()
+    unique = ()
+    for i in possible_birthdays:
+        if i[0] == month:
+            selected_month += (i,)
         else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0078,0.091,0.091,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+            continue
+    for i in selected_month:
+        if unique_day(i[1], possible_birthdays) == True:
+            return True
+    return False
+",True,0.1562,3.6485,3.6485,0.0,0,0,0.0,[],[]
 wrong_2_190,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in range(0,len(possible_birthdays)):
@@ -1362,7 +1293,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.7885,0.3261,0.3261,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.7885,0.3009,0.3009,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_191,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in range(0,len(possible_birthdays)):
@@ -1389,7 +1320,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2326,0.0822,0.0822,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2326,0.0762,0.0762,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_193,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     days = ()
     unique = ()
@@ -1418,7 +1349,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.7069,0.1688,0.1688,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.7069,0.1402,0.1402,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_195,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for j in possible_birthdays:
@@ -1448,8 +1379,8 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     return False
 
-",True,0.0112,0.088,0.088,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
-wrong_2_205,claude-sonnet-5,none,,False,,3.4815,3.4815,0.0,0,0,0.0,[],[]
+",True,0.0112,0.0778,0.0778,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
+wrong_2_205,claude-sonnet-5,none,,False,,3.6505,3.6505,0.0,0,0,0.0,[],[]
 wrong_2_211,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     result = 0
     for i in possible_birthdays:
@@ -1480,7 +1411,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2778,0.0895,0.0895,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2778,0.0793,0.0793,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_215,claude-sonnet-5,reference,"def map(fn, seq):
     res = ()
 
@@ -1517,7 +1448,7 @@ def contains_unique_day(month, possible_birthdays):
         if len(filter(lambda x: x == k[f],b)) == 1:
             return True
     return False
-",True,0.2909,6.8599,6.8599,0.0,0,0,0.0,[],[]
+",True,0.2909,6.7577,6.7577,0.0,0,0,0.0,[],[]
 wrong_2_222,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for date in possible_birthdays:
@@ -1538,32 +1469,36 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 return True
     return False
-",True,0.3667,4.272,4.272,0.0,0,0,0.0,[],[]
-wrong_2_225,claude-sonnet-5,none,,False,,3.4988,3.4988,0.0,0,0,0.0,[],[]
-wrong_2_228,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
+",True,0.3667,4.2188,4.2188,0.0,0,0,0.0,[],[]
+wrong_2_225,claude-sonnet-5,none,,False,,3.524,3.524,0.0,0,0,0.0,[],[]
+wrong_2_228,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     result = ()
     for p in possible_birthdays:
         pd = p[1]
-        if day >= pd:
+        if day == pd:
             result = result + (day,)
-    if len(result) > 1:
-        return False
-    return True
+    if len(result) == 1:        
+        return True
+    return False
 
 def unique_month(month, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        if month == i[0]:
-            count += 1
-    return count == 1
+    unique = ()
+    for birthday in possible_birthdays:
+        if month == birthday[0]:
+            unique = unique + (month,)
+    if len(unique) == 1:
+        return True
+    return False
 
 def contains_unique_day(month, possible_birthdays):
-    for i in possible_birthdays:
-        if month == i[0]:
-            if unique_day(i[1], possible_birthdays):
-                return True
+    correct_months = ()
+    for birthday in possible_birthdays:
+        if unique_day(birthday[1], possible_birthdays):
+            correct_months = correct_months + (birthday[0],)
+    if month in correct_months:
+        return True
     return False 
-",True,0.8235,0.5039,0.5039,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub"", ""generic_flip_compare""]",[]
+",True,1.2353,3.7936,3.7936,0.0,0,0,0.0,[],[]
 wrong_2_231,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     result = ()
     for p in possible_birthdays:
@@ -1591,7 +1526,7 @@ def contains_unique_day(month, possible_birthdays):
     if month in correct_months:
         return True
     return False 
-",True,0.5833,4.0165,4.0165,0.0,0,0,0.0,[],[]
+",True,0.5833,3.9385,3.9385,0.0,0,0,0.0,[],[]
 wrong_2_233,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     days = 0
     for i in range(len(possible_birthdays)):
@@ -1621,7 +1556,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays):
             return True
     return False
-",True,0.4435,6.8558,6.8558,0.0,0,0,0.0,[],[]
+",True,0.4435,6.8861,6.8861,0.0,0,0,0.0,[],[]
 wrong_2_235,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
@@ -1649,7 +1584,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
     return False
           
-",True,0.0211,0.4199,0.4199,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
+",True,0.0211,0.3218,0.3218,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
 wrong_2_236,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     days = 0
     for i in range(len(possible_birthdays)):
@@ -1679,7 +1614,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays):
             return True
     return False
-",True,0.4435,7.0214,7.0214,0.0,0,0,0.0,[],[]
+",True,0.4435,7.2149,7.2149,0.0,0,0,0.0,[],[]
 wrong_2_237,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthday in possible_birthdays:
@@ -1699,7 +1634,7 @@ def contains_unique_day(month, possible_birthdays):
         if birthday[0] == month and unique_day(birthday[1], possible_birthdays) == True:
             return True
     return False
-",True,2.4074,3.5657,3.5657,0.0,0,0,0.0,[],[]
+",True,2.4074,3.5676,3.5676,0.0,0,0,0.0,[],[]
 wrong_2_238,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthday in possible_birthdays:
@@ -1719,7 +1654,7 @@ def contains_unique_day(month, possible_birthdays):
         if birthday[0] == month and unique_day(birthday[1], possible_birthdays) == True:
             return True
     return False
-",True,2.4074,3.5764,3.5764,0.0,0,0,0.0,[],[]
+",True,2.4074,3.5499,3.5499,0.0,0,0,0.0,[],[]
 wrong_2_239,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter=0
     for i in possible_birthdays:
@@ -1743,7 +1678,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(i[1],possible_birthdays):
             return True
     return False
-",True,0.022,4.9994,4.9994,0.0,0,0,0.0,[],[]
+",True,0.022,4.8819,4.8819,0.0,0,0,0.0,[],[]
 wrong_2_249,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for days in range(len(possible_birthdays)):
@@ -1764,7 +1699,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.4348,0.1272,0.1272,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.4348,0.0803,0.0803,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_256,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     days = ()
     unique = ()
@@ -1801,7 +1736,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2041,0.0837,0.0837,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2041,0.0773,0.0773,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_260,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
@@ -1839,7 +1774,7 @@ def contains_unique_day(month, possible_birthdays):
         return False
     else:
         return True
-",True,1.7115,3.6222,3.6222,0.0,0,0,0.0,[],[]
+",True,1.7115,3.4706,3.4706,0.0,0,0,0.0,[],[]
 wrong_2_262,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     n=0
     for tup in possible_birthdays:
@@ -1868,7 +1803,7 @@ def contains_unique_day(month, possible_birthdays):
     if n>=1:
         return True
     return False
-",True,1.549,3.6277,3.6277,0.0,0,0,0.0,[],[]
+",True,1.549,3.5445,3.5445,0.0,0,0,0.0,[],[]
 wrong_2_265,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for possible_birthday in possible_birthdays:
@@ -1893,7 +1828,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays):
             return True
     return False
-",True,0.0762,0.3965,0.3965,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true""]",[]
+",True,0.0762,0.3844,0.3844,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true""]",[]
 wrong_2_273,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -1912,7 +1847,7 @@ def contains_unique_day(month, possible_birthdays):
         if i[0]==month and unique_day(i[1],possible_birthdays):
             return True
     return False
-",True,0.037,0.1037,0.1037,0.0,0,0,0.0,"[""generic_shift_index""]",[]
+",True,0.037,0.088,0.088,0.0,0,0,0.0,"[""generic_shift_index""]",[]
 wrong_2_276,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     only_date = ()
     for i in possible_birthdays:
@@ -1940,11 +1875,11 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.3243,3.9267,3.9267,0.0,0,0,0.0,[],[]
+",True,0.3243,4.2182,4.2182,0.0,0,0,0.0,[],[]
 wrong_2_280,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
-        if day != i[1]:
+        if day == i[1]:
             counter += 1
     if counter == 1:
         return True
@@ -1973,11 +1908,11 @@ def contains_unique_day(month, possible_birthdays):
             unique_days += (testday,)
     for k in unique_days:
         for l in focus:
-            if k == l[1]:
+            if k == l[(1) - 1]:
                 break
             return True
     return False
-",True,0.0079,0.1124,0.1124,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0236,0.0848,0.0848,0.0,0,0,0.0,"[""generic_shift_index""]",[]
 wrong_2_288,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter=0
     for date in possible_birthdays:
@@ -2004,7 +1939,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.4459,3.8871,3.8871,0.0,0,0,0.0,[],[]
+",True,0.4459,3.9384,3.9384,0.0,0,0,0.0,[],[]
 wrong_2_291,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     the_day = ()
     for i in possible_birthdays:
@@ -2025,11 +1960,11 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.9762,0.1508,0.1508,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
-wrong_2_297,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
+",True,0.9762,0.1265,0.1265,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+wrong_2_297,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     total= 0
     for i in possible_birthdays:
-        if date != i[1]:
+        if date == i[1]:
             total= total + 1
     return total == 1
 
@@ -2042,10 +1977,11 @@ def unique_month(month, possible_birthdays):
 
 def contains_unique_day(month, possible_birthdays):
     for i in possible_birthdays:
-        if unique_day(i[1], possible_birthdays):
-            return True
+        if i[0]==month:
+            if unique_day(i[1],possible_birthdays):
+                return True
     return False
-",True,0.013,0.1028,0.1028,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0909,5.7013,5.7013,0.0,0,0,0.0,[],[]
 wrong_2_298,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count, result = 0, 0
     for count in range(0, len(possible_birthdays)):
@@ -2076,7 +2012,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2083,0.0918,0.0918,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2083,0.1206,0.1206,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_302,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -2095,7 +2031,7 @@ def contains_unique_day(month, possible_birthdays):
         if i[0]==month and unique_day(i[1],possible_birthdays):
             return True
     return False
-",True,0.037,0.1005,0.1005,0.0,0,0,0.0,"[""generic_shift_index""]",[]
+",True,0.037,0.0783,0.0783,0.0,0,0,0.0,"[""generic_shift_index""]",[]
 wrong_2_304,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count=0
     for i in possible_birthdays: 
@@ -2123,7 +2059,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
                break
     return False
-",True,0.6462,4.0263,4.0263,0.0,0,0,0.0,[],[]
+",True,0.6462,4.0142,4.0142,0.0,0,0,0.0,[],[]
 wrong_2_311,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter=0
     for date in possible_birthdays:
@@ -2149,8 +2085,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,1.0652,3.9414,3.9414,0.0,0,0,0.0,[],[]
-wrong_2_316,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
+",True,1.0652,3.8205,3.8205,0.0,0,0,0.0,[],[]
+wrong_2_316,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
         if date == i[1]:
@@ -2184,13 +2120,13 @@ def contains_unique_day(month, possible_birthdays):
     for i in months:
         if unique_day(i[1], possible_birthdays) == True:
             return True
-        else:
-            return False
-",True,0.0093,0.1426,0.1426,0.0,0,0,0.0,"[""undefined_name_use_param""]",[]
-wrong_2_320,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
+    else:
+        return False
+",True,0.028,3.5505,3.5505,0.0,0,0,0.0,[],[]
+wrong_2_320,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
-        if day != i[1]:
+        if day == i[1]:
             counter = counter + 1
     if counter == 1:
         return True
@@ -2208,13 +2144,16 @@ def unique_month(month, possible_birthdays):
         return False
 
 def contains_unique_day(month, possible_birthdays):
-    month_day = ()
-    for j in possible_birthdays:
-        if j <= possible_birthdays[(0) - 1]:
-            month_day = month_day + (j,)
-    for t in month_day:
-        return unique_day(t[1], month_day)
-",True,0.0495,1.6394,1.6394,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_flip_compare"", ""generic_shift_index""]",[]
+  possible_days = ()
+  for x in possible_birthdays:
+    if x[0] == month:
+      possible_days += (x,)
+  for day in possible_days:
+    if unique_day(day[1], possible_birthdays) == True:
+      return True
+  else:
+    return False
+",True,0.2376,7.4582,7.4582,0.0,0,0,0.0,[],[]
 wrong_2_326,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     count = 0
     for i in range (len(possible_birthdays)):
@@ -2241,7 +2180,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.25,0.1211,0.1211,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.25,0.0982,0.0982,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_330,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter=0
     for date in possible_birthdays:
@@ -2268,7 +2207,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays) and (month==months):
             return True
     return False
-",True,0.1786,0.9572,0.9572,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true"", ""contains_unique_day_premature_compare_return""]",[]
+",True,0.1786,0.8532,0.8532,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true"", ""contains_unique_day_premature_compare_return""]",[]
 wrong_2_340,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
@@ -2296,7 +2235,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
     return False
           
-",True,0.0316,1.8808,1.8808,0.0,0,0,0.0,"[""undefined_name_use_param"", ""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
+",True,0.0316,1.8811,1.8811,0.0,0,0,0.0,"[""undefined_name_use_param"", ""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
 wrong_2_341,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     result = 0
     for birthdays in possible_birthdays:
@@ -2320,8 +2259,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.9111,0.1601,0.1601,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
-wrong_2_352,claude-sonnet-5,none,,False,,3.6688,3.6688,0.0,0,0,0.0,[],[]
+",True,0.9111,0.1393,0.1393,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+wrong_2_352,claude-sonnet-5,none,,False,,3.5886,3.5886,0.0,0,0,0.0,[],[]
 wrong_2_353,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     lenth=len(possible_birthdays)
     count=0
@@ -2354,7 +2293,7 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.1532,8.4634,8.4634,0.0,0,0,0.0,[],[]
+",True,0.1532,7.7951,7.7951,0.0,0,0,0.0,[],[]
 wrong_2_354,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     lenth=len(possible_birthdays)
     count=0
@@ -2387,7 +2326,7 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.1371,10.7348,10.7348,0.0,0,0,0.0,[],[]
+",True,0.1371,10.3597,10.3597,0.0,0,0,0.0,[],[]
 wrong_2_355,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     lenth=len(possible_birthdays)
     count=0
@@ -2420,7 +2359,7 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.1705,10.7308,10.7308,0.0,0,0,0.0,[],[]
+",True,0.1705,10.006,10.006,0.0,0,0,0.0,[],[]
 wrong_2_362,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     occur = 0
     for i in possible_birthdays:
@@ -2448,7 +2387,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.1935,0.1169,0.1169,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.1935,0.0845,0.0845,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_366,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     i = 0
     for days in possible_birthdays:
@@ -2473,7 +2412,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.8723,0.1606,0.1606,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.8723,0.1452,0.1452,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_374,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     datetup = ()
     for item in possible_birthdays:
@@ -2497,7 +2436,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.82,0.2924,0.2924,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.82,0.3741,0.3741,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_376,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     count=0
     for i in possible_birthdays: 
@@ -2529,7 +2468,7 @@ def contains_unique_day(month, possible_birthdays):
     if counter != 0:
         return True
     return False
-",True,0.3443,7.6708,7.6708,0.0,0,0,0.0,[],[]
+",True,0.3443,6.2628,6.2628,0.0,0,0,0.0,[],[]
 wrong_2_380,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -2576,7 +2515,7 @@ def statement3(birthday, possible_birthdays):
         return True
     
     return False  
-",True,0.9625,0.1563,0.1563,0.0,0,0,0.0,"[""missing_required_functions""]",[]
+",True,0.9625,0.0755,0.0755,0.0,0,0,0.0,"[""missing_required_functions""]",[]
 wrong_2_384,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for item in possible_birthdays:
@@ -2601,7 +2540,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2778,0.0837,0.0837,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.2778,0.0762,0.0762,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_389,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count = 0
     for item in possible_birthdays:
@@ -2632,7 +2571,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.3571,3.3309,3.3309,0.0,0,0,0.0,"[""undefined_name_use_param"", ""threshold_to_exact_one"", ""threshold_to_exact_one"", ""contains_unique_day_missing_helper_call""]",[]
+",True,0.3571,3.2749,3.2749,0.0,0,0,0.0,"[""undefined_name_use_param"", ""threshold_to_exact_one"", ""threshold_to_exact_one"", ""contains_unique_day_missing_helper_call""]",[]
 wrong_2_391,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count = 0
     for item in possible_birthdays:
@@ -2663,7 +2602,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.3429,1.0311,1.0311,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one"", ""contains_unique_day_missing_helper_call""]",[]
+",True,0.3429,0.9511,0.9511,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one"", ""contains_unique_day_missing_helper_call""]",[]
 wrong_2_393,claude-sonnet-5,reference,"def unique_day(date, possible_birthdays):
     result = 0
     for n in possible_birthdays:
@@ -2692,17 +2631,15 @@ def contains_unique_day(month, possible_birthdays):
            new_possible_birthdays += (possible_birthdays[i],)
     new_day = """"
     counter = 0
-    for i in range(len(new_possible_birthdays)):
-        new_day = new_possible_birthdays[i][1]
-        if  unique_day(new_day, possible_birthdays) == True:
-            counter = counter +1
-        if counter == 0:
-            return False
-        else:
-            return True
-            
-
-",True,0.0214,8.2103,8.2103,0.0,0,0,0.0,[],[]
+    for n in range(len(new_possible_birthdays)):
+        new_day = new_possible_birthdays[n][1]
+        if unique_day(new_day,possible_birthdays) == True:
+            counter += 1
+    if counter == 0:
+        return False
+    else:
+        return True
+",True,0.0714,5.1594,5.1594,0.0,0,0,0.0,[],[]
 wrong_2_396,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count = 0
     for item in possible_birthdays:
@@ -2736,7 +2673,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0388,0.5247,0.5247,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
+",True,0.0388,0.4737,0.4737,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
 wrong_2_400,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     store = 0
     for i in possible_birthdays:
@@ -2765,7 +2702,7 @@ def contains_unique_day(month, possible_birthdays):
     if n>=1:
         return True
     return False
-",True,0.6167,4.3206,4.3206,0.0,0,0,0.0,[],[]
+",True,0.6167,4.1153,4.1153,0.0,0,0,0.0,[],[]
 wrong_2_403,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for x in possible_birthdays:
@@ -2793,7 +2730,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.8367,0.2198,0.2198,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
+",True,0.8367,0.1734,0.1734,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call"", ""bare_return_stub""]",[]
 wrong_2_404,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     count=0
     for i in range(len(possible_birthdays)):
@@ -2820,7 +2757,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.1895,0.1068,0.1068,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+",True,0.1895,0.1387,0.1387,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
 wrong_2_414,claude-sonnet-5,reference,"def unique_day(day, possible_birthdays):
     count = ()
     for i in possible_birthdays:
@@ -2853,7 +2790,7 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False
-",True,0.2105,4.8109,4.8109,0.0,0,0,0.0,[],[]
+",True,0.2105,4.6978,4.6978,0.0,0,0,0.0,[],[]
 wrong_2_415,claude-sonnet-5,rules,"def unique_day(day, possible_birthdays):
     count=0
     for i in possible_birthdays:
@@ -2885,7 +2822,7 @@ def contains_unique_day(month, possible_birthdays):
     else:
         return False
 
-",True,0.0202,0.4788,0.4788,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
+",True,0.0202,0.4086,0.4086,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
 wrong_2_424,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthdate in possible_birthdays:
@@ -2916,7 +2853,7 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False
-",True,0.0089,0.0971,0.0971,0.0,0,0,0.0,"[""threshold_to_exact_one""]",[]
+",True,0.0089,0.0813,0.0813,0.0,0,0,0.0,"[""threshold_to_exact_one""]",[]
 wrong_2_425,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthdate in possible_birthdays:
@@ -2947,7 +2884,7 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False
-",True,0.0189,0.4694,0.4694,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
+",True,0.0189,0.4052,0.4052,0.0,0,0,0.0,"[""threshold_to_exact_one"", ""threshold_to_exact_one""]",[]
 wrong_2_427,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     only_date = ()
     for i in possible_birthdays:
@@ -2972,35 +2909,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False 
-",True,0.2703,0.096,0.096,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
-wrong_2_432,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
-    counter = 0
-    for i in possible_birthdays:
-        if i[1] != date:
-            counter += 1
-    if counter > 1:
-        return False
-    return counter == 1
-
-def unique_month(month, possible_birthdays):
-    counter = 0
-    for i in possible_birthdays:
-        if i[0] == month:
-            counter += 1
-    if counter > 1:
-        return False
-    return counter == 1
-
-def contains_unique_day(month, possible_birthdays):
-    new_tuple = ()
-    for i in possible_birthdays:
-        if i[0] >= month:
-            new_tuple += (i,)
-        if len(new_tuple)>1:
-            return False
-        else:
-            return unique_day(new_tuple[0][1], possible_birthdays)
-",True,0.0971,3.2729,3.2729,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.2703,0.0801,0.0801,0.0,0,0,0.0,"[""contains_unique_day_missing_helper_call""]",[]
+wrong_2_432,claude-sonnet-5,none,,False,,3.4935,3.4935,0.0,0,0,0.0,[],[]
 wrong_2_433,claude-sonnet-5,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
@@ -3029,7 +2939,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(new_tuple[i][1], possible_birthdays):
             return True
     return False
-",True,0.0727,0.5002,0.5002,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true""]",[]
+",True,0.0727,0.4569,0.4569,0.0,0,0,0.0,"[""sequential_threshold_then_return_true"", ""sequential_threshold_then_return_true""]",[]
 wrong_2_002,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -3051,7 +2961,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 days = days + (i[1],)
     return len(days) >= 1
-",True,0.0105,0.0824,0.0824,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0105,0.1314,0.1314,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
 wrong_2_003,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -3073,8 +2983,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 days = days + (i[1],)
     return len(days) >= 1
-",True,0.0105,0.0871,0.0871,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_006,gpt-5.4-mini,none,,False,,3.6979,3.6979,0.0,0,0,0.0,[],[]
+",True,0.0105,0.0808,0.0808,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_2_006,gpt-5.4-mini,none,,False,,3.6124,3.6124,0.0,0,0,0.0,[],[]
 wrong_2_010,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
        
     days = 0 
@@ -3116,7 +3026,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0227,7.9476,7.9476,0.0,0,0,0.0,[],[]
+",True,0.0227,8.1092,8.1092,0.0,0,0,0.0,[],[]
 wrong_2_013,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
        
     days = 0 
@@ -3159,7 +3069,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0076,0.0945,0.0945,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
+",True,0.0076,0.0756,0.0756,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
 wrong_2_015,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
        
     days = 0 
@@ -3203,7 +3113,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.0076,0.099,0.099,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
+",True,0.0076,0.0762,0.0762,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
 wrong_2_018,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count_day = 0
     for birthday in possible_birthdays:
@@ -3224,7 +3134,7 @@ def contains_unique_day(month, possible_birthdays):
             day = birthday[1]
             if unique_day(day, possible_birthdays): return True
     return False
-",True,0.2637,4.8748,4.8748,0.0,0,0,0.0,[],[]
+",True,0.2637,5.0489,5.0489,0.0,0,0,0.0,[],[]
 wrong_2_022,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     if (tuple(map(lambda x: x[1], possible_birthdays))).count(day) == 1:
         return True
@@ -3241,7 +3151,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(i,possible_birthdays):
             return True
     return False
-",True,0.3876,7.3575,7.3575,0.0,0,0,0.0,[],[]
+",True,0.3876,7.5118,7.5118,0.0,0,0,0.0,[],[]
 wrong_2_023,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for birthdays in possible_birthdays:
@@ -3269,7 +3179,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(sub_birthday[1], possible_birthdays):
             return True
     return False 
-",True,0.1616,6.0643,6.0643,0.0,0,0,0.0,[],[]
+",True,0.1616,5.7502,5.7502,0.0,0,0,0.0,[],[]
 wrong_2_025,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     checker = 0
     for bday in possible_birthdays:
@@ -3294,7 +3204,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(bday[1], possible_birthdays) == True:
                 return True
     return False
-",True,0.3967,5.9237,5.9237,0.0,0,0,0.0,[],[]
+",True,0.3967,5.6623,5.6623,0.0,0,0,0.0,[],[]
 wrong_2_027,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     if (tuple(map(lambda x: x[1], possible_birthdays))).count(day) == 1:
         return True
@@ -3312,7 +3222,7 @@ def contains_unique_day(month, possible_birthdays):
     unique_day_list = list(filter(lambda day: unique_day(day, possible_birthdays)\
                                   , birthday_day))
     return len(unique_day_list) > 0
-",True,0.3529,8.9911,8.9911,0.0,0,0,0.0,[],[]
+",True,0.3529,8.9861,8.9861,0.0,0,0,0.0,[],[]
 wrong_2_029,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     tpl = ()
     for i in possible_birthdays:
@@ -3338,7 +3248,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(l, possible_birthdays) == True:
             return True
     return False        
-",True,0.02,3.3064,3.3064,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.02,3.3171,3.3171,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_030,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter =0
     for elements in possible_birthdays:
@@ -3362,7 +3272,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(elements,possible_birthdays):
             return True
     return False
-",True,1.8095,3.5143,3.5143,0.0,0,0,0.0,[],[]
+",True,1.8095,3.3018,3.3018,0.0,0,0,0.0,[],[]
 wrong_2_031,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter =0
     for elements in possible_birthdays:
@@ -3386,7 +3296,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(elements,possible_birthdays):
             return True
     return False
-",True,1.1818,3.6857,3.6857,0.0,0,0,0.0,[],[]
+",True,1.1818,3.5624,3.5624,0.0,0,0,0.0,[],[]
 wrong_2_032,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter =0
     for elements in possible_birthdays:
@@ -3410,7 +3320,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(elements,possible_birthdays):
             return True
     return False
-",True,1.1818,3.6218,3.6218,0.0,0,0,0.0,[],[]
+",True,1.1818,3.5294,3.5294,0.0,0,0,0.0,[],[]
 wrong_2_034,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     tpl = ()
     for i in possible_birthdays:
@@ -3436,7 +3346,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(l, possible_birthdays) == True:
             return True
     return False        
-",True,0.02,3.3738,3.3738,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.02,3.3206,3.3206,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_036,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     a = 0
     for date in possible_birthdays:
@@ -3457,7 +3367,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(date[1], possible_birthdays):
                 return True
     return False
-",True,0.4222,4.7201,4.7201,0.0,0,0,0.0,[],[]
+",True,0.4222,5.173,5.173,0.0,0,0,0.0,[],[]
 wrong_2_045,gpt-5.4-mini,reference,"
 def unique_day(day, possible_birthdays):
     
@@ -3496,7 +3406,7 @@ def contains_unique_day(month, possible_birthdays):
             return True
     return False
     
-",True,0.0097,9.8982,9.8982,0.0,0,0,0.0,[],[]
+",True,0.0097,9.9098,9.9098,0.0,0,0,0.0,[],[]
 wrong_2_058,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     total_day = 0
     for birthday in possible_birthdays:
@@ -3523,7 +3433,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.2941,6.0328,6.0328,0.0,0,0,0.0,[],[]
+",True,0.2941,6.0974,6.0974,0.0,0,0,0.0,[],[]
 wrong_2_065,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
@@ -3545,7 +3455,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,0.2286,6.9063,6.9063,0.0,0,0,0.0,[],[]
+",True,0.2286,7.1479,7.1479,0.0,0,0,0.0,[],[]
 wrong_2_072,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
@@ -3567,7 +3477,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,0.2286,7.0677,7.0677,0.0,0,0,0.0,[],[]
+",True,0.2286,7.1721,7.1721,0.0,0,0,0.0,[],[]
 wrong_2_073,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     no_of_days = 0
     for i in possible_birthdays:
@@ -3599,7 +3509,7 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False 
-",True,0.0088,0.0831,0.0831,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0088,0.1101,0.1101,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
 wrong_2_086,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counted = 0
     for birthdays in possible_birthdays:
@@ -3624,7 +3534,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,2.25,3.3739,3.3739,0.0,0,0,0.0,[],[]
+",True,2.25,3.2576,3.2576,0.0,0,0,0.0,[],[]
 wrong_2_089,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for dates in possible_birthdays:
@@ -3652,7 +3562,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.8654,4.754,4.754,0.0,0,0,0.0,[],[]
+",True,0.8654,4.641,4.641,0.0,0,0,0.0,[],[]
 wrong_2_094,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3673,7 +3583,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,1.1556,3.7175,3.7175,0.0,0,0,0.0,[],[]
+",True,1.1556,3.862,3.862,0.0,0,0,0.0,[],[]
 wrong_2_097,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3694,7 +3604,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,1.1111,3.6758,3.6758,0.0,0,0,0.0,[],[]
+",True,1.1111,3.7353,3.7353,0.0,0,0,0.0,[],[]
 wrong_2_103,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3721,7 +3631,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,1.0444,3.8104,3.8104,0.0,0,0,0.0,[],[]
+",True,1.0444,3.6541,3.6541,0.0,0,0,0.0,[],[]
 wrong_2_105,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3748,7 +3658,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,1.0444,3.6225,3.6225,0.0,0,0,0.0,[],[]
+",True,1.0444,3.6425,3.6425,0.0,0,0,0.0,[],[]
 wrong_2_111,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3778,7 +3688,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.8491,3.7276,3.7276,0.0,0,0,0.0,[],[]
+",True,0.8491,3.6841,3.6841,0.0,0,0,0.0,[],[]
 wrong_2_112,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3813,7 +3723,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
                break
     return False
-",True,0.2955,3.829,3.829,0.0,0,0,0.0,[],[]
+",True,0.2955,3.7244,3.7244,0.0,0,0,0.0,[],[]
 wrong_2_113,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3846,7 +3756,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.2273,4.0839,4.0839,0.0,0,0,0.0,[],[]
+",True,0.2273,4.0926,4.0926,0.0,0,0,0.0,[],[]
 wrong_2_117,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -3878,17 +3788,12 @@ def contains_unique_day(month, possible_birthdays):
         if month==i[0]:
             if unique_day(i[1], possible_birthdays):
                 return True
-            else:
-                return False
-    
-    
-    
-   
-",True,0.066,4.1927,4.1927,0.0,0,0,0.0,[],[]
-wrong_2_121,gpt-5.4-mini,rules,"def count_dates(date, possible_birthdays):
+    return False
+",True,0.1038,4.1061,4.1061,0.0,0,0,0.0,[],[]
+wrong_2_121,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             count += 1
     return count
     
@@ -3916,15 +3821,8 @@ def contains_unique_day(month, possible_birthdays):
         if i[0] == month:
             if unique_day(i[1], possible_birthdays):
                 return True
-            else:
-                return False
-        else:
-            continue
-    
-    
-    
-   
-",True,0.0092,0.0927,0.0927,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+    return False
+",True,0.0459,4.3065,4.3065,0.0,0,0,0.0,[],[]
 wrong_2_124,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     tester = 0
     for i in possible_birthdays:
@@ -3948,7 +3846,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(birthday[1], possible_birthdays):
                 return True
     return False
-",True,0.5667,4.1767,4.1767,0.0,0,0,0.0,[],[]
+",True,0.5667,4.0935,4.0935,0.0,0,0,0.0,[],[]
 wrong_2_133,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     unique_day_counter = 0
     for i in possible_birthdays:
@@ -3973,7 +3871,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.2941,4.6776,4.6776,0.0,0,0,0.0,[],[]
+",True,0.2941,4.6534,4.6534,0.0,0,0,0.0,[],[]
 wrong_2_138,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -4013,7 +3911,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.127,4.7592,4.7592,0.0,0,0,0.0,[],[]
+",True,0.127,4.3596,4.3596,0.0,0,0,0.0,[],[]
 wrong_2_164,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -4042,25 +3940,17 @@ def unique_month(month, possible_birthdays):
 
 def days(month, possible_birthdays):
     days_in_month = ()
-    for i in range(len(possible_birthdays)):
-        if possible_birthdays[i][0] == month:
-            days_in_month += (possible_birthdays[i],)
+    for i in possible_birthdays:
+        if i[0] == month:
+            days_in_month += (i[1],)
     return days_in_month
 
 def contains_unique_day(month, possible_birthdays):
-    for x in range(len(days(month, possible_birthdays))):
-        if unique_day(days(month, possible_birthdays)[x][1], possible_birthdays):
+    for date in possible_birthdays:
+        if unique_day(date[1], possible_birthdays) == True and month == date[0]:
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.125,4.2726,4.2726,0.0,0,0,0.0,[],[]
+    return False       
+",True,0.1691,3.8029,3.8029,0.0,0,0,0.0,[],[]
 wrong_2_168,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -4089,29 +3979,22 @@ def unique_month(month, possible_birthdays):
 
 def days(month, possible_birthdays):
     days_in_month = ()
-    for i in range(len(possible_birthdays)):
-        if possible_birthdays[i][0] == month:
-            days_in_month += (possible_birthdays[i],)
+    for i in possible_birthdays:
+        if i[0] == month:
+            days_in_month += (i[1],)
     return days_in_month
 
 def contains_unique_day(month, possible_birthdays):
-    for x in range(len(days(month, possible_birthdays))):
-        if unique_day(days(month, possible_birthdays)[x][1], possible_birthdays):
-            return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0956,4.229,4.229,0.0,0,0,0.0,[],[]
-wrong_2_172,gpt-5.4-mini,rules,"def count_dates(date, possible_birthdays):
+    for i in possible_birthdays:
+        if month==i[0]:
+            if unique_day(i[1], possible_birthdays):
+                return True
+    return False
+",True,0.1397,4.025,4.025,0.0,0,0,0.0,[],[]
+wrong_2_172,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             count += 1
     return count
     
@@ -4145,20 +4028,13 @@ def contains_unique_day(month, possible_birthdays):
     for x in range(len(days(month, possible_birthdays))):
         if unique_day(days(month, possible_birthdays)[x], possible_birthdays):
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0072,0.0848,0.0848,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_173,gpt-5.4-mini,rules,"def count_dates(date, possible_birthdays):
+    else:
+        return False
+",True,0.0145,4.5091,4.5091,0.0,0,0,0.0,[],[]
+wrong_2_173,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             count += 1
     return count
     
@@ -4196,16 +4072,9 @@ def contains_unique_day(month, possible_birthdays):
     for x in range(len(days(month, possible_birthdays))):
         if unique_day(days(month, possible_birthdays)[x], possible_birthdays):
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0063,0.1165,0.1165,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+    else:
+        return False
+",True,0.0127,4.758,4.758,0.0,0,0,0.0,[],[]
 wrong_2_175,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
@@ -4241,16 +4110,8 @@ def contains_unique_day(month, possible_birthdays):
     for i in days:
         if unique_day(i, possible_birthdays):
             return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.041,5.0148,5.0148,0.0,0,0,0.0,[],[]
+    return False
+",True,0.0738,4.2485,4.2485,0.0,0,0,0.0,[],[]
 wrong_2_178,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
@@ -4266,68 +4127,13 @@ def unique_month(month, possible_birthdays):
     return counter == 1
 
 def contains_unique_day(month, possible_birthdays):
-    filtered = tuple(filter(lambda x: x[0] == month, possible_birthdays))
-    tup1 = tuple(filter(lambda x: x[0] != month, possible_birthdays)) # Remaining dates
-    tup2 = tuple(map(lambda x: x[1], tup1)) # Day of the remaining dates
-    def unique(tup):
-        output = ()
-        for i in tup:
-            if i not in output:
-                output += (i,)
-        return output
-    dates = unique(tup2)
-    
-    for i in filtered:
-        if i[1] not in dates:
+    mth = tuple(filter(lambda bd: month == bd[0], possible_birthdays))
+    for i in mth:
+        if unique_day(i[1], possible_birthdays):
             return True
     return False
-",True,0.1974,9.9372,9.9372,0.0,0,0,0.0,[],[]
-wrong_2_182,gpt-5.4-mini,rules,"def count_dates(date, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        if i[1] <= date:
-            count += 1
-    return count
-    
-def unique_day(date, possible_birthdays):
-    if count_dates(date, possible_birthdays) == 1:
-        return True
-    else:
-        return False
-    
-def count_months(month, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        if i[0] == month:
-            count += 1
-    return count
-    
-def unique_month(month, possible_birthdays):
-    if count_months(month, possible_birthdays) == 1:
-        return True
-    else:
-        return False
-
-
-def contains_unique_day(month, possible_birthdays):
-    days_in_month = ()
-    for i in possible_birthdays:
-        if i[0] == month:
-            days_in_month += (i,)
-    for x in range(len(days_in_month)):
-        if unique_day(days_in_month[x][1], possible_birthdays):
-            return True
-        else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.008,0.1599,0.1599,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
-wrong_2_186,gpt-5.4-mini,rules,"def count_dates(date, possible_birthdays):
+",True,0.6382,4.6992,4.6992,0.0,0,0,0.0,[],[]
+wrong_2_182,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
         if i[1] == date:
@@ -4360,18 +4166,51 @@ def contains_unique_day(month, possible_birthdays):
         if i[0] == month:
             days_in_month += (i,)
     for x in range(len(days_in_month)):
-        if unique_day(days_in_month[x][1], possible_birthdays) != False:
+        if unique_day(days_in_month[x][1], possible_birthdays):
             return True
+    else:
+        return False
+",True,0.016,4.4226,4.4226,0.0,0,0,0.0,[],[]
+wrong_2_186,gpt-5.4-mini,reference,"def count_dates(date, possible_birthdays):
+    count = 0
+    for i in possible_birthdays:
+        if i[1] == date:
+            count += 1
+    return count
+    
+def unique_day(date, possible_birthdays):
+    if count_dates(date, possible_birthdays) == 1:
+        return True
+    else:
+        return False
+    
+def count_months(month, possible_birthdays):
+    count = 0
+    for i in possible_birthdays:
+        if i[0] == month:
+            count += 1
+    return count
+    
+def unique_month(month, possible_birthdays):
+    if count_months(month, possible_birthdays) == 1:
+        return True
+    else:
+        return False
+
+
+def contains_unique_day(month, possible_birthdays):
+    selected_month = ()
+    unique = ()
+    for i in possible_birthdays:
+        if i[0] == month:
+            selected_month += (i,)
         else:
-            return False
-           
-                
-        
-    
-    
-    
-   
-",True,0.0078,0.0846,0.0846,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+            continue
+    for i in selected_month:
+        if unique_day(i[1], possible_birthdays) == True:
+            return True
+    return False
+",True,0.1562,3.8478,3.8478,0.0,0,0,0.0,[],[]
 wrong_2_190,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in range(0,len(possible_birthdays)):
@@ -4399,7 +4238,7 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.9615,4.5543,4.5543,0.0,0,0,0.0,[],[]
+",True,0.9615,4.4094,4.4094,0.0,0,0,0.0,[],[]
 wrong_2_191,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in range(0,len(possible_birthdays)):
@@ -4428,7 +4267,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False
-",True,0.2442,8.7316,8.7316,0.0,0,0,0.0,[],[]
+",True,0.2442,8.1537,8.1537,0.0,0,0,0.0,[],[]
 wrong_2_193,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     days = ()
     unique = ()
@@ -4464,7 +4303,7 @@ def contains_unique_day(month, possible_birthdays):
             return True
     else:
         return False
-",True,0.9655,3.8792,3.8792,0.0,0,0,0.0,[],[]
+",True,0.9655,3.8738,3.8738,0.0,0,0,0.0,[],[]
 wrong_2_195,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for j in possible_birthdays:
@@ -4494,8 +4333,8 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     return False
 
-",True,0.0112,0.0986,0.0986,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
-wrong_2_205,gpt-5.4-mini,none,,False,,3.6778,3.6778,0.0,0,0,0.0,[],[]
+",True,0.0112,0.0944,0.0944,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
+wrong_2_205,gpt-5.4-mini,none,,False,,3.4936,3.4936,0.0,0,0,0.0,[],[]
 wrong_2_211,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     result = 0
     for i in possible_birthdays:
@@ -4526,7 +4365,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.2778,5.133,5.133,0.0,0,0,0.0,[],[]
+",True,0.2778,5.4983,5.4983,0.0,0,0,0.0,[],[]
 wrong_2_215,gpt-5.4-mini,reference,"def map(fn, seq):
     res = ()
 
@@ -4563,7 +4402,7 @@ def contains_unique_day(month, possible_birthdays):
         if len(filter(lambda x: x == k[f],b)) == 1:
             return True
     return False
-",True,0.2909,7.3688,7.3688,0.0,0,0,0.0,[],[]
+",True,0.2909,7.1034,7.1034,0.0,0,0,0.0,[],[]
 wrong_2_222,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for date in possible_birthdays:
@@ -4584,50 +4423,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 return True
     return False
-",True,0.3667,4.3944,4.3944,0.0,0,0,0.0,[],[]
-wrong_2_225,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        birthday = i[1]
-        if day >= birthday:
-            count = count + 1
-        else:
-            count = count
-    if count > 1:
-        return False
-    elif count <= 1:
-        return True
-
-def unique_month(month, possible_birthdays):
-    count = 0
-    for i in possible_birthdays:
-        birthday = i[0]
-        if month == birthday:
-            count = count + 1
-        else:
-            count = count
-    if count != 1:
-        return False
-    elif count <= 1:
-        return True
-
-def contains_unique_day(month, possible_birthdays):
-    tup_month_1 = ()
-    tup_month_2 = ()
-    for i in possible_birthdays:
-        if month == i[0]:
-            tup_month_1 = tup_month_1 + (i,)
-        else:
-            tup_month_2 = tup_month_2 + (i[1],)
-    for j in tup_month_1:
-        day = j[1]
-        if day in tup_month_2:
-            continue
-        elif day not in tup_month_2:
-            return True
-    else:
-        return False
-",True,0.0135,2.7547,2.7547,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.3667,4.4869,4.4869,0.0,0,0,0.0,[],[]
+wrong_2_225,gpt-5.4-mini,none,,False,,3.5573,3.5573,0.0,0,0,0.0,[],[]
 wrong_2_228,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     result = ()
     for p in possible_birthdays:
@@ -4655,7 +4452,7 @@ def contains_unique_day(month, possible_birthdays):
     if month in correct_months:
         return True
     return False 
-",True,1.2353,3.776,3.776,0.0,0,0,0.0,[],[]
+",True,1.2353,3.7692,3.7692,0.0,0,0,0.0,[],[]
 wrong_2_231,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     result = ()
     for p in possible_birthdays:
@@ -4683,7 +4480,7 @@ def contains_unique_day(month, possible_birthdays):
     if month in correct_months:
         return True
     return False 
-",True,0.5833,3.9012,3.9012,0.0,0,0,0.0,[],[]
+",True,0.5833,4.0515,4.0515,0.0,0,0,0.0,[],[]
 wrong_2_233,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     days = [possible_birthdays[i][1] for i in range(len(possible_birthdays))]
     if days.count(day) != 1:
@@ -4707,13 +4504,13 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays):
             return True
     return False
-",True,0.0174,3.3534,3.3534,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.0174,3.282,3.282,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_235,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     count = 0
     for birthday in possible_birthdays:
-        if date >= birthday[1]:
+        if date == birthday[1]:
             count = count + 1
-    if count>1:
+    if count != 1:
         return False
     else:
         return True    
@@ -4735,7 +4532,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
     return False
           
-",True,0.0211,1.4301,1.4301,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.0211,3.3308,3.3308,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_236,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     days = [possible_birthdays[i][1] for i in range(len(possible_birthdays))]
     if days.count(day) != 1:
@@ -4759,7 +4556,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays):
             return True
     return False
-",True,0.0174,3.3319,3.3319,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.0174,3.3077,3.3077,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_237,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthday in possible_birthdays:
@@ -4779,7 +4576,7 @@ def contains_unique_day(month, possible_birthdays):
         if birthday[0] == month and unique_day(birthday[1], possible_birthdays) == True:
             return True
     return False
-",True,2.4074,0.7803,0.7803,0.0,0,0,0.0,[],[]
+",True,2.4074,0.5308,0.5308,0.0,0,0,0.0,[],[]
 wrong_2_238,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthday in possible_birthdays:
@@ -4799,7 +4596,7 @@ def contains_unique_day(month, possible_birthdays):
         if birthday[0] == month and unique_day(birthday[1], possible_birthdays) == True:
             return True
     return False
-",True,2.4074,0.6359,0.6359,0.0,0,0,0.0,[],[]
+",True,2.4074,0.5174,0.5174,0.0,0,0,0.0,[],[]
 wrong_2_239,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     counter=0
     for i in possible_birthdays:
@@ -4823,8 +4620,8 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(i[1],possible_birthdays):
             return True
     return False
-",True,0.022,0.4332,0.4332,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality""]",[]
-wrong_2_249,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
+",True,0.022,0.338,0.338,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality""]",[]
+wrong_2_249,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for days in range(len(possible_birthdays)):
         if str(day) == possible_birthdays[days][1]:
@@ -4839,22 +4636,15 @@ def unique_month(month, possible_birthdays):
     return True if counter == 1 else False
 
 def contains_unique_day(month, possible_birthdays):
-    daystoconsider = ()
-    i = 0
-    while i < len(possible_birthdays):
-        if month == possible_birthdays[i][0]:
-            daystoconsider += (possible_birthdays[i][1],)
-        i += 1
-    monthcontaininguniqueday = ()
-    for a in range(len(possible_birthdays)):
-        if possible_birthdays[a][1] in daystoconsider:
-            monthcontaininguniqueday += (possible_birthdays[a][0],)
-    for mth in range(len(monthcontaininguniqueday)):
-        if monthcontaininguniqueday[(mth) - 1] == month:
+    days = ()
+    for i in possible_birthdays:
+        if i[0] == month:
+            days += (i[1],)
+    for i in days:
+        if unique_day(i, possible_birthdays):
             return True
-            break
-        return False
-",True,0.0186,0.1082,0.1082,0.0,0,0,0.0,"[""generic_shift_index""]",[]
+    return False
+",True,0.4037,4.5256,4.5256,0.0,0,0,0.0,[],[]
 wrong_2_256,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     days = ()
     unique = ()
@@ -4895,7 +4685,7 @@ def contains_unique_day(month, possible_birthdays):
             return True
     else:
         return False
-",True,0.3163,5.6855,5.6855,0.0,0,0,0.0,[],[]
+",True,0.3163,4.8436,4.8436,0.0,0,0,0.0,[],[]
 wrong_2_260,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
@@ -4933,7 +4723,7 @@ def contains_unique_day(month, possible_birthdays):
         return False
     else:
         return True
-",True,1.7115,3.6656,3.6656,0.0,0,0,0.0,[],[]
+",True,1.7115,3.5944,3.5944,0.0,0,0,0.0,[],[]
 wrong_2_262,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     n=0
     for tup in possible_birthdays:
@@ -4962,13 +4752,13 @@ def contains_unique_day(month, possible_birthdays):
     if n>=1:
         return True
     return False
-",True,1.549,3.7469,3.7469,0.0,0,0,0.0,[],[]
+",True,1.549,3.4458,3.4458,0.0,0,0,0.0,[],[]
 wrong_2_265,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for possible_birthday in possible_birthdays:
-        if possible_birthday[1] <= day:
+        if possible_birthday[1] == day:
             counter += 1
-    if counter > 1:
+    if counter != 1:
         return False
     return True
 
@@ -4987,7 +4777,7 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(day, possible_birthdays):
             return True
     return False
-",True,0.019,1.303,1.303,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.019,3.3201,3.3201,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_273,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -5006,7 +4796,7 @@ def contains_unique_day(month, possible_birthdays):
         if i[0]==month and unique_day(i[1],possible_birthdays):
             return True
     return False
-",True,0.037,0.0963,0.0963,0.0,0,0,0.0,"[""generic_shift_index""]",[]
+",True,0.037,0.084,0.084,0.0,0,0,0.0,"[""generic_shift_index""]",[]
 wrong_2_276,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     only_date = ()
     for i in possible_birthdays:
@@ -5034,11 +4824,11 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.3243,1.2892,1.2892,0.0,0,0,0.0,[],[]
+",True,0.3243,1.0184,1.0184,0.0,0,0,0.0,[],[]
 wrong_2_280,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
-        if day != i[1]:
+        if day == i[1]:
             counter += 1
     if counter == 1:
         return True
@@ -5067,11 +4857,11 @@ def contains_unique_day(month, possible_birthdays):
             unique_days += (testday,)
     for k in unique_days:
         for l in focus:
-            if k == l[1]:
+            if k == l[(1) - 1]:
                 break
             return True
     return False
-",True,0.0079,0.1298,0.1298,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0236,0.0817,0.0817,0.0,0,0,0.0,"[""generic_shift_index""]",[]
 wrong_2_288,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter=0
     for date in possible_birthdays:
@@ -5098,7 +4888,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.4459,4.191,4.191,0.0,0,0,0.0,[],[]
+",True,0.4459,3.9464,3.9464,0.0,0,0,0.0,[],[]
 wrong_2_291,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     the_day = ()
     for i in possible_birthdays:
@@ -5119,11 +4909,11 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1],possible_birthdays):
                 return True
     return False
-",True,0.9762,3.8047,3.8047,0.0,0,0,0.0,[],[]
-wrong_2_297,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
+",True,0.9762,3.7155,3.7155,0.0,0,0,0.0,[],[]
+wrong_2_297,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     total= 0
     for i in possible_birthdays:
-        if date != i[1]:
+        if date == i[1]:
             total= total + 1
     return total == 1
 
@@ -5136,10 +4926,11 @@ def unique_month(month, possible_birthdays):
 
 def contains_unique_day(month, possible_birthdays):
     for i in possible_birthdays:
-        if unique_day(i[1], possible_birthdays):
-            return True
+        if i[0]==month:
+            if unique_day(i[1],possible_birthdays):
+                return True
     return False
-",True,0.013,0.1473,0.1473,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.0909,5.5354,5.5354,0.0,0,0,0.0,[],[]
 wrong_2_298,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count, result = 0, 0
     for count in range(0, len(possible_birthdays)):
@@ -5172,7 +4963,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False
-",True,0.2188,8.1629,8.1629,0.0,0,0,0.0,[],[]
+",True,0.2188,7.6466,7.6466,0.0,0,0,0.0,[],[]
 wrong_2_302,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     num=0
     for i in possible_birthdays:
@@ -5191,7 +4982,7 @@ def contains_unique_day(month, possible_birthdays):
         if i[0]==month and unique_day(i[1],possible_birthdays):
             return True
     return False
-",True,0.037,0.1057,0.1057,0.0,0,0,0.0,"[""generic_shift_index""]",[]
+",True,0.037,0.1071,0.1071,0.0,0,0,0.0,"[""generic_shift_index""]",[]
 wrong_2_304,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count=0
     for i in possible_birthdays: 
@@ -5219,7 +5010,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
                break
     return False
-",True,0.6462,4.0067,4.0067,0.0,0,0,0.0,[],[]
+",True,0.6462,3.9512,3.9512,0.0,0,0,0.0,[],[]
 wrong_2_311,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter=0
     for date in possible_birthdays:
@@ -5245,8 +5036,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,1.0652,3.9061,3.9061,0.0,0,0,0.0,[],[]
-wrong_2_316,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
+",True,1.0652,3.7238,3.7238,0.0,0,0,0.0,[],[]
+wrong_2_316,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in possible_birthdays:
         if date == i[1]:
@@ -5280,13 +5071,13 @@ def contains_unique_day(month, possible_birthdays):
     for i in months:
         if unique_day(i[1], possible_birthdays) == True:
             return True
-        else:
-            return False
-",True,0.0093,0.0939,0.0939,0.0,0,0,0.0,"[""unique_day_parameter_name""]",[]
-wrong_2_320,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
+    else:
+        return False
+",True,0.028,3.7617,3.7617,0.0,0,0,0.0,[],[]
+wrong_2_320,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
-        if day != i[1]:
+        if day == i[1]:
             counter = counter + 1
     if counter == 1:
         return True
@@ -5304,13 +5095,16 @@ def unique_month(month, possible_birthdays):
         return False
 
 def contains_unique_day(month, possible_birthdays):
-    month_day = ()
-    for j in possible_birthdays:
-        if j <= possible_birthdays[(0) - 1]:
-            month_day = month_day + (j,)
-    for t in month_day:
-        return unique_day(t[1], month_day)
-",True,0.0495,1.1639,1.1639,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_flip_compare"", ""generic_shift_index""]",[]
+  possible_days = ()
+  for x in possible_birthdays:
+    if x[0] == month:
+      possible_days += (x,)
+  for day in possible_days:
+    if unique_day(day[1], possible_birthdays) == True:
+      return True
+  else:
+    return False
+",True,0.2376,7.3141,7.3141,0.0,0,0,0.0,[],[]
 wrong_2_326,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count = 0
     for i in range (len(possible_birthdays)):
@@ -5339,7 +5133,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False
-",True,0.2625,6.4599,6.4599,0.0,0,0,0.0,[],[]
+",True,0.2625,6.3733,6.3733,0.0,0,0,0.0,[],[]
 wrong_2_330,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter=0
     for date in possible_birthdays:
@@ -5364,35 +5158,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.4524,2.4608,2.4608,0.0,0,0,0.0,[],[]
-wrong_2_340,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
-    count = 0
-    for birthday in possible_birthdays:
-        if date >= birthday[1]:
-            count = count + 1
-    if count>1:
-        return False
-    else:
-        return True    
-
-def unique_month(month, possible_birthdays):
-    count = 0
-    for birthday in possible_birthdays:
-        if month == birthday[0]:
-            count = count + 1
-    if count != 1:
-        return False
-    else:
-        return True
-
-def contains_unique_day(month, possible_birthdays):
-    for birthday in possible_birthdays:
-        if month == birthday[0]:
-            if unique_day(birthday[1], possible_birthdays) == True:
-               return True
-    return False
-          
-",True,0.0316,3.3759,3.3759,0.0,0,0,0.0,"[""compare_count_equality"", ""unique_day_parameter_name"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.4524,2.274,2.274,0.0,0,0,0.0,[],[]
+wrong_2_340,gpt-5.4-mini,none,,False,,3.6954,3.6954,0.0,0,0,0.0,[],[]
 wrong_2_341,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     result = 0
     for birthdays in possible_birthdays:
@@ -5418,8 +5185,8 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,1.0,4.2112,4.2112,0.0,0,0,0.0,[],[]
-wrong_2_352,gpt-5.4-mini,none,,False,,3.5519,3.5519,0.0,0,0,0.0,[],[]
+",True,1.0,4.1639,4.1639,0.0,0,0,0.0,[],[]
+wrong_2_352,gpt-5.4-mini,none,,False,,3.5713,3.5713,0.0,0,0,0.0,[],[]
 wrong_2_353,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     lenth=len(possible_birthdays)
     count=0
@@ -5452,7 +5219,7 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.1532,8.3987,8.3987,0.0,0,0,0.0,[],[]
+",True,0.1532,8.3756,8.3756,0.0,0,0,0.0,[],[]
 wrong_2_354,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     lenth=len(possible_birthdays)
     count=0
@@ -5485,7 +5252,7 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.1371,10.1006,10.1006,0.0,0,0,0.0,[],[]
+",True,0.1371,10.007,10.007,0.0,0,0,0.0,[],[]
 wrong_2_355,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     lenth=len(possible_birthdays)
     count=0
@@ -5518,8 +5285,8 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.1705,11.7696,11.7696,0.0,0,0,0.0,[],[]
-wrong_2_362,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
+",True,0.1705,9.8703,9.8703,0.0,0,0,0.0,[],[]
+wrong_2_362,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     occur = 0
     for i in possible_birthdays:
             if day == i[1]:
@@ -5541,15 +5308,16 @@ def unique_month(month, possible_birthdays):
 
 
 def contains_unique_day(month, possible_birthdays):
-    occur = 0
+    counter = 0
     for i in possible_birthdays:
-            if month == i[0]:
-                occur += 1
-    if occur != 1:
+        if month == i[0]:
+            if unique_day(i[1], possible_birthdays):
+                counter += 1
+    if counter != 0:
         return True
     else:
         return False
-",True,0.0108,0.1308,0.1308,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+",True,0.129,3.889,3.889,0.0,0,0,0.0,[],[]
 wrong_2_366,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     i = 0
     for days in possible_birthdays:
@@ -5576,7 +5344,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.9574,4.1866,4.1866,0.0,0,0,0.0,[],[]
+",True,0.9574,3.9608,3.9608,0.0,0,0,0.0,[],[]
 wrong_2_374,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     datetup = ()
     for item in possible_birthdays:
@@ -5602,7 +5370,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.9,4.3416,4.3416,0.0,0,0,0.0,[],[]
+",True,0.9,4.1826,4.1826,0.0,0,0,0.0,[],[]
 wrong_2_376,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count=0
     for i in possible_birthdays: 
@@ -5634,7 +5402,7 @@ def contains_unique_day(month, possible_birthdays):
     if counter != 0:
         return True
     return False
-",True,0.3443,7.6899,7.6899,0.0,0,0,0.0,[],[]
+",True,0.3443,6.37,6.37,0.0,0,0,0.0,[],[]
 wrong_2_380,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for birthday in possible_birthdays:
@@ -5671,7 +5439,7 @@ def statement3(birthday, possible_birthdays):
         return True
     
     return False  
-",True,1.45,3.905,3.905,0.0,0,0,0.0,[],[]
+",True,1.45,3.5954,3.5954,0.0,0,0,0.0,[],[]
 wrong_2_384,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for item in possible_birthdays:
@@ -5696,7 +5464,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.2778,6.1637,6.1637,0.0,0,0,0.0,[],[]
+",True,0.2778,5.7581,5.7581,0.0,0,0,0.0,[],[]
 wrong_2_389,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for item in possible_birthdays:
@@ -5726,7 +5494,7 @@ def contains_unique_day(month, possible_birthdays):
     if counter != 0:
         return True
     return False
-",True,0.6286,3.8733,3.8733,0.0,0,0,0.0,[],[]
+",True,0.6286,3.7728,3.7728,0.0,0,0,0.0,[],[]
 wrong_2_391,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for item in possible_birthdays:
@@ -5756,7 +5524,7 @@ def contains_unique_day(month, possible_birthdays):
     if counter != 0:
         return True
     return False
-",True,0.6143,3.8161,3.8161,0.0,0,0,0.0,[],[]
+",True,0.6143,3.9343,3.9343,0.0,0,0,0.0,[],[]
 wrong_2_393,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     result = 0
     for n in possible_birthdays:
@@ -5785,17 +5553,15 @@ def contains_unique_day(month, possible_birthdays):
            new_possible_birthdays += (possible_birthdays[i],)
     new_day = """"
     counter = 0
-    for i in range(len(new_possible_birthdays)):
-        new_day = new_possible_birthdays[i][1]
-        if  unique_day(new_day, possible_birthdays) == True:
-            counter = counter +1
-        if counter == 0:
-            return False
-        else:
-            return True
-            
-
-",True,0.0214,7.9492,7.9492,0.0,0,0,0.0,[],[]
+    for n in range(len(new_possible_birthdays)):
+        new_day = new_possible_birthdays[n][1]
+        if unique_day(new_day,possible_birthdays) == True:
+            counter += 1
+    if counter == 0:
+        return False
+    else:
+        return True
+",True,0.0714,5.6018,5.6018,0.0,0,0,0.0,[],[]
 wrong_2_396,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = 0
     for item in possible_birthdays:
@@ -5818,7 +5584,7 @@ def contains_unique_day(month, possible_birthdays):
         else:
             continue
     return False 
-",True,0.2039,4.5496,4.5496,0.0,0,0,0.0,[],[]
+",True,0.2039,4.6023,4.6023,0.0,0,0,0.0,[],[]
 wrong_2_400,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     store = 0
     for i in possible_birthdays:
@@ -5847,7 +5613,7 @@ def contains_unique_day(month, possible_birthdays):
     if n>=1:
         return True
     return False
-",True,0.6167,4.2537,4.2537,0.0,0,0,0.0,[],[]
+",True,0.6167,4.0644,4.0644,0.0,0,0,0.0,[],[]
 wrong_2_403,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     counter = 0
     for x in possible_birthdays:
@@ -5877,7 +5643,7 @@ def contains_unique_day(month, possible_birthdays):
             if unique_day(i[1], possible_birthdays):
                 return True
     return False
-",True,0.9184,4.8362,4.8362,0.0,0,0,0.0,[],[]
+",True,0.9184,4.2876,4.2876,0.0,0,0,0.0,[],[]
 wrong_2_404,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     count=0
     for i in range(len(possible_birthdays)):
@@ -5905,7 +5671,7 @@ def contains_unique_day(month, possible_birthdays):
                return True
                break
     return False
-",True,0.1895,6.3593,6.3593,0.0,0,0,0.0,[],[]
+",True,0.1895,6.0786,6.0786,0.0,0,0,0.0,[],[]
 wrong_2_414,gpt-5.4-mini,reference,"def unique_day(day, possible_birthdays):
     count = ()
     for i in possible_birthdays:
@@ -5938,13 +5704,13 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False
-",True,0.2105,4.9896,4.9896,0.0,0,0,0.0,[],[]
+",True,0.2105,4.7711,4.7711,0.0,0,0,0.0,[],[]
 wrong_2_415,gpt-5.4-mini,rules,"def unique_day(day, possible_birthdays):
     count=0
     for i in possible_birthdays:
-        if day >= i[1]:
+        if day==i[1]:
             count+=1
-    if count>1:
+    if count != 1:
         return False
     else:
         return True
@@ -5970,7 +5736,7 @@ def contains_unique_day(month, possible_birthdays):
     else:
         return False
 
-",True,0.0202,1.1452,1.1452,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.0202,3.2889,3.2889,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_424,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthdate in possible_birthdays:
@@ -6001,13 +5767,13 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False
-",True,0.0089,0.4409,0.4409,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare""]",[]
+",True,0.0089,0.4243,0.4243,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare""]",[]
 wrong_2_425,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for birthdate in possible_birthdays:
-        if date >= birthdate[1]:
+        if date == birthdate[1]:
             counter += 1
-    if counter > 1:
+    if counter != 1:
         return False
     else:
         return True
@@ -6032,7 +5798,7 @@ def contains_unique_day(month, possible_birthdays):
         return True
     else:
         return False
-",True,0.0189,1.4192,1.4192,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.0189,3.3252,3.3252,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
 wrong_2_427,gpt-5.4-mini,reference,"def unique_day(date, possible_birthdays):
     only_date = ()
     for i in possible_birthdays:
@@ -6058,14 +5824,14 @@ def contains_unique_day(month, possible_birthdays):
                 return True
     else:
         return False
-",True,0.3108,1.7822,1.7822,0.0,0,0,0.0,[],[]
-wrong_2_432,gpt-5.4-mini,none,,False,,3.7887,3.7887,0.0,0,0,0.0,[],[]
+",True,0.3108,1.6362,1.6362,0.0,0,0,0.0,[],[]
+wrong_2_432,gpt-5.4-mini,none,,False,,3.67,3.67,0.0,0,0,0.0,[],[]
 wrong_2_433,gpt-5.4-mini,rules,"def unique_day(date, possible_birthdays):
     counter = 0
     for i in possible_birthdays:
-        if i[1] <= date:
+        if i[1] == date:
             counter += 1
-    if counter > 1:
+    if counter != 1:
         return False
     return True
 
@@ -6088,4 +5854,4 @@ def contains_unique_day(month, possible_birthdays):
         if unique_day(new_tuple[i][1], possible_birthdays):
             return True
     return False
-",True,0.0182,1.5337,1.5337,0.0,0,0,0.0,"[""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+",True,0.0182,3.3013,3.3013,0.0,0,0,0.0,"[""compare_count_equality"", ""compare_count_equality"", ""generic_flip_compare"", ""generic_flip_compare""]",[]

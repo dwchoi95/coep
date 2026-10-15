@@ -23,7 +23,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--model", default="claude-sonnet-5")
     ap.add_argument("--file", required=True, help="path to a buggy .py submission")
     ap.add_argument("--no-fallback", action="store_true")
-    ap.add_argument("--data-root", default="data")
+    ap.add_argument("--data-root", default="benchmark")
     args = ap.parse_args(argv)
     load_env()
 

@@ -51,7 +51,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--k", type=int, default=K_DEFAULT,
                     help="candidates per prompt (paper: 10)")
-    ap.add_argument("--data-root", default="data")
+    ap.add_argument("--data-root", default="benchmark")
     ap.add_argument("--ver", default="",
                     help="optional subdirectory under results/; empty means "
                          "results/ itself, which is where the campaign wrote")

@@ -22,7 +22,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 CATS = ("accurate", "describes_edit", "wrong")
-# named as examples in results/labeling_guide.md, so not independently judged
+# named as examples in results/label_study/guide.md, so not independently judged
 GUIDE = ("refactory_q5/claude-sonnet-5/append_of_remove_returns_none",
          "cf_110A/claude-sonnet-5/char_compared_to_int_digit",
          "cf_1011B/claude-sonnet-5/lt_to_le",
@@ -49,10 +49,11 @@ def rates(df: pd.DataFrame, weight: str | None) -> dict[str, float]:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py labelagree")
-    ap.add_argument("--sheet", default="results/rules.csv")
+    ap.add_argument("--sheet", default="results/label_study/sheet.csv")
     ap.add_argument("--raters", nargs="+",
-                    default=["results/rules_1.csv", "results/rules_2.csv",
-                             "results/rules_3.csv"])
+                    default=["results/label_study/rater_1.csv",
+                             "results/label_study/rater_2.csv",
+                             "results/label_study/rater_3.csv"])
     ap.add_argument("--keep-guide", action="store_true",
                     help="include the four rules the guide worked through")
     args = ap.parse_args(argv)

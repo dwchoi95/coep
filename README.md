@@ -1,97 +1,127 @@
-# CoEP: Use LLMs to Build Repair Tools, Not Patch Generation
+# CoEP: Cost-Effective Program Repair for Programming Assignments
 
-Automated program repair for programming assignments in which **the model
-writes the repair tool, not the patch**. Once per assignment a builder LLM
-turns worked (buggy, reference) pairs into a Python module of
-misconception-named AST rewrite rules; the frozen module then repairs
-submissions locally with no model at all, and only what it abstains on takes a
-conventional per-submission call.
+CoEP repairs students' programming assignments by having an LLM synthesize an
+**assignment-specific repair tool** once per assignment, instead of a patch for
+every submission. Per assignment, a builder LLM does two things:
 
-Paper: `paper/main.pdf` (AAAI format, anonymized).
+- It turns worked (buggy, reference) pairs into a Python module of
+  misconception-named AST rewrite rules, refined against the test cases.
+- It writes an input generator. The class's correct programs label the
+  generator's inputs by majority vote, which amplifies the instructor's tests
+  T into T⁺.
+
+The frozen tool then repairs each submission locally, with no model, using its
+rules and a hunk-level transplant from reference programs. It accepts a
+candidate only if it passes T⁺. A per-submission query goes to the model only
+when the tool abstains or when its patch is larger than the program it repairs.
 
 ## Results
 
-11 assignments, 2,970 buggy programs, both builders pooled. **RR** is the
-repair rate, counting a repair only when the fixed program passes every test.
-**RPS** is relative patch size, the tree-edit distance from the buggy to the
-fixed AST normalized by buggy program size; lower is better.
+The benchmark has 2,970 buggy programs from 11 assignments:
 
-| Arm | RR | RPS | cost over the benchmark |
+- **R1–R5:** a first-year course.
+- **C1–C6:** Codeforces problems, rated 800–2000.
+
+The columns are:
+
+- **RR** (repair rate): a repair counts only if the fixed program passes every
+  instructor test.
+- **RPS** (relative patch size): the tree-edit distance from the buggy AST to
+  the fixed one, divided by the size of the buggy AST. Lower is better.
+- **Cost**: model spend over the whole benchmark for each builder
+  (`claude-sonnet-5 / gpt-5.4-mini`), including the one-off build.
+
+RR and RPS are pooled over the two builders.
+
+| Arm | RR | RPS | Cost |
 |---|---|---|---|
-| Refactory (reference-guided) | 85.93% | 0.500 | no model |
-| PyDex (one LLM call per submission) | 98.94% | 0.634 | $292.77 / $28.42 |
-| CoEP_fw (our substrate, builder rules removed) | 98.69% | 0.492 | no model |
-| **CoEP_L** (frozen tool, no model at repair time) | **99.06%** | **0.463** | build only |
-| **CoEP_LF** (+ fallback on abstentions and oversized patches) | **99.70%** | **0.410** | **$13.58 / $1.00** |
+| Refactory (reference-guided) | 85.9% | 0.500 | no model |
+| PyDex (10 samples per submission) | 98.9% | 0.634 | $292.77 / $28.42 |
+| LLM_Direct (CoEP's fallback query, for every submission) | 82.5% | 0.330 | $16.59 / $2.67 |
+| **CoEP_L** (frozen tool, no model at repair time) | 98.4% | 0.481 | build only: $12.24 / $0.69 |
+| **CoEP_LF** (+ fallback on escalation) | **99.4%** | **0.428** | **$13.74 / $1.04** |
 
-Costs are `claude-sonnet-5 / gpt-5.4-mini` and include the one-off build. An
-assignment repays that build after 11 submissions against PyDex. CoEP_fw is
-worth reading first: the substrate alone, with no model anywhere, already
-matches a per-submission LLM arm on coverage at a smaller patch. What the
-builder's rules add is a patch 2.1 times smaller on the quarter of submissions
-they cover, 22 submissions the substrate cannot repair, and the misconception
-label behind every rule-produced repair.
+We also built a held-out suite for R1–R5: 100 tests per assignment that no arm
+searched against. Results on it, per builder (`claude-sonnet-5 / gpt-5.4-mini`):
+
+| Arm | Held-out RR |
+|---|---|
+| **CoEP_LF** | **98.5% / 98.1%** |
+| PyDex | 96.4% / 97.2% |
+| CoEP_LF without amplification | 90.2% / 88.0% |
 
 ## Layout
 
-```
-src/core/          build-set selection, tool synthesis, the rule search,
-                   reference transplant, escalation, self-learning
-src/experiments/   one driver per stage, all reachable through run.py
-src/prompts/       every prompt sent to a model, as Markdown
-src/runner/        sandboxed test execution
-data/<problem>/    buggy/, correct/, problem.json (tests + description)
-tools/<problem>/<model>/     the synthesized repairer: fixer.py, cost.json,
-                             and sl/learned.py for the self-learned rules
-results/        one row per (submission, arm, model), plus the summaries
-                   built from those rows; everything the paper reports
-paper/             main.tex, references.bib, generated tables and figures
-```
+| Path | Contents |
+|---|---|
+| `benchmark/<pid>/` | the assignment: `buggy/`, `correct/`, `reference.py`, and `problem.json` (description and instructor tests T) |
+| `benchmark/<pid>/heldout.json` | R1–R5: the 100 held-out tests |
+| `benchmark/<pid>/amplified/<model>/` | R1–R5: the builder's input generator (`generator.py`), the amplified tests it yields (`tests.json`), and the builder call's cost |
+| `tools/<pid>/<model>/` | the 22 synthesized tools (`fixer.py`, `cost.json`) and the rules their Learn stage kept (`sl/`) |
+| `tools/splits/<scheme>/<f>/` | tools built from the first f of each class |
+| `results/<pid>/` | per-submission logs for every arm (one CSV per arm) and `summary.csv` (RR, RPS, turnaround, tokens, cost) |
+| `results/<pid>/no_amplification/` | R1–R5: CoEP and LLM_Direct accepting against T alone |
+| `results/stats.csv`, `heldout.csv`, `heldout_pairs.csv`, `pool_ablation.json` | the statistical tests, the held-out verdicts, and the Synthesize ablation |
+| `results/splits/` | the split runs and `report.csv` |
+| `results/label_study/` | the rule-name study: the sheet, three raters' labels, and the labeling guide |
+| `src/core/`, `src/runner/`, `src/prompts/`, `src/utils/` | CoEP itself |
+| `src/experiments/` | one driver per experiment, dispatched by `run.py` |
+| `baselines/pydex/` | our re-implementation of PyDex's few-shot semantic phase |
 
-## Recomputing the paper
+## Setup
 
-Nothing below touches a model, and nothing is fetched: the per-submission logs,
-the synthesized tools and both corpora are in this package. Every number the
-paper reports is derived from `results/`:
-
-```bash
+```sh
+python3 -m venv .venv && . .venv/bin/activate   # Python 3.13
 pip install -r requirements.txt
-
-python run.py stats      # start here: repair rates with Wilson intervals and
-                         # exact McNemar for every pair the paper compares
-python run.py tables      # splice the generated tables into paper/main.tex
-python run.py figures     # regenerate paper/figures/*.pdf
-python run.py numbers     # recompute each quantity and report whether that
-                          # exact string still occurs in main.tex
-python run.py stats       # Wilson intervals and exact McNemar over the logs
 ```
 
-## Running the pipeline
+API keys go in `.env` (see `.env.example`). You need them only to build a tool
+or to run an LLM arm.
 
-```bash
-cp .env.example .env      # provider keys; .env is gitignored
+## Checking the paper's numbers (no API key)
 
-python run.py build   --problem refactory_q1     # synthesize the tool
-python run.py compare --problem refactory_q1     # CoEP_L and CoEP_LF
-python run.py pydex   --problem refactory_q1     # the per-submission baseline
-python run.py repair  --problem refactory_q1 --file bug.py    # one submission
+```sh
+python run.py stats              # repair rates, Wilson intervals, exact McNemar -> results/stats.csv
+python run.py augment check      # every arm's repairs on the held-out suite -> results/heldout.csv
+python run.py augment pairs      # held-out McNemar and patch-size Wilcoxon vs PyDex
+python run.py splits make        # rebuild the splits (deterministic, into splits_work/)
+python run.py splits report      # generality -> results/splits/report.csv
+python run.py labelagree         # the rule-name study
+python run.py augment amplify --model claude-sonnet-5   # relabel T_amp from the stored generator
 ```
 
-`run.py --list` prints every driver.
+## Re-running
 
-## Notes on the measurements
+The frozen tool alone needs no model:
 
-- **Refactory.** Its CS1 rows are the authors' published per-assignment
-  figures; its Codeforces rows are our run of the released tool. The upstream
-  tree under `baselines/refactory/` is gitignored apart from our wrapper, since
-  it carries 36 MB of the authors' own data.
-- **Already-passing submissions.** Both corpora label a few submissions buggy
-  that pass every test. They are repair targets like any other and enter the
-  search unshortcut, so the denominator is the pool as published and is
-  identical across arms.
-- **Held-out view.** The builder sees worked pairs drawn from the same buggy
-  programs it is later measured on, 1,524 of the 2,970. Every result is also
-  reported on the 1,446 submissions no builder ever saw.
-- **Two builders.** Effectiveness is pooled over `claude-sonnet-5` and
-  `gpt-5.4-mini`; cost is never pooled, since the two price schedules differ by
-  an order of magnitude.
+```sh
+python run.py compare --problem refactory_q1 --model claude-sonnet-5 --amplified \
+    --no-llm --ver rerun          # -> results/rerun/refactory_q1/
+```
+
+Everything else needs an API key:
+
+```sh
+python run.py build   --problem <pid> --model <model>                 # synthesize a tool
+python run.py augment amplify --model <model> --regenerate            # a new generator -> T+
+python run.py compare --problem <pid> --model <model> --amplified     # CoEP_L and CoEP_LF
+python run.py compare --problem <pid> --model <model> --amplified --framework-only   # -Syn
+python run.py direct  --problem <pid> --model <model> --amplified     # LLM_Direct
+python run.py pydex   --problem <pid> --model <model>                 # PyDex
+python run.py pool --amplified --out results/pool_ablation.json       # Synthesize ablation
+python run.py splits jobs --phase build                               # then --phase eval
+```
+
+`--amplified` has no effect on C1–C6, where T⁺ = T because their suites are
+Codeforces' full official tests.
+
+The rule search and the tests run under wall clocks (3 s per search, 2 s per
+test), so run the evaluation on an otherwise idle machine. Ours was a Mac
+Studio (Apple M1 Ultra, 20 cores, 64 GB RAM, macOS 26.7).
+
+## Data
+
+- **R1–R5:** the introductory-programming corpus released with Refactory.
+- **C1–C6:** Codeforces submissions mirrored by the open-r1 release.
+
+Each corpus keeps its own buggy/correct labels.

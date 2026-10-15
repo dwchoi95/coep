@@ -1,4 +1,4 @@
-"""`run.py labelsheet` — build results/rules.csv for the label-accuracy study.
+"""`run.py labelsheet` — build results/label_study/sheet.csv for the label-accuracy study.
 
 The paper claims legibility for the names the builder gives its rules, not
 correctness: nothing in the campaign checks that ``flip_min_to_max_extremum``
@@ -117,9 +117,9 @@ def example(hits: list[dict], pid: str, data_root: Path) -> tuple[str, str]:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(prog="run.py labelsheet")
-    ap.add_argument("--out", default="results/rules.csv")
+    ap.add_argument("--out", default="results/label_study/sheet.csv")
     ap.add_argument("--tools-root", default="tools")
-    ap.add_argument("--data-root", default="data")
+    ap.add_argument("--data-root", default="benchmark")
     ap.add_argument("--results-root", default="results")
     ap.add_argument("--fired-only", action="store_true",
                     help="drop rules that never produced a repair")

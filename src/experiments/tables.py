@@ -40,7 +40,7 @@ CHEAP = "gpt-5.4-mini"
 
 
 def _meta(pid: str) -> tuple[str, str]:
-    d = json.loads((ROOT / "data" / pid / "problem.json").read_text())
+    d = json.loads((ROOT / "benchmark" / pid / "problem.json").read_text())
     title = TITLE.get(pid) or d["description"].strip().splitlines()[0].lstrip("# ").strip()
     return title, (str(d["rating"]) if d.get("rating") else "--")
 
@@ -64,7 +64,7 @@ def tab_data(ver: str) -> str:
     for gname, pids in (("Refactory (CS1)", ORDER[:5]), ("Codeforces", ORDER[5:])):
         nb = nc = nt = 0
         for pid in pids:
-            d = ROOT / "data" / pid
+            d = ROOT / "benchmark" / pid
             nb += len(list((d / "buggy").glob("*.py")))
             nc += len(list((d / "correct").glob("*.py")))
             nt += len(json.loads((d / "problem.json").read_text()).get("tests", []))

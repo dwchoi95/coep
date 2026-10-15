@@ -37,20 +37,18 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seeds", type=int, default=3, help="pool draws per k > 0")
     ap.add_argument("--out", default="")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--tests-root", default="data",
-                    help="where problem.json (the acceptance suite) is read; "
-                         "assignments absent there fall back to data/ (CoEP+DT: data_dtg/<model>)")
+    ap.add_argument("--amplified", action="store_true",
+                    help="accept against T+, the builder's amplified suite (R1-R5)")
     args = ap.parse_args(argv)
     ks = [int(x) for x in args.ks.split(",")]
     from src.core.synthesis import select_sample_pairs
     budget = SearchBudget()
     rows = []
     for pid in ORDER:
-        prob = load_problem(pid, args.tests_root if (ROOT / args.tests_root / pid).exists()
-                            else "data")
-        correct = load_pool(pid, "correct")
-        buggy = load_pool(pid, "buggy")
-        names = sorted(p.stem for p in (ROOT / "data" / pid / "buggy").glob("*.py"))
+        prob = load_problem(pid, str(ROOT / "benchmark"), MODEL if args.amplified else None)
+        correct = load_pool(pid, "correct", str(ROOT / "benchmark"))
+        buggy = load_pool(pid, "buggy", str(ROOT / "benchmark"))
+        names = sorted(p.stem for p in (ROOT / "benchmark" / pid / "buggy").glob("*.py"))
         # the builder was shown roughly half of these; scoring them would
         # measure whether a rule remembers the program it was written from.
         # Submissions are deduplicated by text, so one source can carry several
@@ -64,8 +62,8 @@ def main(argv: list[str] | None = None) -> int:
         rng = random.Random(args.seed)
         pick = (pool_of if len(pool_of) <= args.per_problem
                 else rng.sample(pool_of, args.per_problem))
-        srcs = [(n, (ROOT / "data" / pid / "buggy" / f"{n}.py").read_text()) for n in pick]
-        rules_all = load_fixer(tool_path(pid, MODEL, "tools"))
+        srcs = [(n, (ROOT / "benchmark" / pid / "buggy" / f"{n}.py").read_text()) for n in pick]
+        rules_all = load_fixer(tool_path(pid, MODEL, str(ROOT / "tools")))
         rules_fw = [r for r in rules_all if r.name.startswith("generic_")]
         for k in ks:
             # k = 0 and the whole pool are deterministic; only a sampled pool

@@ -44,13 +44,16 @@ def main(argv=None) -> int:
     ap.add_argument("--problem", required=True)
     ap.add_argument("--model", default="claude-sonnet-5")
     ap.add_argument("--workers", type=int, default=8)
-    ap.add_argument("--data-root", default="data")
+    ap.add_argument("--data-root", default="benchmark")
+    ap.add_argument("--amplified", action="store_true",
+                    help="accept against T+, the builder's amplified suite (R1-R5)")
     ap.add_argument("--ver", default="")
     ap.add_argument("--revalidate", action="store_true",
                     help="judge the stored candidates again; no model call")
     args = ap.parse_args(argv)
 
-    prob = load_problem(args.problem, args.data_root)
+    prob = load_problem(args.problem, args.data_root,
+                        args.model if args.amplified else None)
     files = sorted((Path(args.data_root) / args.problem / "buggy").glob("*.py"))
     store = _candidates(args.ver, args.problem, args.model)
 
