@@ -77,7 +77,8 @@ def complete(prompt: str, model: str = "claude-sonnet-5", *, system: str | None 
             name = type(e).__name__
             transient = any(k in name for k in (
                 "RateLimit", "Overloaded", "InternalServer", "APIConnection",
-                "ServiceUnavailable", "Timeout", "APIStatus"))
+                "ServiceUnavailable", "Timeout", "APIStatus",
+                "RemoteProtocol", "ReadError"))      # dropped streaming connections
             if not transient or attempt == 4:
                 raise
             last = e

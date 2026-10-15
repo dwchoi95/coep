@@ -9,6 +9,7 @@ session URL.
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -103,7 +104,9 @@ def main(argv: list[str] | None = None) -> int:
             t = p.read_text(errors="ignore")
         except Exception:
             continue
-        for pat in ("dwchoi", "skku", "성균관", "claude.ai/code/session"):
+        # The strings that would identify the authors live outside the repo,
+        # so this check does not itself leak them: ANON_PATTERNS="a,b,c".
+        for pat in [x for x in os.environ.get("ANON_PATTERNS", "").split(",") if x]:
             if pat in t:
                 leaks.append((p.relative_to(OUT), pat))
     print("identity leaks:", leaks or "none")

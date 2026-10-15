@@ -34,6 +34,11 @@ COMMANDS = {
     "package": ("make_package", "main"),  # the Code and Data Package
     "refactory": ("refactory_results", "main"),   # collect our Refactory run
     "refactory-published": ("refactory_published", "main"),  # its own-corpus figures
+    "collect-afg": ("collect_afg", "main"),   # BRAFAR / MENTORED runs -> results/
+    "splits": ("splits", "main"),             # build on earlier, repair later
+    "direct": ("direct_llm", "main"),         # CoEP's fallback call, for every submission
+    "augment": ("augment", "main"),           # held-out CS1 tests by differential testing
+    "assemble": ("assemble", "main"),         # results/v2: CoEP+DT on CS1, campaign elsewhere
 }
 
 

@@ -304,7 +304,7 @@ def main(argv: list[str]) -> int:
     # Persist the augmentation as its own artifact, priced to itself.
     learned_file = stage / "learned.py"
     if learned_names and learned_file.exists():
-        out = learned_path(args.problem, args.model).parent
+        out = learned_path(args.problem, args.model, args.tools_root).parent
         out.mkdir(parents=True, exist_ok=True)
         shutil.copy(frozen_path, out / "fixer.py")
         shutil.copy(learned_file, out / "learned.py")
@@ -352,7 +352,7 @@ def main(argv: list[str]) -> int:
         print(f"  {name:10s} RR={rr(rows):6.2f}%  n={len(rows)}")
     print(f"self-learning: {len(learned_names)} rule(s) absorbed, "
           f"${sl_usd:.6f}, {sl_seconds:.1f}s"
-          + (f" -> {learned_path(args.problem, args.model).parent}"
+          + (f" -> {learned_path(args.problem, args.model, args.tools_root).parent}"
              if learned_names else " (nothing persisted)"))
     print(f"results -> results/{args.ver}/{args.problem}/")
     return 0

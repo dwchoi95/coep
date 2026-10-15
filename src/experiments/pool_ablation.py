@@ -37,13 +37,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seeds", type=int, default=3, help="pool draws per k > 0")
     ap.add_argument("--out", default="")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--tests-root", default="data",
+                    help="where problem.json (the acceptance suite) is read; "
+                         "assignments absent there fall back to data/ (CoEP+DT: data_dtg/<model>)")
     args = ap.parse_args(argv)
     ks = [int(x) for x in args.ks.split(",")]
     from src.core.synthesis import select_sample_pairs
     budget = SearchBudget()
     rows = []
     for pid in ORDER:
-        prob = load_problem(pid)
+        prob = load_problem(pid, args.tests_root if (ROOT / args.tests_root / pid).exists()
+                            else "data")
         correct = load_pool(pid, "correct")
         buggy = load_pool(pid, "buggy")
         names = sorted(p.stem for p in (ROOT / "data" / pid / "buggy").glob("*.py"))

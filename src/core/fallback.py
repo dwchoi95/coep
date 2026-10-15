@@ -31,6 +31,7 @@ class FallbackResult:
     out_tokens: int = 0
     seconds: float = 0.0
     usd: float = 0.0
+    candidate: str | None = None      # the model's code, kept even when it fails
 
 
 def _render_failures(source: str, problem: dict, limit: int = 5) -> str:
@@ -82,6 +83,7 @@ def fallback_repair(buggy: str, problem: dict, reference_pool: list[str],
     repaired = bool(patch) and run_tests(patch, problem, stop_early=True).all_pass
     return FallbackResult(
         repaired=repaired, patch=patch if repaired else None, reference_used=r,
+        candidate=patch,
         in_tokens=call.in_tokens, out_tokens=call.out_tokens,
         seconds=call.seconds, usd=call.usd)
 

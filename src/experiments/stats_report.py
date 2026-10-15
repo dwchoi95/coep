@@ -26,12 +26,16 @@ from src.utils.stats import mcnemar, wilson
 ROOT = Path(__file__).resolve().parents[2]
 
 # event file -> arm label; the order is the order the paper compares in
-ARMS = [("refactory.csv", "Refactory"), ("pydex.csv", "PyDex"),
+ARMS = [("refactory.csv", "Refactory"), ("brafar.csv", "BRAFAR"),
+        ("mentored.csv", "MENTORED"), ("pydex.csv", "PyDex"),
         ("coep_l.csv", "CoEP_L"),
         ("coep_l_fw.csv", "CoEP_L_fw"), ("coep_lf.csv", "CoEP_LF"),
         ("coep_l_sl.csv", "CoEP_L+SL")]
+MODEL_FREE = {"Refactory", "BRAFAR", "MENTORED"}
 # every pairing the paper asserts, as (a, b) with a the reference arm
 PAIRS = [("CoEP_L", "Refactory"), ("CoEP_LF", "Refactory"),
+         ("CoEP_L", "BRAFAR"), ("CoEP_LF", "BRAFAR"),
+         ("CoEP_L", "MENTORED"), ("CoEP_LF", "MENTORED"),
          ("CoEP_L", "PyDex"), ("CoEP_LF", "PyDex"),
          ("CoEP_L", "CoEP_L_fw"),      # what the builder's rules add
          ("CoEP_L+SL", "CoEP_L")]
@@ -64,9 +68,10 @@ def main(argv: list[str]) -> int:
         for model in args.model:
             got = {}
             for fname, arm in ARMS:
-                # Refactory is model-independent; its log carries "none"
-                o = _outcomes(pdir / fname, "" if arm == "Refactory" else model)
-                if not o and arm == "Refactory":
+                # the symbolic arms are model-independent; their logs carry "none"
+                free = arm in MODEL_FREE
+                o = _outcomes(pdir / fname, "" if free else model)
+                if not o and free:
                     o = _outcomes(pdir / fname, "none")
                 if o:
                     got[arm] = o

@@ -1,0 +1,80 @@
+diff --git a/basic_framework/core.py b/basic_framework/core.py
+index 4f0781e..a1fae68 100644
+--- a/basic_framework/core.py
++++ b/basic_framework/core.py
+@@ -299,8 +299,13 @@ class S_Brafar:
+                 mapped_correct_code_path = func_maps.get(func_name)
+                 if mapped_correct_code_path is not None:
+                     repair_map["Original Correct File Name"][func_name] = os.path.basename(mapped_correct_code_path)
+-                    re_func = Brafar(f_name, mapped_correct_code_path, func_name,
+-                                     self.__ans_dir_path, self.__global_path)
++                    try:
++                        re_func = Brafar(f_name, mapped_correct_code_path, func_name,
++                                         self.__ans_dir_path, self.__global_path)
++                    except Exception:
++                        # adapter: a crash on one submission leaves it unrepaired
++                        # instead of aborting the whole assignment
++                        continue
+                     if re_func.get_repair_result():
+                         repaired_code += re_func.get_repaired_code()
+                         patch_size += p_tree.calculate_distance_func(func_name, re_func.get_repaired_code())
+diff --git a/basic_framework/fault_locator.py b/basic_framework/fault_locator.py
+index d6f17f2..9286cfd 100644
+--- a/basic_framework/fault_locator.py
++++ b/basic_framework/fault_locator.py
+@@ -1,3 +1,4 @@
++import os
+ import re
+ import sys
+ import threading
+@@ -13,7 +14,8 @@ from basic_framework.program_partition.program_builder import ProgramBuilder, Re
+ 
+ 
+ 
+-@timeout(0.01)
++# adapter: per-test budget is configurable; 0.01 s (the original) remains the default
++@timeout(float(os.environ.get("BRAFAR_TC_TIMEOUT", "0.01")))
+ def run_tc(code: str, input_path, output_path, __global_path):
+     t_code = code
+     if __global_path is not None:
+diff --git a/basic_framework/searcher.py b/basic_framework/searcher.py
+index 9ae9c79..b10b4f1 100644
+--- a/basic_framework/searcher.py
++++ b/basic_framework/searcher.py
+@@ -284,20 +284,29 @@ class Searcher:
+         return rc_list_map
+ 
+     def run(self):
++        # adapter: one program the searcher cannot parse or match is skipped (and
++        # so reported unrepaired) instead of aborting the whole assignment
++        def _safe_cfs(code):
++            try:
++                return get_cfs_map(code)
++            except Exception:
++                return None
++        corr_cfs = [_safe_cfs(code) for code in self.__corr_code_map.values()]
+         for bug_file_name, bug_code in self.__buggy_code_map.items():
+-            sel_corr_fn_code_list = list(self.__corr_code_map.items())
+-            sel_corr_code_list = [code for _, code in sel_corr_fn_code_list]
+-            if any(cfs_map_equal(get_cfs_map(bug_code),
+-                                 get_cfs_map(ori_corr_code))
+-                   for ori_corr_code in sel_corr_code_list):
++            bug_cfs = _safe_cfs(bug_code)
++            if bug_cfs is not None and any(c is not None and cfs_map_equal(bug_cfs, c)
++                                           for c in corr_cfs):
+                 self.__match_ori_map[bug_file_name] = 1
+             else:
+                 self.__match_ori_map[bug_file_name] = 0
+             s_time = time.time()
+             # corr_rc_map, first_result = first_search(bug_code, self.__corr_code_map)
+             # if not first_result:
+-            corr_rc_map = self.cfs_search({}, bug_code, self.__buggy_programs_map.get(bug_file_name))
+-            func_map = astar_get_cls_rc(bug_code, corr_rc_map)
++            try:
++                corr_rc_map = self.cfs_search({}, bug_code, self.__buggy_programs_map.get(bug_file_name))
++                func_map = astar_get_cls_rc(bug_code, corr_rc_map)
++            except Exception:
++                continue
+             search_time = float("%.4f" % (time.time() - s_time))
+             self.__program_map[bug_file_name] = func_map
+             self.__gcr_time_map[bug_file_name] = search_time
