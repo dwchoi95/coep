@@ -1,7 +1,7 @@
 """`run.py figures` — draw the paper's figures from results/ (dev branch only).
 
 One figure per research question, two panels each, at the text width of the
-acmsmall format, in grays and hatches so that they survive a grayscale print:
+acmsmall format, in color that stays legible in grayscale (PLDI's CFP):
 
   fig_effect   repair rate by difficulty band; patch size on the common pairs
   fig_cost     cumulative spend against class size, per builder (N*)
@@ -29,12 +29,16 @@ RES = ROOT / "results"
 W = 5.45                 # acmsmall \textwidth, in inches
 LIB = "/usr/local/texlive/2024/texmf-dist/fonts/opentype/public/libertine/"
 MODELS = ((FRONTIER, "claude-sonnet-5"), (CHEAP, "gpt-5.4-mini"))
-# arm -> (label, face, hatch); lightness alone separates them in grayscale
-ARM = {"Refactory": ("Refactory", "#ffffff", "////"),
-       "PyDex": ("PyDex", "#bdbdbd", ""),
-       "LLM_Direct": (r"LLM$_{\mathrm{Direct}}$", "#ffffff", "...."),
-       "CoEP_L": (r"CoEP$_{\mathrm{L}}$", "#737373", ""),
-       "CoEP_LF": (r"CoEP$_{\mathrm{LF}}$", "#252525", "")}
+# arm -> (label, color, hatch): Okabe-Ito hues, CoEP in blues and the
+# baselines in warm colors; the colors also differ in lightness, and the hatches
+# and line styles stay (baselines hatched, CoEP solid), so a grayscale print
+# still tells the arms apart
+BLUE, SKY, ORANGE, RED, PURPLE = "#0072B2", "#56B4E9", "#E69F00", "#D55E00", "#CC79A7"
+ARM = {"Refactory": ("Refactory", ORANGE, "////"),
+       "PyDex": ("PyDex", RED, "\\\\\\\\"),
+       "LLM_Direct": (r"LLM$_{\mathrm{Direct}}$", PURPLE, "...."),
+       "CoEP_L": (r"CoEP$_{\mathrm{L}}$", SKY, ""),
+       "CoEP_LF": (r"CoEP$_{\mathrm{LF}}$", BLUE, "")}
 
 
 def _mpl():
@@ -76,8 +80,15 @@ def _log(pid: str, stem: str) -> pd.DataFrame:
     return d
 
 
-def _tag(ax, s: str):
-    ax.set_title(s, loc="left", fontsize=8, pad=3)
+def _sub(fig, axes, labels):
+    """Sub-captions "(a) ..." centered under the panels, all on one line."""
+    fig.canvas.draw()
+    r = fig.canvas.get_renderer()
+    y = min(ax.get_tightbbox(r).transformed(fig.transFigure.inverted()).y0
+            for ax in axes)
+    for ax, s in zip(axes, labels):
+        p = ax.get_position()
+        fig.text((p.x0 + p.x1) / 2, y - 0.03, s, ha="center", va="top", fontsize=8)
 
 
 def fig_effect():
@@ -120,8 +131,8 @@ def fig_effect():
                       if lf.ok[s] and px.ok.get(s, False) and ref.ok.get(s, False)]
             for k, d in (("Refactory", ref), ("PyDex", px), ("CoEP_LF", lf)):
                 rps[k] += pd.to_numeric(d.loc[common, "RPS"]).tolist()
-    style = {"Refactory": ("--", "#7f7f7f", 1.0), "PyDex": (":", "black", 1.2),
-             "CoEP_LF": ("-", "black", 1.3)}
+    style = {"Refactory": ("--", ORANGE, 1.2), "PyDex": (":", RED, 1.4),
+             "CoEP_LF": ("-", BLUE, 1.4)}
     for k, v in rps.items():
         v = np.sort(v)
         ls, col, lw = style[k]
@@ -133,9 +144,9 @@ def fig_effect():
     b.set_ylabel("cumulative share")
     b.legend(loc="lower right", handlelength=1.8)
     print(f"    fig_effect: {len(rps['CoEP_LF']):,} pairs repaired by all three")
-    _tag(a, "(a) Repair rate by difficulty")
-    _tag(b, "(b) Patch size on the common pairs")
     fig.tight_layout(w_pad=1.5)
+    _sub(fig, (a, b), ("(a) Repair rate by difficulty",
+                       "(b) Patch size on the common pairs"))
     _save(fig, "fig_effect")
     plt.close(fig)
 
@@ -144,8 +155,8 @@ def fig_cost():
     """Cumulative spend for one assignment of n buggy submissions."""
     plt = _mpl()
     fig, axes = plt.subplots(1, 2, figsize=(W, 1.75), sharey=True)
-    arms = [("PyDex", "-", "#7f7f7f", 1.0), ("PyDex_PC", "--", "#7f7f7f", 1.0),
-            ("LLM_Direct", ":", "black", 1.2), ("CoEP_LF", "-", "black", 1.5)]
+    arms = [("PyDex", "-", RED, 1.0), ("PyDex_PC", "--", RED, 1.0),
+            ("LLM_Direct", ":", PURPLE, 1.4), ("CoEP_LF", "-", BLUE, 1.6)]
     label = {"PyDex": "PyDex", "PyDex_PC": r"PyDex$_{\mathrm{PC}}$",
              "LLM_Direct": ARM["LLM_Direct"][0], "CoEP_LF": ARM["CoEP_LF"][0]}
     sizes = [int(_cell(_summary("", p), "CoEP_L", FRONTIER)["N"]) for p in ORDER]
@@ -174,13 +185,13 @@ def fig_cost():
         ax.set_xlim(1, 1000); ax.set_ylim(0.0005, 100)
         ax.set_xlabel("buggy submissions per assignment")
         ax.grid(alpha=0.3, lw=0.4)
-        _tag(ax, f"({'ab'[MODELS.index((m, name))]}) {name}")
     axes[0].set_ylabel("model cost (\\$, log)")
     axes[0].text(1.3, 0.0011, "assignment sizes", fontsize=6, color="#404040")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, ncol=4, loc="lower center", bbox_to_anchor=(0.5, 0.94),
+    fig.legend(h, l, ncol=4, loc="lower center", bbox_to_anchor=(0.5, 0.9),
                handlelength=2.4)
-    fig.tight_layout(w_pad=1.0)
+    fig.tight_layout(w_pad=1.0, rect=(0, 0, 1, 0.9))
+    _sub(fig, axes, [f"({'ab'[i]}) {name}" for i, (_m, name) in enumerate(MODELS)])
     _save(fig, "fig_cost")
     plt.close(fig)
 
@@ -190,10 +201,10 @@ def fig_source():
     plt = _mpl()
     fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.75),
                                gridspec_kw={"width_ratios": [2.1, 1]})
-    keys = [("rules", "rules", "#252525", ""),
-            ("reference", "transplant", "#bdbdbd", ""),
-            ("llm", "fallback LLM", "#ffffff", "////"),
-            ("none", "unrepaired", "#ffffff", "")]
+    keys = [("rules", "rules", BLUE, ""),
+            ("reference", "transplant", SKY, ""),
+            ("llm", "fallback LLM", PURPLE, "////"),
+            ("none", "unrepaired", RED, "")]
     share = {k: [] for k, *_ in keys}
     depth: dict[int, int] = {}
     for pid in ORDER:
@@ -215,19 +226,18 @@ def fig_source():
     a.set_xticks(x, [IDS[p] for p in ORDER])
     a.set_ylim(0, 100)
     a.set_ylabel("share of pairs (%)")
-    a.legend(ncol=4, loc="lower center", bbox_to_anchor=(0.5, 1.09),
+    a.legend(ncol=4, loc="lower center", bbox_to_anchor=(0.5, 1.0),
              handlelength=1.2, columnspacing=1.0, handletextpad=0.4)
     ds = sorted(depth)
-    bars = b.bar(ds, [depth[d] for d in ds], 0.6, color="#737373",
+    bars = b.bar(ds, [depth[d] for d in ds], 0.6, color=BLUE,
                  edgecolor="black", linewidth=0.5)
     b.bar_label(bars, fontsize=6, padding=1)
     b.set_xticks(ds)
     b.set_xlabel("rule applications")
     b.set_ylabel("rule repairs")
     b.set_ylim(0, max(depth.values()) * 1.18)
-    _tag(a, "(a) Source of each repair")
-    _tag(b, "(b) Composition depth")
     fig.tight_layout(w_pad=1.5)
+    _sub(fig, (a, b), ("(a) Source of each repair", "(b) Composition depth"))
     _save(fig, "fig_source")
     plt.close(fig)
 
@@ -248,11 +258,12 @@ def fig_general():
             same = d[d.f == fs[0]]
             full = 100 * same[f"same_{arm}_fixed"].sum() / same[f"same_{arm}_n"].sum()
             z = 3 if arm == "LF" else 2
-            a.plot(pos[:-1], rr, ls=ls, marker=mk, color="black", ms=3.5, zorder=z,
-                   mfc="white" if arm == "L" else "black", mew=0.8, lw=0.9,
+            col = ARM["CoEP_" + arm][1]
+            a.plot(pos[:-1], rr, ls=ls, marker=mk, color=col, ms=3.5, zorder=z,
+                   mfc="white" if arm == "L" else col, mew=0.9, lw=1.1,
                    label=f"{name}, {ARM['CoEP_' + arm][0]}")
-            a.plot(pos[-1] + dx, full, marker=mk, color="black", ms=3.5, mew=0.8, zorder=z,
-                   mfc="white" if arm == "L" else "black", ls="none")
+            a.plot(pos[-1] + dx, full, marker=mk, color=col, ms=3.5, mew=0.9, zorder=z,
+                   mfc="white" if arm == "L" else col, ls="none")
     a.axvline(len(fs) - 0.5, color="#7f7f7f", lw=0.5, ls=":")
     a.set_xticks(pos, [f"{f}%" for f in fs] + ["all"])
     a.set_xlabel("share of the class the tool is built from")
@@ -263,23 +274,22 @@ def fig_general():
 
     d = r[r.cs1]
     base = {}
-    for col, lab, ls, mk in (("pairs", r"worked pairs $|S|$", "-", "o"),
-                             ("in_tok", "builder input tokens", "--", "^"),
-                             ("out_tok", "builder output tokens", ":", "s"),
-                             ("build_usd", r"$C_{\mathrm{build}}$", "-", "D")):
+    for col, lab, ls, mk, c in (("pairs", r"worked pairs $|S|$", "-", "o", BLUE),
+                                ("in_tok", "builder input tokens", "--", "^", SKY),
+                                ("out_tok", "builder output tokens", ":", "s", RED),
+                                ("build_usd", r"$C_{\mathrm{build}}$", "-", "D", ORANGE)):
             v = [d[(d.f == f) & (d.model == FRONTIER)][col].mean() for f in fs]
             base[col] = v
-            b.plot(fs, [y / v[0] for y in v], ls=ls, marker=mk, ms=3.5,
-                   color="#7f7f7f" if col == "build_usd" else "black",
-                   mfc="white", mew=0.8, lw=1.0, label=lab)
+            b.plot(fs, [y / v[0] for y in v], ls=ls, marker=mk, ms=3.5, color=c,
+                   mfc="white", mew=0.9, lw=1.2, label=lab)
     b.set_xticks(fs, [f"{f}%" for f in fs])
     b.set_xlabel("share of the class (CS1, claude-sonnet-5)")
     b.set_ylabel("growth over 10%")
     b.set_yticks([1, 3, 5, 7, 9], [f"{t}×" for t in (1, 3, 5, 7, 9)])
     b.legend(loc="upper left", fontsize=6.5, handlelength=2.2)
-    _tag(a, "(a) Repairing the last quarter")
-    _tag(b, "(b) What the build grows with")
     fig.tight_layout(w_pad=1.5)
+    _sub(fig, (a, b), ("(a) Repair rate on the last quarter",
+                       "(b) Growth of the build"))
     _save(fig, "fig_general")
     plt.close(fig)
     return base
@@ -293,6 +303,7 @@ def fig_heldout():
             ("LLM_Direct", ARM["LLM_Direct"][0]),
             ("CoEP_LF (T)", ARM["CoEP_LF"][0] + " accepting $T$"),
             ("CoEP_L", ARM["CoEP_L"][0]), ("CoEP_LF", ARM["CoEP_LF"][0])]
+    color = [ARM.get(a, (0, "#6C8EBF"))[1] for a, _ in arms]   # muted blue: T only
     fig, axes = plt.subplots(1, 2, figsize=(W, 1.9), sharey=True)
     y = np.arange(len(arms))[::-1]
     for ax, (m, name) in zip(axes, MODELS):
@@ -301,20 +312,22 @@ def fig_heldout():
             d = h[(h.arm == arm) & (h.model == ("none" if arm == "Refactory" else m))]
             t.append(100 * d.fixed.sum() / d.n.sum())
             ho.append(100 * d.fixed_heldout.sum() / d.n.sum())
-        ax.barh(y + 0.19, t, 0.38, color="white", edgecolor="black", lw=0.5,
-                hatch="////", label="instructor's tests $T$")
-        bars = ax.barh(y - 0.19, ho, 0.38, color="#404040", edgecolor="black",
-                       lw=0.5, label="held-out suite")
+        ax.barh(y + 0.19, t, 0.38, color="white", edgecolor=color, lw=0.6,
+                hatch="////")
+        bars = ax.barh(y - 0.19, ho, 0.38, color=color, edgecolor="black", lw=0.5)
         ax.bar_label(bars, fmt="%.1f", fontsize=6, padding=1.5)
         ax.set_xlim(80, 100)
         ax.set_xlabel("repair rate (%)")
         ax.spines["left"].set_visible(False)
         ax.tick_params(axis="y", length=0)
-        _tag(ax, f"({'ab'[MODELS.index((m, name))]}) {name}")
     axes[0].set_yticks(y, [lab for _, lab in arms])
-    h_, l_ = axes[0].get_legend_handles_labels()
-    fig.legend(h_, l_, ncol=2, loc="lower center", bbox_to_anchor=(0.55, 0.96))
-    fig.tight_layout(w_pad=1.5)
+    from matplotlib.patches import Patch
+    fig.legend([Patch(facecolor="white", edgecolor="#555555", hatch="////"),
+                Patch(facecolor="#888888", edgecolor="black", lw=0.5)],
+               ["instructor's tests $T$", "held-out suite"], ncol=2,
+               loc="lower center", bbox_to_anchor=(0.55, 0.93))
+    fig.tight_layout(w_pad=1.5, rect=(0, 0, 1, 0.93))
+    _sub(fig, axes, [f"({'ab'[i]}) {name}" for i, (_m, name) in enumerate(MODELS)])
     _save(fig, "fig_heldout")
     plt.close(fig)
 
