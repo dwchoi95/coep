@@ -30,6 +30,7 @@ COMMANDS = {
     # analyses
     "stats": ("stats_report", "main"),     # Wilson intervals + exact McNemar
     "pool": ("pool_ablation", "main"),     # the Synthesize ablation as the pool thins
+    "ablation": ("ablation", "main"),      # what the rules and T+ buy CoEP_LF, from the logs
     "splits": ("splits", "main"),          # build on earlier submissions, repair later ones
     "labelsheet": ("labelsheet", "main"),  # the rule-name study's sheet
     "labelagree": ("labelagree", "main"),  # aggregate the raters' labels

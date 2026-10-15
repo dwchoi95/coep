@@ -94,7 +94,7 @@ def _sub(fig, axes, labels):
 def fig_effect():
     """(a) the gap to Refactory widens with difficulty; (b) patch sizes."""
     plt = _mpl()
-    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.75),
+    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.6),
                                gridspec_kw={"width_ratios": [1.15, 1]})
     arms = ["Refactory", "PyDex", "CoEP_L", "CoEP_LF"]
     x = np.arange(len(BANDS))
@@ -154,7 +154,7 @@ def fig_effect():
 def fig_cost():
     """Cumulative spend for one assignment of n buggy submissions."""
     plt = _mpl()
-    fig, axes = plt.subplots(1, 2, figsize=(W, 1.75), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(W, 1.6), sharey=True)
     arms = [("PyDex", "-", RED, 1.0), ("PyDex_PC", "--", RED, 1.0),
             ("LLM_Direct", ":", PURPLE, 1.4), ("CoEP_LF", "-", BLUE, 1.6)]
     label = {"PyDex": "PyDex", "PyDex_PC": r"PyDex$_{\mathrm{PC}}$",
@@ -199,17 +199,22 @@ def fig_cost():
 def fig_source():
     """(a) CoEP_LF's repairs by source; (b) depth of the rule compositions."""
     plt = _mpl()
-    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.75),
+    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.6),
                                gridspec_kw={"width_ratios": [2.1, 1]})
-    keys = [("rules", "rules", BLUE, ""),
-            ("reference", "transplant", SKY, ""),
+    # a rule repair counts as synthesized if any rule behind it is the builder's
+    keys = [("synth", "synthesized rules", BLUE, ""),
+            ("rules", "always-on rules", SKY, ""),
+            ("reference", "transplant", "#c6dbef", ""),
             ("llm", "fallback LLM", PURPLE, "////"),
             ("none", "unrepaired", RED, "")]
     share = {k: [] for k, *_ in keys}
     depth: dict[int, int] = {}
     for pid in ORDER:
         lf = _log(pid, "coep_lf")
-        src = lf.Source.where(lf.ok, "none")
+        synth = lf.Rules_L.map(lambda x: any(not n.startswith("generic_")
+                                             for n in json.loads(x or "[]")))
+        src = lf.Source.where(lf.ok, "none").where(
+            ~((lf.Source == "rules") & synth), "synth")
         for k, *_ in keys:
             share[k].append(100 * (src == k).mean())
         l = _log(pid, "coep_l")
@@ -226,8 +231,8 @@ def fig_source():
     a.set_xticks(x, [IDS[p] for p in ORDER])
     a.set_ylim(0, 100)
     a.set_ylabel("share of pairs (%)")
-    a.legend(ncol=4, loc="lower center", bbox_to_anchor=(0.5, 1.0),
-             handlelength=1.2, columnspacing=1.0, handletextpad=0.4)
+    a.legend(ncol=5, loc="lower center", bbox_to_anchor=(0.5, 1.0),
+             handlelength=1.0, columnspacing=0.7, handletextpad=0.3, fontsize=6.3)
     ds = sorted(depth)
     bars = b.bar(ds, [depth[d] for d in ds], 0.6, color=BLUE,
                  edgecolor="black", linewidth=0.5)
@@ -248,7 +253,7 @@ def fig_general():
     r = pd.read_csv(RES / "splits" / "report.csv")
     r["cs1"] = r.pid.str.startswith("refactory")
     fs = [10, 25, 50, 75]
-    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.75))
+    fig, (a, b) = plt.subplots(1, 2, figsize=(W, 1.6))
     pos = np.arange(len(fs) + 1)
     for cs1, name, mk, dx in ((True, "CS1", "o", -0.1), (False, "Codeforces", "s", 0.1)):
         d = r[r.cs1 == cs1]
@@ -304,7 +309,7 @@ def fig_heldout():
             ("CoEP_LF (T)", ARM["CoEP_LF"][0] + " accepting $T$"),
             ("CoEP_L", ARM["CoEP_L"][0]), ("CoEP_LF", ARM["CoEP_LF"][0])]
     color = [ARM.get(a, (0, "#6C8EBF"))[1] for a, _ in arms]   # muted blue: T only
-    fig, axes = plt.subplots(1, 2, figsize=(W, 1.9), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(W, 1.75), sharey=True)
     y = np.arange(len(arms))[::-1]
     for ax, (m, name) in zip(axes, MODELS):
         t, ho = [], []
