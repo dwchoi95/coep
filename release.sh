@@ -14,7 +14,7 @@ msg=${1:?usage: ./release.sh "commit message"}
 # dev-only: the history of the work, the paper (its own branch via
 # `git subtree split --prefix=paper -b paper`), the paper's number checks, and
 # this script
-EXCLUDE="archive paper release.sh src/experiments/tables.py src/experiments/numbers.py src/experiments/splice.py"
+EXCLUDE="archive paper release.sh src/experiments/tables.py src/experiments/numbers.py src/experiments/splice.py src/experiments/figures.py"
 
 wt=$(mktemp -d)/main
 git worktree add -q "$wt" main
