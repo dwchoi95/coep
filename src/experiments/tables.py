@@ -14,24 +14,17 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.experiments._common import tool_path
+from src.experiments._common import IDS, ORDER, tool_path
 from src.experiments.splice import splice
 
 ROOT = Path(__file__).resolve().parents[2]
 PAPER = ROOT / "paper"
 
-ORDER = ["refactory_q1", "refactory_q2", "refactory_q3", "refactory_q4",
-         "refactory_q5", "cf_110A", "cf_131A", "cf_1011B", "cf_125A",
-         "cf_11B", "cf_10C"]
 TITLE = {"refactory_q1": "Sequential search",
          "refactory_q2": "Unique dates/months",
          "refactory_q3": "Duplicate elimination",
          "refactory_q4": "Sorting tuples",
          "refactory_q5": "Top-$k$ elements"}
-# Short ids the rest of the paper refers to, so a figure axis or an inline
-# mention costs four characters instead of a title. R for the CS1 corpus, C for
-# Codeforces in rating order, which is the order Table 2 lists them in.
-IDS = {p: (f"R{i+1}" if i < 5 else f"C{i-4}") for i, p in enumerate(ORDER)}
 BANDS = [("CS1", ORDER[:5]),
          ("CF 800--1000", ["cf_110A", "cf_131A"]),
          ("CF 1200--2000", ["cf_1011B", "cf_125A", "cf_11B", "cf_10C"])]

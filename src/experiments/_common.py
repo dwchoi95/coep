@@ -6,6 +6,14 @@ import os
 from pathlib import Path
 
 
+# The 11 assignments in the order the paper lists them, and the short ids it
+# uses: R for the CS1 corpus, C for Codeforces in rating order.
+ORDER = ["refactory_q1", "refactory_q2", "refactory_q3", "refactory_q4",
+         "refactory_q5", "cf_110A", "cf_131A", "cf_1011B", "cf_125A",
+         "cf_11B", "cf_10C"]
+IDS = {p: (f"R{i+1}" if i < 5 else f"C{i-4}") for i, p in enumerate(ORDER)}
+
+
 def load_env(path: str = ".env") -> None:
     """Load KEY=VALUE lines from .env into os.environ (llm.py reads os.environ)."""
     p = Path(path)

@@ -19,14 +19,15 @@ For each pool size k we run two arms over the same submissions:
   fw     = the same tool with the builder's rules removed
 """
 import argparse, json, random, time
+from pathlib import Path
 
 from src.core.reference_repair import ReferenceIndex, local_repair
 from src.core.repair import SearchBudget
 from src.core.synthesis import load_fixer
-from src.experiments._common import load_pool, load_problem, tool_path
-from src.experiments.tables import ORDER, IDS, ROOT
+from src.experiments._common import IDS, ORDER, load_pool, load_problem, tool_path
 from src.utils.metrics import rps
 
+ROOT = Path(__file__).resolve().parents[2]
 MODEL = "claude-sonnet-5"
 
 
