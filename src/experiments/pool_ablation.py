@@ -38,6 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seeds", type=int, default=3, help="pool draws per k > 0")
     ap.add_argument("--out", default="")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--problems", default="",
+                    help="comma-separated ids to run (default: all); for running "
+                         "assignments in parallel and concatenating the outputs")
     ap.add_argument("--amplified", action="store_true",
                     help="accept against T+, the builder's amplified suite (R1-R5)")
     args = ap.parse_args(argv)
@@ -45,7 +48,10 @@ def main(argv: list[str] | None = None) -> int:
     from src.core.synthesis import select_sample_pairs
     budget = SearchBudget()
     rows = []
+    only = set(args.problems.split(",")) if args.problems else None
     for pid in ORDER:
+        if only and pid not in only:
+            continue
         prob = load_problem(pid, str(ROOT / "benchmark"), MODEL if args.amplified else None)
         correct = load_pool(pid, "correct", str(ROOT / "benchmark"))
         buggy = load_pool(pid, "buggy", str(ROOT / "benchmark"))

@@ -20,6 +20,7 @@ then longer combinations, under an explicit budget rather than a blind 2^|R|.
 """
 from __future__ import annotations
 
+import ast
 import signal
 import threading
 import time
@@ -30,6 +31,40 @@ from src.runner.testing import run_batch, run_tests
 # A generated rule can contain an infinite loop; a rule's apply() runs in this
 # process, so no subprocess timeout bounds it. Cap it with a wall-clock alarm.
 RULE_APPLY_TIMEOUT = 2.0
+
+
+def edit_sites(a, b) -> int:
+    """Maximal AST positions at which ``a`` and ``b`` differ.
+
+    A position is a node whose own name, constant or operator changed, a node
+    replaced by one of another type, or one run of a statement or expression
+    list replaced by another (an insertion or deletion is such a run).
+    """
+    if type(a) is not type(b):
+        return 1
+    if isinstance(a, list):
+        if len(a) == len(b):
+            return sum(edit_sites(x, y) for x, y in zip(a, b))
+        return 1
+    if isinstance(a, ast.AST):
+        n = 0
+        for f in a._fields:
+            x, y = getattr(a, f, None), getattr(b, f, None)
+            if isinstance(x, (ast.AST, list)) or isinstance(y, (ast.AST, list)):
+                n += edit_sites(x, y) if (x is not None and y is not None) else 1
+            elif x != y:
+                return 1
+        return n
+    return 0 if a == b else 1
+
+
+def single_site(source: str, candidate: str, _tree: ast.AST | None = None) -> bool:
+    """The rule contract: one application rewrites exactly one AST position,
+    a subtree or a run of a list, and leaves the rest of the program alone."""
+    try:
+        return edit_sites(_tree or ast.parse(source), ast.parse(candidate)) == 1
+    except SyntaxError:
+        return False
 
 
 class _RuleTimeout(BaseException):
@@ -89,7 +124,14 @@ class Rule:
             return []
         if out is None:
             return []
-        return [out] if isinstance(out, str) else list(out)
+        out = [out] if isinstance(out, str) else list(out)
+        # Enforce the contract the builder is asked to follow: a candidate that
+        # rewrites more than one position is not this rule's to propose.
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return out                         # nothing to compare against
+        return [c for c in out if isinstance(c, str) and single_site(source, c, tree)]
 
 
 @dataclass

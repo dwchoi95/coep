@@ -1,0 +1,2498 @@
+Buggy,Model,Source,Patch,Fixed,RPS,ATT_all,ATT_cpu,ATT_api,InT,OuT,$API,Rules_L,Rules_SL
+227637747,claude-sonnet-5,rules,"palavra = str(input())
+
+if palavra.upper() == palavra:
+    lower_word = palavra.lower()
+    capitalize_word = palavra.swapcase()
+    print(capitalize_word)
+elif palavra[0].lower() + palavra[1:].upper() == palavra:
+    lower_word = palavra.lower()
+    capitalize_word = palavra.capitalize()
+    print(capitalize_word)
+else:
+    print(palavra)",True,0.0159,0.0886,0.0886,0.0,0,0,0.0,"[""capitalize_title_to_swapcase""]",[]
+227682671,claude-sonnet-5,reference,"# https://codeforces.com/problemset/problem/131/A
+
+word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.7273,0.2035,0.2035,0.0,0,0,0.0,[],[]
+227684114,claude-sonnet-5,rules,"# https://codeforces.com/problemset/problem/131/A
+
+word = input()
+convert = True
+i = 1
+while i < len(word) and convert:
+    if 'a' <= word[i] <= 'z':
+        convert = False
+    i += 1
+if convert:
+    print(word.swapcase())
+else:
+    print(word)",True,0.0204,0.0795,0.0795,0.0,0,0,0.0,"[""capitalize_title_to_swapcase""]",[]
+227938928,claude-sonnet-5,reference,"s = input()
+if s.isupper():
+	print(s.lower())
+elif s[0].islower and (len(s) == 1 or s[1:].isupper()):
+	print(s[0].upper() + s[1:].lower())
+else:
+	print(s)",True,0.3488,3.8058,3.8058,0.0,0,0,0.0,[],[]
+227947247,claude-sonnet-5,reference,"a=input()
+
+if(a.upper()==a):
+    print(a.swapcase())
+elif(a.capitalize().swapcase()==a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.3824,3.491,3.491,0.0,0,0,0.0,[],[]
+227949366,claude-sonnet-5,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,0.8452,4.919,4.919,0.0,0,0,0.0,[],[]
+227949783,claude-sonnet-5,reference,"string=input()
+char=list(string)
+uppercase=1
+for i in range (1,len(string)):
+    if str(char[i]).islower()==True:
+        uppercase=0
+if uppercase==0:
+    print(string)
+else:
+    print(string.swapcase())",True,0.7931,5.9958,5.9958,0.0,0,0,0.0,[],[]
+227965107,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8571,0.2162,0.2162,0.0,0,0,0.0,[],[]
+228049282,claude-sonnet-5,reference,"strli=input()
+if strli.isupper():
+    x=strli.lower()
+    print(x)
+elif strli[0].islower() and strli[1:].isupper():
+    x=list(strli.lower())
+    x[0]=x[0].upper()
+    out="""".join(x)
+    print(out)
+elif len(strli)==1 and strli[0].islower():
+    x=strli.upper()
+    print(x)
+else:
+    print(strli)",True,0.7053,5.1433,5.1433,0.0,0,0,0.0,[],[]
+228131536,claude-sonnet-5,reference,"a = input()
+
+if len(a) == 1 and a.islower():
+    print(a.capitalize())
+elif a[1:].isupper() or a.isupper():
+    print(a.swapcase())
+else:
+    print(a)",True,0.8,0.6693,0.6693,0.0,0,0,0.0,[],[]
+228375983,claude-sonnet-5,reference,"a=input()
+k=0
+for i in range(1,len(a)):
+    if a[i].upper()==a[i]:
+        k=k+1
+if k==(len(a)-1):
+    a=a.swapcase()
+print(a)",True,0.6129,3.8336,3.8336,0.0,0,0,0.0,[],[]
+228392101,claude-sonnet-5,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)
+# Mon Oct 16 2023 12:21:45 GMT+0300 (Moscow Standard Time)",True,0.6455,5.1558,5.1558,0.0,0,0,0.0,[],[]
+228392511,claude-sonnet-5,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)
+# Mon Oct 16 2023 12:25:57 GMT+0300 (Moscow Standard Time)",True,0.7203,5.1498,5.1498,0.0,0,0,0.0,[],[]
+228456059,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8,3.5,3.5,0.0,0,0,0.0,[],[]
+228493246,claude-sonnet-5,rules,"from collections import Counter
+import math
+import re
+s = input()
+f, cnt = -1, 0
+for i in range((len(s)) - 1):
+    if s[i] >= 'A' and s[(i) + 1] <= 'Z':
+        if f == -1: f = i
+        cnt += 1
+
+if cnt == len(s) or cnt == len(s) - 1 and f != 1:
+    ans = ''
+    for i in range(len(s)):
+        if s[i] >= 'A' and s[i] <= 'Z':
+            ans += chr(97 + ord(s[i]) - 65)
+        else:
+            ans += chr(65 + ord(s[i]) - 97)
+    print(ans)
+else:
+    print(s)",True,0.0483,3.4723,3.4723,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_shift_range"", ""generic_shift_index""]",[]
+228504822,claude-sonnet-5,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.7241,0.9273,0.9273,0.0,0,0,0.0,[],[]
+228505982,claude-sonnet-5,rules,"s=input()
+a=s[0]+s[1:].upper()
+if s==s.lower() and s==s.capitalize():
+    print(s)
+elif s==a or s==s.upper():
+    print(s.swapcase())
+else:
+    print(s)",True,0.0167,0.4366,0.4366,0.0,0,0,0.0,"[""capitalize_title_to_swapcase"", ""generic_flip_bool_op""]",[]
+228506162,claude-sonnet-5,rules,"s=input()
+a=s[0]+s[1:].upper()
+if s==s.lower() and s==s.capitalize():
+    print(s)
+elif s==s.upper():
+    print(s.lower())
+elif s==a:
+    print(s.capitalize())
+else:
+    print(s)",True,0.0154,0.101,0.101,0.0,0,0,0.0,"[""generic_flip_bool_op""]",[]
+228506319,claude-sonnet-5,rules,"s=input()
+a=s[0]+s[1:].upper()
+if len(s) < 1:
+    print(s.upper())
+elif s==s.lower() and s==s.capitalize() and len(s)>1:
+    print(s)
+elif s==s.upper():
+    print(s.lower())
+elif s==a:
+    print(s.capitalize())
+else:
+    print(s)",True,0.0465,1.1384,1.1384,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_flip_compare"", ""generic_flip_bool_op""]",[]
+228524995,claude-sonnet-5,reference,"s = input()
+if(s.upper()==s):
+    print(s.lower())
+else:
+    s1=s[1:]
+    s2=s1.upper()
+    if s1==s2:
+        print(s[0:1].upper()+s1.lower())
+    else:
+        print(s)",True,0.6667,3.518,3.518,0.0,0,0,0.0,[],[]
+228525154,claude-sonnet-5,reference,"s = input()
+if(s.upper()==s):
+    print(s.lower())
+else:
+    s1=s[1:]
+    s2=s1.upper()
+    if s1==s2:
+        print(s[0:1].upper()+s1.lower())
+    else:
+        print(s)",True,0.6667,3.5916,3.5916,0.0,0,0,0.0,[],[]
+228525362,claude-sonnet-5,reference,"value = input()
+if (value[0] == value[0].lower() and value[1:] == value[1:].upper()) or (value == value.upper()):
+    print(value.swapcase())
+else:
+    print(value)",True,0.5686,3.8756,3.8756,0.0,0,0,0.0,[],[]
+228560678,claude-sonnet-5,reference,"st=input()
+count=0
+for i in st:
+    if i.islower():
+        count+=1
+if count<=1 and st[0].islower():
+    print(st.title())
+elif st.isupper():
+    print(st.lower())
+else:
+    print(st)",True,0.4815,4.7156,4.7156,0.0,0,0,0.0,[],[]
+228573208,claude-sonnet-5,reference,"s = input()
+caps_lock  = True
+for i in range(1,len(s)):
+    if s[i] >= 'a' and s[i] <= 'z':
+        caps_lock = False
+        break
+if caps_lock:
+    print(s.swapcase())
+else:
+    print(s)",True,0.4516,3.9815,3.9815,0.0,0,0,0.0,[],[]
+228592983,claude-sonnet-5,rules,"word = input()
+
+# Check if the word fits the condition for Caps Lock being on
+if word[1:].upper() == word[1:] or word.isupper():
+    print(word.swapcase())  # Swap the case of all letters
+else:
+    print(word)  # Leave the word unchanged",True,0.2222,0.1612,0.1612,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+228650087,claude-sonnet-5,rules,"string = input()
+
+def Invert(s):
+    if s.isupper():
+        return s.lower()
+    return s.upper()
+
+if string[1:].upper() == string[1:]:
+    print(Invert(string[0]) + string[1:].lower())
+else:
+    print(string)",True,0.125,0.1339,0.1339,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+228650390,claude-sonnet-5,rules,"word = input()
+sol = ''
+if word[1:].upper() == word[1:]:
+    for x in word:
+        if x.isupper():
+            sol += x.lower()
+        else:
+            sol += x.upper()
+elif (len(word) == 1 and (word.islower())):
+    sol = word.upper()
+else:
+    sol = word
+print(sol)",True,0.28,0.3013,0.3013,0.0,0,0,0.0,"[""slice_case_check_to_equality"", ""wrap_len1_missing_edge_case"", ""generic_flip_bool_op""]",[]
+228774547,claude-sonnet-5,reference,"n = input()
+if n[0] == n[0].lower() and n[1:] == n[1:].upper():
+    print(n[0].upper()+n[1:].lower())
+elif n == n.upper():
+    print(n.lower())
+else:
+    print(n)",True,0.4384,4.2959,4.2959,0.0,0,0,0.0,[],[]
+228820153,claude-sonnet-5,reference,"#!/bin/env python3
+str = input()
+flag = 0
+for i in range(len(str)):
+    if ord(str[i]) - ord(""a"") >= 0:
+        flag = 1
+        break
+if flag == 0:
+    print(str.lower())
+    exit()
+
+for i in range(len(str)-1):
+    if ord(str[i+1]) - ord(""a"") >= 0:
+        flag = 0
+        break
+if flag == 0:
+    print(str)
+else:
+    print(str[0].upper() + str[1:].lower())",True,0.7556,10.3773,10.3773,0.0,0,0,0.0,[],[]
+228909210,claude-sonnet-5,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.7674,3.5497,3.5497,0.0,0,0,0.0,[],[]
+228909514,claude-sonnet-5,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.6667,3.725,3.725,0.0,0,0,0.0,[],[]
+228909738,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1773,0.1773,0.0,0,0,0.0,[],[]
+228923658,claude-sonnet-5,reference,"word = input()
+
+if word.isupper() or (word[0].islower() and word[1:].isupper()) or (len(word)==1 and word.islower()):
+    print(word.swapcase())
+else:
+    print(word)",True,1.1667,3.4527,3.4527,0.0,0,0,0.0,[],[]
+228925464,claude-sonnet-5,reference,"word = input()
+
+if word.isupper() or (word[0].islower() and word[1:].isupper()) or (len(word)==1 and word.islower()):
+    print(word.swapcase())
+else:
+    print(word)",True,0.9385,3.4848,3.4848,0.0,0,0,0.0,[],[]
+229013871,claude-sonnet-5,reference,"n=input()
+if len(n) == 1 or n.isupper() == True or n[0:1].islower() and n[1:len(n)].isupper():
+    print(n.swapcase())
+else: print(n)",True,0.6712,3.8349,3.8349,0.0,0,0,0.0,[],[]
+229015648,claude-sonnet-5,rules,"def fix_capslock(word):
+    if word.isupper() or word[1:].upper() == word[1:]:
+        return word.swapcase()
+    else:
+        return word
+
+# Read the input word
+input_word = input().strip()
+
+# Apply the rule and print the result
+result = fix_capslock(input_word)
+print(result)",True,0.1579,0.0929,0.0929,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+229065802,claude-sonnet-5,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.5476,5.2494,5.2494,0.0,0,0,0.0,[],[]
+229123131,claude-sonnet-5,reference,"old_word = input()
+if old_word[1:] == old_word[1:].upper():
+    new_word = """"
+    for ch in old_word:
+        if ch == ch.upper():
+            new_word += ch.lower()
+        else:
+            new_word += ch.upper()
+else:
+    new_word = old_word
+print(new_word)",True,0.6222,0.9603,0.9603,0.0,0,0,0.0,[],[]
+229123216,claude-sonnet-5,reference,"a = input()
+b = a.upper()
+if a == b:
+    print(a.lower())
+elif a[1:]==b[1:]:
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.5278,3.9846,3.9846,0.0,0,0,0.0,[],[]
+229255302,claude-sonnet-5,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,0.6061,0.5555,0.5555,0.0,0,0,0.0,[],[]
+229334898,claude-sonnet-5,reference,"s=input() 
+if s[1:]==s[1:].upper():
+    print(s.swapcase()) 
+else:
+    print(s)",True,0.7941,3.8916,3.8916,0.0,0,0,0.0,[],[]
+229334994,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.7619,3.6574,3.6574,0.0,0,0,0.0,[],[]
+229360623,claude-sonnet-5,reference,"a = input()
+if a[1:].upper() == a[1:]:
+    print(a.swapcase())
+else:
+    print(a)
+# Sun Oct 29 2023 14:01:35 GMT+0300 (Moscow Standard Time)",True,0.5,0.3232,0.3232,0.0,0,0,0.0,[],[]
+229376709,claude-sonnet-5,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.6892,4.4487,4.4487,0.0,0,0,0.0,[],[]
+229377050,claude-sonnet-5,reference,"w = input()
+if w.isupper() or w.swapcase().istitle():
+    print(w.swapcase())
+else:
+    print(w)",True,2.625,0.1564,0.1564,0.0,0,0,0.0,[],[]
+229412170,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8571,0.2287,0.2287,0.0,0,0,0.0,[],[]
+229414685,claude-sonnet-5,reference,"s = str(input())
+upp = 0
+low = 0
+for i in s:
+    if i.islower():
+        low+=1
+    else:
+        upp+=1
+if s[0].islower() and upp == len(s)-1:
+    for i in range(len(s)):
+        if i==0:
+            print(s[i].upper(),end="""")
+        else:
+            print(s[i].lower(),end="""")
+elif upp == len(s):
+    for i in range(len(s)):
+        print(s[i].lower(), end="""")
+else:
+    print(s)",True,0.5806,5.3759,5.3759,0.0,0,0,0.0,[],[]
+229463723,claude-sonnet-5,reference,"def change_case(word):
+    if word.isupper():
+        return word.lower()
+    elif word.istitle():
+        return word.swapcase()
+    else:
+        return word
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,0.9483,0.7819,0.7819,0.0,0,0,0.0,[],[]
+229465343,claude-sonnet-5,reference,"def toggle_case(s):
+    if not s.isalpha():
+        return s
+    return s.lower() if s.isupper() else s.upper()
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,0.9221,0.9047,0.9047,0.0,0,0,0.0,[],[]
+229474067,claude-sonnet-5,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,0.45,4.1635,4.1635,0.0,0,0,0.0,[],[]
+229474183,claude-sonnet-5,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,0.45,3.9836,3.9836,0.0,0,0,0.0,[],[]
+229474294,claude-sonnet-5,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,0.45,3.8092,3.8092,0.0,0,0,0.0,[],[]
+229475465,claude-sonnet-5,rules,"n = input()
+
+def opposite(string):
+    newString =("""")
+    for i in string:
+        if i.islower():
+            newString += i.upper()
+        elif i.isupper():
+            newString += i.lower()
+
+    return newString
+
+if n[0].islower() and n[1:].upper() == n[1:]:
+    print(opposite(n))
+elif n.isupper():
+    print(opposite(n))
+else:
+    print(n)",True,0.0845,0.0999,0.0999,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+229478500,claude-sonnet-5,rules,"l = input()
+
+
+if l.isupper():
+    print(l.lower())
+
+elif l[1:].upper() == l[1:]:
+    print(l.swapcase())
+else:
+    print(l)",True,0.1875,0.0913,0.0913,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+229587604,claude-sonnet-5,reference,"#!/bin/env python3
+str = input()
+flag = 0
+for i in range(len(str)):
+    if ord(str[i]) - ord(""a"") >= 0:
+        flag = 1
+        break
+if flag == 0:
+    print(str.lower())
+    exit()
+
+for i in range(len(str)-1):
+    if ord(str[i+1]) - ord(""a"") >= 0:
+        flag = 0
+        break
+if flag == 0:
+    print(str)
+else:
+    print(str[0].upper() + str[1:].lower())",True,1.0,6.2576,6.2576,0.0,0,0,0.0,[],[]
+229590971,claude-sonnet-5,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.625,3.47,3.47,0.0,0,0,0.0,[],[]
+229597132,claude-sonnet-5,reference,"a=input()
+k=0
+for i in range(1,len(a)):
+    if a[i].upper()==a[i]:
+        k=k+1
+if k==(len(a)-1):
+    a=a.swapcase()
+print(a)",True,0.8431,4.8079,4.8079,0.0,0,0,0.0,[],[]
+229690056,claude-sonnet-5,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.7241,3.8477,3.8477,0.0,0,0,0.0,[],[]
+229691649,claude-sonnet-5,reference,"a=input()
+
+if(a.upper()==a):
+    print(a.swapcase())
+elif(a.capitalize().swapcase()==a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.913,0.4824,0.4824,0.0,0,0,0.0,[],[]
+229706260,claude-sonnet-5,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,0.8519,3.3778,3.3778,0.0,0,0,0.0,[],[]
+229707608,claude-sonnet-5,reference,"s = input()
+caps_lock  = True
+for i in range(1,len(s)):
+    if s[i] >= 'a' and s[i] <= 'z':
+        caps_lock = False
+        break
+if caps_lock:
+    print(s.swapcase())
+else:
+    print(s)",True,0.5469,3.9604,3.9604,0.0,0,0,0.0,[],[]
+229709285,claude-sonnet-5,reference,"a = input()
+if a.upper() == a:
+    print(a.lower())
+elif a[0] == a[0].lower() and a[1:].upper() == a[1:]:
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.4783,3.7389,3.7389,0.0,0,0,0.0,[],[]
+229709617,claude-sonnet-5,reference,"n = input()
+if n[0] == n[0].lower() and n[1:] == n[1:].upper():
+    print(n[0].upper()+n[1:].lower())
+elif n == n.upper():
+    print(n.lower())
+else:
+    print(n)",True,0.4118,3.7044,3.7044,0.0,0,0,0.0,[],[]
+229710521,claude-sonnet-5,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.2963,3.5251,3.5251,0.0,0,0,0.0,[],[]
+229725389,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8214,3.4934,3.4934,0.0,0,0,0.0,[],[]
+229731346,claude-sonnet-5,reference,"s=input()
+if s[0].islower() and s[1::].isupper():
+    s1=s[0].upper()
+    for i in range(1,len(s)):
+        if s[i].islower():
+            s1+=s[i].upper()
+        else:
+            s1+=s[i].lower()
+elif len(s)==1:
+    if s.isupper():
+        s1=s.lower()
+    else:
+        s1=s.upper()
+elif s.isupper():
+    s1=s.lower()
+else:
+    s1=s 
+print(s1)",True,0.6909,3.9937,3.9937,0.0,0,0,0.0,[],[]
+229778675,claude-sonnet-5,rules,"txt = input()
+if txt.isupper(): # T -> t | one letter case
+    print(txt.lower())
+elif txt[0].islower and txt[1:].upper() == txt[1:]:
+    print(txt[0].upper() + txt[1:].lower())
+else:
+    print(txt)",True,0.1489,0.1637,0.1637,0.0,0,0,0.0,"[""add_missing_call_parens"", ""slice_case_check_to_equality""]",[]
+229840537,claude-sonnet-5,reference,"s=input()
+a=s[1:]
+b=a.upper()
+if a!=b:
+    print(s)
+else:
+    print(s.swapcase())",True,0.8,3.5036,3.5036,0.0,0,0,0.0,[],[]
+229906036,claude-sonnet-5,reference,"s = input()
+s2 = s[1:]
+if s.isupper():
+    print(s.lower())
+elif s2.isupper() or len(s) == 1:
+    print(s[0].upper() + s2.lower())
+else:
+    print(s)",True,0.766,4.1186,4.1186,0.0,0,0,0.0,[],[]
+230136193,claude-sonnet-5,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.3125,0.5359,0.5359,0.0,0,0,0.0,[],[]
+230255083,claude-sonnet-5,rules,"def fix_caps_lock(word):
+    # Check if the word only contains uppercase letters or all letters except the first one are uppercase
+    if word.isupper() or (word[0].islower() and word[1:].upper() == word[1:]):
+        # Change the case of all letters in the word
+        return word.swapcase()
+    else:
+        # Return the word unchanged
+        return word
+
+# Input a word
+word = input()
+
+# Apply the fix_caps_lock function
+fixed_word = fix_caps_lock(word)
+
+# Print the fixed word
+print(fixed_word)",True,0.1395,0.108,0.108,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+230315342,claude-sonnet-5,rules,"s=input()
+print([s,s.swapcase()][s[1:]==s[1:].upper()])",True,0.0385,0.1036,0.1036,0.0,0,0,0.0,"[""capitalize_title_to_swapcase""]",[]
+230422991,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.6207,0.1691,0.1691,0.0,0,0,0.0,[],[]
+230448659,claude-sonnet-5,rules,"a = input()
+
+import string
+
+if a[0].upper() <= a[0] and a[1:].upper() == a[1:]:
+    print(a.swapcase())
+elif a.upper():
+    print(a)
+else:
+    print(a.capitalize())",True,0.2683,1.8209,1.8209,0.0,0,0,0.0,"[""slice_case_check_to_equality"", ""capitalize_title_to_swapcase"", ""upper_lower_bool_to_ischeck"", ""slice_case_check_to_equality"", ""generic_flip_compare""]",[]
+230448954,claude-sonnet-5,reference,"a = input()
+
+if len(a) == 1 and a.islower():
+    print(a.capitalize())
+elif a[1:].isupper() or a.isupper():
+    print(a.swapcase())
+else:
+    print(a)",True,0.4219,4.1236,4.1236,0.0,0,0,0.0,[],[]
+230496207,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1946,0.1946,0.0,0,0,0.0,[],[]
+230629067,claude-sonnet-5,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.2143,0.1671,0.1671,0.0,0,0,0.0,[],[]
+230662510,claude-sonnet-5,rules,"s = str(input())
+isAllUpperCase = 1
+printed = 0
+
+for i, item in enumerate(s):
+    if s.isupper():
+        print(s[0].lower() + s[1:].lower())
+        printed = 1
+        break
+    if i == 0 and printed == 0:
+        if (len(item) == 1 or (item.islower())):
+            
+            for j in range(i+1,len(s)):
+                if s[j].islower():
+                    isAllUpperCase = 0
+                    break
+        if isAllUpperCase == 1:
+            print(s[0].upper()+s[1:].lower())
+            printed = 1
+            break
+
+    if s[0].isupper() or s[1:].islower() or printed == 0:
+        print(s)
+        break",True,0.0703,1.9075,1.9075,0.0,0,0,0.0,"[""wrap_len1_missing_edge_case"", ""generic_flip_bool_op"", ""generic_flip_bool_op""]",[]
+230731176,claude-sonnet-5,reference,"string = input()
+
+answer = ''
+if len(string) == 1 or string[1:].isupper():
+    for char in string:
+        answer += (char.upper() if char.islower() else char.lower())
+else:
+    answer = string
+print(answer)",True,0.9643,0.32,0.32,0.0,0,0,0.0,[],[]
+230732999,claude-sonnet-5,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.7727,3.5627,3.5627,0.0,0,0,0.0,[],[]
+230733498,claude-sonnet-5,reference,"s = input()
+if s[1:] == s[1:].upper():
+    new_s = ''
+    for l in s:
+        if l.upper() == l:
+            new_s += l.lower()
+        else:
+            new_s += l.upper()
+    print(new_s)
+else:
+    print(s)",True,0.8409,3.6562,3.6562,0.0,0,0,0.0,[],[]
+230759451,claude-sonnet-5,reference,"s = input()
+if s[1:] == s[1:].upper():
+    new_s = ''
+    for l in s:
+        if l.upper() == l:
+            new_s += l.lower()
+        else:
+            new_s += l.upper()
+    print(new_s)
+else:
+    print(s)",True,0.835,5.3322,5.3322,0.0,0,0,0.0,[],[]
+230763778,claude-sonnet-5,reference,"s  = input()
+c = True
+for i in range (1, len(s)):
+    if s[i].islower():
+        c = False
+if c:
+    for j in range(len(s)):
+        if s[j].islower():
+            u = s[j].upper()
+        else:
+            u = s[j].lower()
+        print(u, end="""")
+else:
+    print(s)",True,1.0833,4.062,4.062,0.0,0,0,0.0,[],[]
+230885456,claude-sonnet-5,reference,"a=input()
+k=0
+for i in range(1,len(a)):
+    if a[i].upper()==a[i]:
+        k=k+1
+if k==(len(a)-1):
+    a=a.swapcase()
+print(a)",True,0.7727,3.9119,3.9119,0.0,0,0,0.0,[],[]
+230885665,claude-sonnet-5,reference,"n = input()
+if len(n) == 1 and n.isupper() == False: print(n.swapcase())
+elif n.isupper() == True: print(n.swapcase())
+elif n[0].isupper() == False and n[1:].isupper() == True: print(n.swapcase())
+else: print(n)",True,0.7312,4.2877,4.2877,0.0,0,0,0.0,[],[]
+230971066,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1654,0.1654,0.0,0,0,0.0,[],[]
+231058808,claude-sonnet-5,reference,"string=input()
+char=list(string)
+uppercase=1
+for i in range (1,len(string)):
+    if str(char[i]).islower()==True:
+        uppercase=0
+if uppercase==0:
+    print(string)
+else:
+    print(string.swapcase())",True,0.875,6.7996,6.7996,0.0,0,0,0.0,[],[]
+231092476,claude-sonnet-5,rules,"n=input()
+if n[0].upper() <= n[0] and n[1:].upper() == n[1:] and n.capitalize():
+    n=n.swapcase()
+print(n)",True,0.3939,1.6182,1.6182,0.0,0,0,0.0,"[""slice_case_check_to_equality"", ""slice_case_check_to_equality"", ""capitalize_title_to_swapcase"", ""generic_flip_compare"", ""generic_flip_bool_op""]",[]
+231092694,claude-sonnet-5,rules,"n=input()
+if n[0].islower() and n[1:].upper() == n[1:] or n.isupper():
+    n=n.swapcase()
+print(n)",True,0.1818,0.1417,0.1417,0.0,0,0,0.0,"[""slice_case_check_to_equality"", ""capitalize_title_to_swapcase""]",[]
+231092995,claude-sonnet-5,rules,"n=input()
+if (n[0].islower() and n[1:].upper() == n[1:]):
+    n=n.capitalize()
+elif n.isupper():
+    n=n.lower()
+print(n)",True,0.1622,0.0811,0.0811,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+231195201,claude-sonnet-5,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.6531,3.8809,3.8809,0.0,0,0,0.0,[],[]
+231322847,claude-sonnet-5,reference,"def change(b):
+    if ""a"" <= b <= ""z"":
+        return chr(ord(b) - ord('a') + ord('A'))
+    else:
+        return chr(ord(b) - ord('A') + ord('a'))
+a = input()
+A1 = {chr(i):0 for i in range(ord(""a""), ord(""z"") + 1)}
+A2 = {chr(i):0 for i in range(ord(""A""), ord(""Z"") + 1)}
+if len(a) == 1:
+    if ""a"" <= a[0] <= ""z"":
+        print(chr(ord(a[0]) - ord('a') + ord('A')))
+    else:
+        print(chr(ord(a[0]) + ord('a') - ord('A')))
+else:
+    check = 1
+    for i in range(1 , len(a)):
+        if ord(a[i]) < 65 or ord(a[i]) > 90:
+            check = 0
+            break
+    if check == 1:
+        for j in range(len(a)):
+            if ord(a[j]) >= 97:
+                print(chr(ord(a[j]) - 32) , end = """")
+            else:
+                print(chr(ord(a[j]) + 32) , end = """")
+    if check == 0:
+        print(a)",True,0.396,12.1269,12.1269,0.0,0,0,0.0,[],[]
+231333783,claude-sonnet-5,rules,"word = input()
+result = word.swapcase() if word.isupper() or word[1:].upper() == word[1:] else word
+print(result)",True,0.2222,0.0942,0.0942,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+231334706,claude-sonnet-5,reference,"def process_word(word):
+    # Проверяем, соответствует ли слово условиям ошибочно набранного слова
+    if word[0].islower():
+        # Меняем регистр всех букв на противоположный
+        return word.swapcase()
+    else:
+        # Слово не требует изменения
+        return word
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,1.1,3.4081,3.4081,0.0,0,0,0.0,[],[]
+231336475,claude-sonnet-5,rules,"word = input()  # Считываем входное слово
+
+# Проверяем, является ли слово набранным с ошибочно нажатой клавишей Caps Lock
+if word.isupper() or (len(word) >= 1 and word[1:].upper() == word[1:]):
+    word = word.swapcase()  # Меняем регистр всех букв на противоположный
+
+print(word)  # Выводим результат обработки слова",True,0.2059,0.1242,0.1242,0.0,0,0,0.0,"[""slice_case_check_to_equality"", ""generic_flip_compare""]",[]
+231455523,claude-sonnet-5,reference,"#CF_Problem:	131A_Caps_Lock
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,1.4643,0.2883,0.2883,0.0,0,0,0.0,[],[]
+231474716,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,2.7407,3.2393,3.2393,0.0,0,0,0.0,[],[]
+231509953,claude-sonnet-5,rules,"word = input()
+
+# Check if the Caps lock rule applies
+if word.isupper() or (word[0].islower() and word[1:].upper() == word[1:]):
+    # If yes, change the case of all letters
+    print(word.swapcase())
+else:
+    # Otherwise, leave the word unchanged
+    print(word)",True,0.1765,0.086,0.086,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+231527680,claude-sonnet-5,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.3846,0.1665,0.1665,0.0,0,0,0.0,[],[]
+231527754,claude-sonnet-5,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.2143,0.1639,0.1639,0.0,0,0,0.0,[],[]
+231550211,claude-sonnet-5,rules,"test = input()
+
+def makeCaps(word):
+    newWord = ""Test""
+    if word.isupper():
+        newWord = word.lower()
+    elif word[0].islower() and word[1:].upper() == word[1:]:
+         newWord = word[0].upper()       
+         newWord += word[1:].lower()   
+    else:
+         newWord =  word
+    return newWord        
+ 
+
+print(makeCaps(test))",True,0.0968,0.0893,0.0893,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+231604852,claude-sonnet-5,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,0.8807,5.9415,5.9415,0.0,0,0,0.0,[],[]
+231608673,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.6774,0.275,0.275,0.0,0,0,0.0,[],[]
+231608951,claude-sonnet-5,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,1.1176,0.1803,0.1803,0.0,0,0,0.0,[],[]
+231620518,claude-sonnet-5,reference,"w = input()
+if w.isupper() or w.swapcase().istitle():
+    print(w.swapcase())
+else:
+    print(w)",True,1.7273,0.1671,0.1671,0.0,0,0,0.0,[],[]
+231650654,claude-sonnet-5,reference,"st=input()
+cnt=0
+for i in st:
+    if ord(i)<97:
+        cnt+=1
+if cnt==len(st) or ((cnt==len(st)-1) and ord(st[0])>=97):
+    new_st=""""
+    for i in st:
+        if ord(i)<97:
+            new_st+=i.lower()
+        else:
+            new_st+=i.upper()
+    print(new_st)
+else:
+    print(st)",True,0.8044,11.0618,11.0618,0.0,0,0,0.0,[],[]
+231653969,claude-sonnet-5,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.7419,1.5262,1.5262,0.0,0,0,0.0,[],[]
+231679032,claude-sonnet-5,reference,"s = input()
+if s[1:] == s[1:].upper():
+    new_s = ''
+    for l in s:
+        if l.upper() == l:
+            new_s += l.lower()
+        else:
+            new_s += l.upper()
+    print(new_s)
+else:
+    print(s)",True,0.6964,2.2988,2.2988,0.0,0,0,0.0,[],[]
+231886540,claude-sonnet-5,reference,"s=input()
+a=s[1:]
+b=a.upper()
+if a!=b:
+    print(s)
+else:
+    print(s.swapcase())",True,0.62,0.7471,0.7471,0.0,0,0,0.0,[],[]
+231887608,claude-sonnet-5,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+   print(x)",True,0.6667,0.5375,0.5375,0.0,0,0,0.0,[],[]
+231890420,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.2581,3.7156,3.7156,0.0,0,0,0.0,[],[]
+231907958,claude-sonnet-5,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.5952,3.4618,3.4618,0.0,0,0,0.0,[],[]
+231919579,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.8235,3.47,3.47,0.0,0,0,0.0,[],[]
+231919998,claude-sonnet-5,reference,"i = input()
+if i.isupper() or (i[0].islower()) and (i[1:].isupper()) or (len(i)==1 and  i.islower()):
+    i = i.swapcase()
+print(i)",True,0.5938,3.5331,3.5331,0.0,0,0,0.0,[],[]
+231920260,claude-sonnet-5,reference,"t=input()
+if (len(t)==1):
+    t=t.swapcase()
+elif (t.isupper() or t[0].islower() and t[1:].isupper()):
+    t=t.swapcase()
+print(t)",True,0.5676,3.6182,3.6182,0.0,0,0,0.0,[],[]
+231922722,claude-sonnet-5,rules,"a = input()
+if a[0].upper() <= a[0] and a[1:].upper() == a[1:]:
+    print(a.swapcase())
+else:
+    print(a)",True,0.4138,0.799,0.799,0.0,0,0,0.0,"[""slice_case_check_to_equality"", ""slice_case_check_to_equality"", ""generic_flip_compare"", ""generic_flip_bool_op""]",[]
+232248695,claude-sonnet-5,reference,"a=str(input())
+s=0
+output=str()
+for i in range(1, len(a)):
+    if a[i].isupper():
+        continue
+    else:
+        print(a)
+        break
+else:
+    for i in range(len(a)):
+        if a[i].isupper():
+            output+=a[i].lower()
+        else:
+            output+=a[i].upper()
+    print(output)",True,0.5233,4.5963,4.5963,0.0,0,0,0.0,[],[]
+232251797,claude-sonnet-5,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,1.7,0.2591,0.2591,0.0,0,0,0.0,[],[]
+232252228,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1278,0.1278,0.0,0,0,0.0,[],[]
+232252583,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.5417,3.4524,3.4524,0.0,0,0,0.0,[],[]
+232252696,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1685,0.1685,0.0,0,0,0.0,[],[]
+232252891,claude-sonnet-5,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.7727,3.326,3.326,0.0,0,0,0.0,[],[]
+232255129,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1272,0.1272,0.0,0,0,0.0,[],[]
+232256386,claude-sonnet-5,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.0,0.1871,0.1871,0.0,0,0,0.0,[],[]
+232257299,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1244,0.1244,0.0,0,0,0.0,[],[]
+232264069,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.5417,3.4692,3.4692,0.0,0,0,0.0,[],[]
+232264367,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1556,0.1556,0.0,0,0,0.0,[],[]
+232264801,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.7619,3.366,3.366,0.0,0,0,0.0,[],[]
+232265005,claude-sonnet-5,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.2143,0.1945,0.1945,0.0,0,0,0.0,[],[]
+232266545,claude-sonnet-5,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,0.9286,0.3995,0.3995,0.0,0,0,0.0,[],[]
+232308761,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1671,0.1671,0.0,0,0,0.0,[],[]
+232402687,claude-sonnet-5,reference,"def adjust_caps_lock(word):
+    # Check if all letters are capitalized or if all but the first are capitalized
+    if word.isupper() or (len(word) > 1 and word[1:].isupper()):
+        # Change all letters to lowercase if there is only one uppercase letter (except for the first letter)
+        if len(word) == word.count('A') + word.count('E') + word.count('I') + word.count('O') + word.count('U'):
+            return word.lower()
+    return word
+
+My_word = input()
+
+if My_word.isupper() or (My_word[0].islower() and My_word[1:].isupper()) or (len(My_word)==1 and My_word.islower()):
+    My_word = My_word.swapcase()
+
+print(My_word)",True,0.4831,3.8176,3.8176,0.0,0,0,0.0,[],[]
+232403653,claude-sonnet-5,rules,"y= input()
+if y.isupper() or (y[0].islower()) and (y[1:].isupper()) or (len(y)==1) and (y.lower):
+   y=y.swapcase()
+
+print(y)",True,0.0238,0.1414,0.1414,0.0,0,0,0.0,"[""add_missing_call_parens""]",[]
+232403861,claude-sonnet-5,rules,"l= input()
+if l.isupper() or (l[0].islower()) and (l[1:].isupper()) or (len(l)==1) and (l.lower):
+   l=l.swapcase()
+
+print(l)",True,0.0238,0.1324,0.1324,0.0,0,0,0.0,"[""add_missing_call_parens""]",[]
+232407897,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.2972,0.2972,0.0,0,0,0.0,[],[]
+232426215,claude-sonnet-5,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,2.2727,0.1417,0.1417,0.0,0,0,0.0,[],[]
+232447280,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.7097,3.4908,3.4908,0.0,0,0,0.0,[],[]
+232479851,claude-sonnet-5,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.7619,3.4545,3.4545,0.0,0,0,0.0,[],[]
+232503442,claude-sonnet-5,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.75,3.5351,3.5351,0.0,0,0,0.0,[],[]
+232504234,claude-sonnet-5,reference,"s = input()
+ucount = 0
+lcount = 0
+for i in range(len(s)):
+    if(s[i].isupper()):
+        ucount += 1 
+    else:
+        lcount += 1
+if((ucount == len(s)-1) and (s[0].islower())):
+    for i in range(len(s)):
+        if i == 0:
+            print(s[i].upper(),end="""")
+        else:
+            print(s[i].lower(),end="""")
+elif (ucount == len(s)):
+    for i in range(len(s)):
+        print(s[i].lower(),end="""")
+else:
+    print(s)",True,0.7318,8.9376,8.9376,0.0,0,0,0.0,[],[]
+232511025,claude-sonnet-5,reference,"s = input()
+if (s[0].islower() and s[1:].isupper() or s.isupper() or len(s) == 1 and s.islower()):
+    s = s.swapcase()
+print(s)",True,0.5556,3.4829,3.4829,0.0,0,0,0.0,[],[]
+232536731,claude-sonnet-5,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.7273,0.209,0.209,0.0,0,0,0.0,[],[]
+232536985,claude-sonnet-5,rules,"word = input()
+
+if (len(word) == 1 or (word.isupper() == True or word[0].islower() == True and word[1:].isupper() == True)):
+    print(word.swapcase())
+else:
+    print(word)",True,0.186,0.3606,0.3606,0.0,0,0,0.0,"[""capitalize_title_to_swapcase"", ""wrap_len1_missing_edge_case""]",[]
+232537533,claude-sonnet-5,rules,"word = input()
+
+if (len(word) == 1 or (word.isupper() == True or word[0].islower() == True and word[1:].isupper() == True)):
+    string = """"
+    letters = []
+    for x in word:
+        letters.append(x)
+    for x in letters:
+        if x.isupper():
+            x = str(x).lower()
+        else:
+            x = str(x).upper()
+        string += x
+    print(string)
+else:
+    print(word)",True,0.1,0.1303,0.1303,0.0,0,0,0.0,"[""wrap_len1_missing_edge_case""]",[]
+232566803,claude-sonnet-5,rules,"n = str(input())
+if n.isupper() :print(n.lower()) 
+elif n[1:].upper() == n[1:] :print(n[0].capitalize()+n[1:].lower())        
+else :print(n)",True,0.1364,0.1109,0.1109,0.0,0,0,0.0,"[""slice_case_check_to_equality""]",[]
+227637747,gpt-5.4-mini,rules,"palavra = str(input())
+
+if palavra.upper() == palavra:
+    lower_word = palavra.lower()
+    capitalize_word = palavra.swapcase()
+    print(capitalize_word)
+elif palavra[0].lower() + palavra[1:].upper() == palavra:
+    lower_word = palavra.lower()
+    capitalize_word = palavra.capitalize()
+    print(capitalize_word)
+else:
+    print(palavra)",True,0.0159,0.0777,0.0777,0.0,0,0,0.0,"[""replace_title_capitalize_with_swapcase""]",[]
+227682671,gpt-5.4-mini,reference,"# https://codeforces.com/problemset/problem/131/A
+
+word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.7273,0.1563,0.1563,0.0,0,0,0.0,[],[]
+227684114,gpt-5.4-mini,rules,"# https://codeforces.com/problemset/problem/131/A
+
+word = input()
+convert = True
+i = 1
+while i < len(word) and convert:
+    if 'a' <= word[i] <= 'z':
+        convert = False
+    i += 1
+if convert:
+    print(word.swapcase())
+else:
+    print(word)",True,0.0204,0.095,0.095,0.0,0,0,0.0,"[""replace_title_capitalize_with_swapcase""]",[]
+227938928,gpt-5.4-mini,reference,"s = input()
+if s.isupper():
+	print(s.lower())
+elif s[0].islower and (len(s) == 1 or s[1:].isupper()):
+	print(s[0].upper() + s[1:].lower())
+else:
+	print(s)",True,0.3488,3.9201,3.9201,0.0,0,0,0.0,[],[]
+227947247,gpt-5.4-mini,reference,"a=input()
+
+if(a.upper()==a):
+    print(a.swapcase())
+elif(a.capitalize().swapcase()==a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.3824,3.461,3.461,0.0,0,0,0.0,[],[]
+227949366,gpt-5.4-mini,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,0.8452,5.1502,5.1502,0.0,0,0,0.0,[],[]
+227949783,gpt-5.4-mini,reference,"string=input()
+char=list(string)
+uppercase=1
+for i in range (1,len(string)):
+    if str(char[i]).islower()==True:
+        uppercase=0
+if uppercase==0:
+    print(string)
+else:
+    print(string.swapcase())",True,0.7931,6.6389,6.6389,0.0,0,0,0.0,[],[]
+227965107,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8571,0.2429,0.2429,0.0,0,0,0.0,[],[]
+228049282,gpt-5.4-mini,reference,"strli=input()
+if strli.isupper():
+    x=strli.lower()
+    print(x)
+elif strli[0].islower() and strli[1:].isupper():
+    x=list(strli.lower())
+    x[0]=x[0].upper()
+    out="""".join(x)
+    print(out)
+elif len(strli)==1 and strli[0].islower():
+    x=strli.upper()
+    print(x)
+else:
+    print(strli)",True,0.7053,4.8232,4.8232,0.0,0,0,0.0,[],[]
+228131536,gpt-5.4-mini,reference,"a = input()
+
+if len(a) == 1 and a.islower():
+    print(a.capitalize())
+elif a[1:].isupper() or a.isupper():
+    print(a.swapcase())
+else:
+    print(a)",True,0.8,0.3981,0.3981,0.0,0,0,0.0,[],[]
+228375983,gpt-5.4-mini,reference,"a=input()
+k=0
+for i in range(1,len(a)):
+    if a[i].upper()==a[i]:
+        k=k+1
+if k==(len(a)-1):
+    a=a.swapcase()
+print(a)",True,0.6129,3.8496,3.8496,0.0,0,0,0.0,[],[]
+228392101,gpt-5.4-mini,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)
+# Mon Oct 16 2023 12:21:45 GMT+0300 (Moscow Standard Time)",True,0.6455,5.1168,5.1168,0.0,0,0,0.0,[],[]
+228392511,gpt-5.4-mini,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)
+# Mon Oct 16 2023 12:25:57 GMT+0300 (Moscow Standard Time)",True,0.7203,5.2055,5.2055,0.0,0,0,0.0,[],[]
+228456059,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8,3.1577,3.1577,0.0,0,0,0.0,[],[]
+228493246,gpt-5.4-mini,rules,"from collections import Counter
+import math
+import re
+s = input()
+f, cnt = -1, 0
+for i in range((len(s)) - 1):
+    if s[i] >= 'A' and s[(i) + 1] <= 'Z':
+        if f == -1: f = i
+        cnt += 1
+
+if cnt == len(s) or cnt == len(s) - 1 and f != 1:
+    ans = ''
+    for i in range(len(s)):
+        if s[i] >= 'A' and s[i] <= 'Z':
+            ans += chr(97 + ord(s[i]) - 65)
+        else:
+            ans += chr(65 + ord(s[i]) - 97)
+    print(ans)
+else:
+    print(s)",True,0.0483,2.7665,2.7665,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_shift_range"", ""generic_shift_index""]",[]
+228504822,gpt-5.4-mini,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.7241,0.6606,0.6606,0.0,0,0,0.0,[],[]
+228505982,gpt-5.4-mini,rules,"s=input()
+a=s[0]+s[1:].upper()
+if s==s.lower() and s==s.capitalize():
+    print(s)
+elif s==a or s==s.upper():
+    print(s.swapcase())
+else:
+    print(s)",True,0.0167,0.3114,0.3114,0.0,0,0,0.0,"[""replace_title_capitalize_with_swapcase"", ""generic_flip_bool_op""]",[]
+228506162,gpt-5.4-mini,rules,"s=input()
+a=s[0]+s[1:].upper()
+if s==s.lower() and s==s.capitalize():
+    print(s)
+elif s==s.upper():
+    print(s.lower())
+elif s==a:
+    print(s.capitalize())
+else:
+    print(s)",True,0.0154,0.0881,0.0881,0.0,0,0,0.0,"[""generic_flip_bool_op""]",[]
+228506319,gpt-5.4-mini,rules,"s=input()
+a=s[0]+s[1:].upper()
+if len(s) < 1:
+    print(s.upper())
+elif s==s.lower() and s==s.capitalize() and len(s)>1:
+    print(s)
+elif s==s.upper():
+    print(s.lower())
+elif s==a:
+    print(s.capitalize())
+else:
+    print(s)",True,0.0465,0.9791,0.9791,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_flip_compare"", ""generic_flip_bool_op""]",[]
+228524995,gpt-5.4-mini,reference,"s = input()
+if(s.upper()==s):
+    print(s.lower())
+else:
+    s1=s[1:]
+    s2=s1.upper()
+    if s1==s2:
+        print(s[0:1].upper()+s1.lower())
+    else:
+        print(s)",True,0.6667,3.6163,3.6163,0.0,0,0,0.0,[],[]
+228525154,gpt-5.4-mini,reference,"s = input()
+if(s.upper()==s):
+    print(s.lower())
+else:
+    s1=s[1:]
+    s2=s1.upper()
+    if s1==s2:
+        print(s[0:1].upper()+s1.lower())
+    else:
+        print(s)",True,0.6667,3.599,3.599,0.0,0,0,0.0,[],[]
+228525362,gpt-5.4-mini,reference,"value = input()
+if (value[0] == value[0].lower() and value[1:] == value[1:].upper()) or (value == value.upper()):
+    print(value.swapcase())
+else:
+    print(value)",True,0.5686,3.987,3.987,0.0,0,0,0.0,[],[]
+228560678,gpt-5.4-mini,reference,"st=input()
+count=0
+for i in st:
+    if i.islower():
+        count+=1
+if count<=1 and st[0].islower():
+    print(st.title())
+elif st.isupper():
+    print(st.lower())
+else:
+    print(st)",True,0.4815,4.1612,4.1612,0.0,0,0,0.0,[],[]
+228573208,gpt-5.4-mini,reference,"s = input()
+caps_lock  = True
+for i in range(1,len(s)):
+    if s[i] >= 'a' and s[i] <= 'z':
+        caps_lock = False
+        break
+if caps_lock:
+    print(s.swapcase())
+else:
+    print(s)",True,0.4516,3.8923,3.8923,0.0,0,0,0.0,[],[]
+228592983,gpt-5.4-mini,rules,"word = input()
+
+# Check if the word fits the condition for Caps Lock being on
+if word[1:].upper() == word[1:] or word.isupper():
+    print(word.swapcase())  # Swap the case of all letters
+else:
+    print(word)  # Leave the word unchanged",True,0.2222,0.1173,0.1173,0.0,0,0,0.0,"[""suffix_isupper_guard_to_suffix_upper_equality""]",[]
+228650087,gpt-5.4-mini,reference,"string = input()
+
+def invert(s):
+    if s.isupper():
+        return s.lower()
+    return s.upper()
+
+if len(string) == 1 or string[1:].isupper():
+    print(invert(string[0]) + string[1:].lower())
+else:
+    print(string)",True,0.8125,3.5264,3.5264,0.0,0,0,0.0,[],[]
+228650390,gpt-5.4-mini,reference,"word = input()
+if len(word) == 1:
+    word = word.swapcase()
+elif word[1:].isupper():
+    word = word.swapcase()
+else:
+    word = word
+print(word)",True,0.64,0.5645,0.5645,0.0,0,0,0.0,[],[]
+228774547,gpt-5.4-mini,reference,"n = input()
+if n[0] == n[0].lower() and n[1:] == n[1:].upper():
+    print(n[0].upper()+n[1:].lower())
+elif n == n.upper():
+    print(n.lower())
+else:
+    print(n)",True,0.4384,4.3519,4.3519,0.0,0,0,0.0,[],[]
+228820153,gpt-5.4-mini,reference,"#!/bin/env python3
+str = input()
+flag = 0
+for i in range(len(str)):
+    if ord(str[i]) - ord(""a"") >= 0:
+        flag = 1
+        break
+if flag == 0:
+    print(str.lower())
+    exit()
+
+for i in range(len(str)-1):
+    if ord(str[i+1]) - ord(""a"") >= 0:
+        flag = 0
+        break
+if flag == 0:
+    print(str)
+else:
+    print(str[0].upper() + str[1:].lower())",True,0.7556,9.3625,9.3625,0.0,0,0,0.0,[],[]
+228909210,gpt-5.4-mini,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.7674,3.6412,3.6412,0.0,0,0,0.0,[],[]
+228909514,gpt-5.4-mini,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.6667,3.5693,3.5693,0.0,0,0,0.0,[],[]
+228909738,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.2565,0.2565,0.0,0,0,0.0,[],[]
+228923658,gpt-5.4-mini,reference,"word = input()
+
+if word.isupper() or (word[0].islower() and word[1:].isupper()) or (len(word)==1 and word.islower()):
+    print(word.swapcase())
+else:
+    print(word)",True,1.1667,3.3639,3.3639,0.0,0,0,0.0,[],[]
+228925464,gpt-5.4-mini,reference,"word = input()
+
+if word.isupper() or (word[0].islower() and word[1:].isupper()) or (len(word)==1 and word.islower()):
+    print(word.swapcase())
+else:
+    print(word)",True,0.9385,3.6415,3.6415,0.0,0,0,0.0,[],[]
+229013871,gpt-5.4-mini,reference,"n=input()
+if len(n) == 1 or n.isupper() == True or n[0:1].islower() and n[1:len(n)].isupper():
+    print(n.swapcase())
+else: print(n)",True,0.6712,3.9711,3.9711,0.0,0,0,0.0,[],[]
+229015648,gpt-5.4-mini,rules,"def fix_capslock(word):
+    if word.isupper() or word[1:].upper() == word[1:]:
+        return word.swapcase()
+    else:
+        return word
+
+# Read the input word
+input_word = input().strip()
+
+# Apply the rule and print the result
+result = fix_capslock(input_word)
+print(result)",True,0.1579,0.1069,0.1069,0.0,0,0,0.0,"[""suffix_isupper_guard_to_suffix_upper_equality""]",[]
+229065802,gpt-5.4-mini,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.5476,4.9627,4.9627,0.0,0,0,0.0,[],[]
+229123131,gpt-5.4-mini,reference,"old_word = input()
+if old_word[1:] == old_word[1:].upper():
+    new_word = """"
+    for ch in old_word:
+        if ch == ch.upper():
+            new_word += ch.lower()
+        else:
+            new_word += ch.upper()
+else:
+    new_word = old_word
+print(new_word)",True,0.6222,0.9171,0.9171,0.0,0,0,0.0,[],[]
+229123216,gpt-5.4-mini,reference,"a = input()
+b = a.upper()
+if a == b:
+    print(a.lower())
+elif a[1:]==b[1:]:
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.5278,4.0663,4.0663,0.0,0,0,0.0,[],[]
+229255302,gpt-5.4-mini,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,0.6061,0.5728,0.5728,0.0,0,0,0.0,[],[]
+229334898,gpt-5.4-mini,reference,"s=input() 
+if s[1:]==s[1:].upper():
+    print(s.swapcase()) 
+else:
+    print(s)",True,0.7941,4.1135,4.1135,0.0,0,0,0.0,[],[]
+229334994,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.7619,3.5476,3.5476,0.0,0,0,0.0,[],[]
+229360623,gpt-5.4-mini,reference,"a = input()
+if a[1:].upper() == a[1:]:
+    print(a.swapcase())
+else:
+    print(a)
+# Sun Oct 29 2023 14:01:35 GMT+0300 (Moscow Standard Time)",True,0.5,0.3189,0.3189,0.0,0,0,0.0,[],[]
+229376709,gpt-5.4-mini,reference,"a=input()
+b=[x for x in a]
+flag=0
+
+for i in range(0, len(a)):
+    if b[i].isupper():
+        flag += 1
+if (flag==len(a)-1 and b[0].islower()==True) or flag==len(a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.6892,4.6309,4.6309,0.0,0,0,0.0,[],[]
+229377050,gpt-5.4-mini,reference,"w = input()
+if w.isupper() or w.swapcase().istitle():
+    print(w.swapcase())
+else:
+    print(w)",True,2.625,0.1111,0.1111,0.0,0,0,0.0,[],[]
+229412170,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8571,0.2829,0.2829,0.0,0,0,0.0,[],[]
+229414685,gpt-5.4-mini,reference,"s = str(input())
+upp = 0
+low = 0
+for i in s:
+    if i.islower():
+        low+=1
+    else:
+        upp+=1
+if s[0].islower() and upp == len(s)-1:
+    for i in range(len(s)):
+        if i==0:
+            print(s[i].upper(),end="""")
+        else:
+            print(s[i].lower(),end="""")
+elif upp == len(s):
+    for i in range(len(s)):
+        print(s[i].lower(), end="""")
+else:
+    print(s)",True,0.5806,5.1859,5.1859,0.0,0,0,0.0,[],[]
+229463723,gpt-5.4-mini,reference,"def change_case(word):
+    if word.isupper():
+        return word.lower()
+    elif word.istitle():
+        return word.swapcase()
+    else:
+        return word
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,0.9483,0.4235,0.4235,0.0,0,0,0.0,[],[]
+229465343,gpt-5.4-mini,reference,"def toggle_case(s):
+    if not s.isalpha():
+        return s
+    return s.lower() if s.isupper() else s.upper()
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,0.9221,0.4287,0.4287,0.0,0,0,0.0,[],[]
+229474067,gpt-5.4-mini,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,0.45,3.8724,3.8724,0.0,0,0,0.0,[],[]
+229474183,gpt-5.4-mini,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,0.45,3.8814,3.8814,0.0,0,0,0.0,[],[]
+229474294,gpt-5.4-mini,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,0.45,3.7795,3.7795,0.0,0,0,0.0,[],[]
+229475465,gpt-5.4-mini,reference,"st=input()
+count=0
+for i in st:
+    if i.islower():
+        count+=1
+if count<=1 and st[0].islower():
+    print(st.title())
+elif st.isupper():
+    print(st.lower())
+else:
+    print(st)",True,0.8873,3.7961,3.7961,0.0,0,0,0.0,[],[]
+229478500,gpt-5.4-mini,reference,"text = input()
+if text.isupper() :
+    print(text.lower())
+elif text[0:1].islower() and (text[1:].isupper() or len(text) == 1) : 
+    print(text.capitalize())
+else : print(text)",True,0.7188,0.5173,0.5173,0.0,0,0,0.0,[],[]
+229587604,gpt-5.4-mini,reference,"#!/bin/env python3
+str = input()
+flag = 0
+for i in range(len(str)):
+    if ord(str[i]) - ord(""a"") >= 0:
+        flag = 1
+        break
+if flag == 0:
+    print(str.lower())
+    exit()
+
+for i in range(len(str)-1):
+    if ord(str[i+1]) - ord(""a"") >= 0:
+        flag = 0
+        break
+if flag == 0:
+    print(str)
+else:
+    print(str[0].upper() + str[1:].lower())",True,1.0,6.212,6.212,0.0,0,0,0.0,[],[]
+229590971,gpt-5.4-mini,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.625,3.625,3.625,0.0,0,0,0.0,[],[]
+229597132,gpt-5.4-mini,reference,"a=input()
+k=0
+for i in range(1,len(a)):
+    if a[i].upper()==a[i]:
+        k=k+1
+if k==(len(a)-1):
+    a=a.swapcase()
+print(a)",True,0.8431,5.1077,5.1077,0.0,0,0,0.0,[],[]
+229690056,gpt-5.4-mini,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.7241,3.8788,3.8788,0.0,0,0,0.0,[],[]
+229691649,gpt-5.4-mini,reference,"a=input()
+
+if(a.upper()==a):
+    print(a.swapcase())
+elif(a.capitalize().swapcase()==a):
+    print(a.swapcase())
+else:
+    print(a)",True,0.913,0.421,0.421,0.0,0,0,0.0,[],[]
+229706260,gpt-5.4-mini,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,0.8519,3.4968,3.4968,0.0,0,0,0.0,[],[]
+229707608,gpt-5.4-mini,reference,"s = input()
+caps_lock  = True
+for i in range(1,len(s)):
+    if s[i] >= 'a' and s[i] <= 'z':
+        caps_lock = False
+        break
+if caps_lock:
+    print(s.swapcase())
+else:
+    print(s)",True,0.5469,3.9907,3.9907,0.0,0,0,0.0,[],[]
+229709285,gpt-5.4-mini,reference,"a = input()
+if a.upper() == a:
+    print(a.lower())
+elif a[0] == a[0].lower() and a[1:].upper() == a[1:]:
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.4783,3.7751,3.7751,0.0,0,0,0.0,[],[]
+229709617,gpt-5.4-mini,reference,"n = input()
+if n[0] == n[0].lower() and n[1:] == n[1:].upper():
+    print(n[0].upper()+n[1:].lower())
+elif n == n.upper():
+    print(n.lower())
+else:
+    print(n)",True,0.4118,3.7237,3.7237,0.0,0,0,0.0,[],[]
+229710521,gpt-5.4-mini,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.2963,3.6618,3.6618,0.0,0,0,0.0,[],[]
+229725389,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.8214,3.4379,3.4379,0.0,0,0,0.0,[],[]
+229731346,gpt-5.4-mini,reference,"s=input()
+if s[0].islower() and s[1::].isupper():
+    s1=s[0].upper()
+    for i in range(1,len(s)):
+        if s[i].islower():
+            s1+=s[i].upper()
+        else:
+            s1+=s[i].lower()
+elif len(s)==1:
+    if s.isupper():
+        s1=s.lower()
+    else:
+        s1=s.upper()
+elif s.isupper():
+    s1=s.lower()
+else:
+    s1=s 
+print(s1)",True,0.6909,4.048,4.048,0.0,0,0,0.0,[],[]
+229778675,gpt-5.4-mini,reference,"s = input()
+if s.isupper():
+	print(s.lower())
+elif s[0].islower and (len(s) == 1 or s[1:].isupper()):
+	print(s[0].upper() + s[1:].lower())
+else:
+	print(s)",True,0.3617,3.7762,3.7762,0.0,0,0,0.0,[],[]
+229840537,gpt-5.4-mini,reference,"s=input()
+a=s[1:]
+b=a.upper()
+if a!=b:
+    print(s)
+else:
+    print(s.swapcase())",True,0.8,3.3918,3.3918,0.0,0,0,0.0,[],[]
+229906036,gpt-5.4-mini,reference,"s = input()
+s2 = s[1:]
+if s.isupper():
+    print(s.lower())
+elif s2.isupper() or len(s) == 1:
+    print(s[0].upper() + s2.lower())
+else:
+    print(s)",True,0.766,4.0821,4.0821,0.0,0,0,0.0,[],[]
+230136193,gpt-5.4-mini,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.3125,0.6582,0.6582,0.0,0,0,0.0,[],[]
+230255083,gpt-5.4-mini,rules,"def fix_caps_lock(word):
+    # Check if the word only contains uppercase letters or all letters except the first one are uppercase
+    if word.isupper() or (word[0].islower() and word[1:].upper() == word[1:]):
+        # Change the case of all letters in the word
+        return word.swapcase()
+    else:
+        # Return the word unchanged
+        return word
+
+# Input a word
+word = input()
+
+# Apply the fix_caps_lock function
+fixed_word = fix_caps_lock(word)
+
+# Print the fixed word
+print(fixed_word)",True,0.1395,0.0824,0.0824,0.0,0,0,0.0,"[""suffix_isupper_guard_to_suffix_upper_equality""]",[]
+230315342,gpt-5.4-mini,rules,"s=input()
+print([s,s.swapcase()][s[1:]==s[1:].upper()])",True,0.0385,0.0941,0.0941,0.0,0,0,0.0,"[""replace_title_capitalize_with_swapcase""]",[]
+230422991,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.6207,0.1845,0.1845,0.0,0,0,0.0,[],[]
+230448659,gpt-5.4-mini,reference,"a = input()
+
+if len(a) == 1 and a.islower():
+    print(a.capitalize())
+elif a[1:].isupper() or a.isupper():
+    print(a.swapcase())
+else:
+    print(a)",True,0.5854,3.5976,3.5976,0.0,0,0,0.0,[],[]
+230448954,gpt-5.4-mini,reference,"a = input()
+
+if len(a) == 1 and a.islower():
+    print(a.capitalize())
+elif a[1:].isupper() or a.isupper():
+    print(a.swapcase())
+else:
+    print(a)",True,0.4219,4.0917,4.0917,0.0,0,0,0.0,[],[]
+230496207,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1859,0.1859,0.0,0,0,0.0,[],[]
+230629067,gpt-5.4-mini,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.2143,0.1751,0.1751,0.0,0,0,0.0,[],[]
+230662510,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.7656,5.367,5.367,0.0,0,0,0.0,[],[]
+230731176,gpt-5.4-mini,reference,"string = input()
+
+answer = ''
+if len(string) == 1 or string[1:].isupper():
+    for char in string:
+        answer += (char.upper() if char.islower() else char.lower())
+else:
+    answer = string
+print(answer)",True,0.9643,0.4281,0.4281,0.0,0,0,0.0,[],[]
+230732999,gpt-5.4-mini,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.7727,3.501,3.501,0.0,0,0,0.0,[],[]
+230733498,gpt-5.4-mini,reference,"s = input()
+if s[1:] == s[1:].upper():
+    new_s = ''
+    for l in s:
+        if l.upper() == l:
+            new_s += l.lower()
+        else:
+            new_s += l.upper()
+    print(new_s)
+else:
+    print(s)",True,0.8409,3.7412,3.7412,0.0,0,0,0.0,[],[]
+230759451,gpt-5.4-mini,reference,"s = input()
+if s[1:] == s[1:].upper():
+    new_s = ''
+    for l in s:
+        if l.upper() == l:
+            new_s += l.lower()
+        else:
+            new_s += l.upper()
+    print(new_s)
+else:
+    print(s)",True,0.835,5.4475,5.4475,0.0,0,0,0.0,[],[]
+230763778,gpt-5.4-mini,reference,"s  = input()
+c = True
+for i in range (1, len(s)):
+    if s[i].islower():
+        c = False
+if c:
+    for j in range(len(s)):
+        if s[j].islower():
+            u = s[j].upper()
+        else:
+            u = s[j].lower()
+        print(u, end="""")
+else:
+    print(s)",True,1.0833,4.303,4.303,0.0,0,0,0.0,[],[]
+230885456,gpt-5.4-mini,reference,"a=input()
+k=0
+for i in range(1,len(a)):
+    if a[i].upper()==a[i]:
+        k=k+1
+if k==(len(a)-1):
+    a=a.swapcase()
+print(a)",True,0.7727,3.9259,3.9259,0.0,0,0,0.0,[],[]
+230885665,gpt-5.4-mini,reference,"n = input()
+if len(n) == 1 and n.isupper() == False: print(n.swapcase())
+elif n.isupper() == True: print(n.swapcase())
+elif n[0].isupper() == False and n[1:].isupper() == True: print(n.swapcase())
+else: print(n)",True,0.7312,4.4629,4.4629,0.0,0,0,0.0,[],[]
+230971066,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1498,0.1498,0.0,0,0,0.0,[],[]
+231058808,gpt-5.4-mini,reference,"string=input()
+char=list(string)
+uppercase=1
+for i in range (1,len(string)):
+    if str(char[i]).islower()==True:
+        uppercase=0
+if uppercase==0:
+    print(string)
+else:
+    print(string.swapcase())",True,0.875,7.0332,7.0332,0.0,0,0,0.0,[],[]
+231092476,gpt-5.4-mini,reference,"s = input()
+if (s[0].islower() and s[1:].isupper() or s.isupper() or len(s) == 1 and s.islower()):
+    s = s.swapcase()
+print(s)",True,0.5455,3.4736,3.4736,0.0,0,0,0.0,[],[]
+231092694,gpt-5.4-mini,reference,"s = input()
+if (s[0].islower() and s[1:].isupper() or s.isupper() or len(s) == 1 and s.islower()):
+    s = s.swapcase()
+print(s)",True,0.5455,3.4358,3.4358,0.0,0,0,0.0,[],[]
+231092995,gpt-5.4-mini,reference,"n=input()
+if (n[0].islower() and n[1:].isupper()):
+    n=n.capitalize()
+elif n.isupper():
+    n=n.lower()
+elif n.islower() and len(n)==1:
+    n=n.upper()
+print(n)",True,0.4595,3.6253,3.6253,0.0,0,0,0.0,[],[]
+231195201,gpt-5.4-mini,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.6531,3.938,3.938,0.0,0,0,0.0,[],[]
+231322847,gpt-5.4-mini,reference,"def change(b):
+    if ""a"" <= b <= ""z"":
+        return chr(ord(b) - ord('a') + ord('A'))
+    else:
+        return chr(ord(b) - ord('A') + ord('a'))
+a = input()
+A1 = {chr(i):0 for i in range(ord(""a""), ord(""z"") + 1)}
+A2 = {chr(i):0 for i in range(ord(""A""), ord(""Z"") + 1)}
+if len(a) == 1:
+    if ""a"" <= a[0] <= ""z"":
+        print(chr(ord(a[0]) - ord('a') + ord('A')))
+    else:
+        print(chr(ord(a[0]) + ord('a') - ord('A')))
+else:
+    check = 1
+    for i in range(1 , len(a)):
+        if ord(a[i]) < 65 or ord(a[i]) > 90:
+            check = 0
+            break
+    if check == 1:
+        for j in range(len(a)):
+            if ord(a[j]) >= 97:
+                print(chr(ord(a[j]) - 32) , end = """")
+            else:
+                print(chr(ord(a[j]) + 32) , end = """")
+    if check == 0:
+        print(a)",True,0.396,12.2662,12.2662,0.0,0,0,0.0,[],[]
+231333783,gpt-5.4-mini,reference,"a = input()
+if a.isupper() or (a[0].islower() and a[1:].isupper()) or (len(a) == 1 and a.islower()):
+    a = a.swapcase()
+print(a)",True,1.037,0.3395,0.3395,0.0,0,0,0.0,[],[]
+231334706,gpt-5.4-mini,reference,"def process_word(word):
+    # Проверяем, соответствует ли слово условиям ошибочно набранного слова
+    if word[0].islower():
+        # Меняем регистр всех букв на противоположный
+        return word.swapcase()
+    else:
+        # Слово не требует изменения
+        return word
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,1.1,3.3484,3.3484,0.0,0,0,0.0,[],[]
+231336475,gpt-5.4-mini,rules,"word = input()  # Считываем входное слово
+
+# Проверяем, является ли слово набранным с ошибочно нажатой клавишей Caps Lock
+if word.isupper() or (len(word) >= 1 and word[1:].upper() == word[1:]):
+    word = word.swapcase()  # Меняем регистр всех букв на противоположный
+
+print(word)  # Выводим результат обработки слова",True,0.2059,0.1304,0.1304,0.0,0,0,0.0,"[""suffix_isupper_guard_to_suffix_upper_equality"", ""generic_flip_compare""]",[]
+231455523,gpt-5.4-mini,reference,"#CF_Problem:	131A_Caps_Lock
+
+def capsLock(s):
+	if len(s) == 1 or s[1:].isupper():
+		return s.swapcase()
+	return s
+
+
+s = input()
+print(capsLock(s))",True,1.4643,0.2905,0.2905,0.0,0,0,0.0,[],[]
+231474716,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,2.7407,3.3402,3.3402,0.0,0,0,0.0,[],[]
+231509953,gpt-5.4-mini,rules,"word = input()
+
+# Check if the Caps lock rule applies
+if word.isupper() or (word[0].islower() and word[1:].upper() == word[1:]):
+    # If yes, change the case of all letters
+    print(word.swapcase())
+else:
+    # Otherwise, leave the word unchanged
+    print(word)",True,0.1765,0.1111,0.1111,0.0,0,0,0.0,"[""suffix_isupper_guard_to_suffix_upper_equality""]",[]
+231527680,gpt-5.4-mini,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.3846,0.1782,0.1782,0.0,0,0,0.0,[],[]
+231527754,gpt-5.4-mini,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.2143,0.1986,0.1986,0.0,0,0,0.0,[],[]
+231550211,gpt-5.4-mini,reference,"s = input()
+if len(s) == 1:
+    s = s.swapcase()
+else:
+    if s[0].islower() and s[1:].isupper():
+        s = s.swapcase()
+    if s.isupper():
+        s = s.lower()
+print(s)",True,1.5161,3.427,3.427,0.0,0,0,0.0,[],[]
+231604852,gpt-5.4-mini,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,0.8807,6.2284,6.2284,0.0,0,0,0.0,[],[]
+231608673,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.6774,0.2842,0.2842,0.0,0,0,0.0,[],[]
+231608951,gpt-5.4-mini,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,1.1176,0.1869,0.1869,0.0,0,0,0.0,[],[]
+231620518,gpt-5.4-mini,reference,"w = input()
+if w.isupper() or w.swapcase().istitle():
+    print(w.swapcase())
+else:
+    print(w)",True,1.7273,0.1679,0.1679,0.0,0,0,0.0,[],[]
+231650654,gpt-5.4-mini,reference,"st=input()
+cnt=0
+for i in st:
+    if ord(i)<97:
+        cnt+=1
+if cnt==len(st) or ((cnt==len(st)-1) and ord(st[0])>=97):
+    new_st=""""
+    for i in st:
+        if ord(i)<97:
+            new_st+=i.lower()
+        else:
+            new_st+=i.upper()
+    print(new_st)
+else:
+    print(st)",True,0.8044,11.7404,11.7404,0.0,0,0,0.0,[],[]
+231653969,gpt-5.4-mini,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.7419,1.4995,1.4995,0.0,0,0,0.0,[],[]
+231679032,gpt-5.4-mini,reference,"s = input()
+if s[1:] == s[1:].upper():
+    new_s = ''
+    for l in s:
+        if l.upper() == l:
+            new_s += l.lower()
+        else:
+            new_s += l.upper()
+    print(new_s)
+else:
+    print(s)",True,0.6964,1.8491,1.8491,0.0,0,0,0.0,[],[]
+231886540,gpt-5.4-mini,reference,"s=input()
+a=s[1:]
+b=a.upper()
+if a!=b:
+    print(s)
+else:
+    print(s.swapcase())",True,0.62,0.6608,0.6608,0.0,0,0,0.0,[],[]
+231887608,gpt-5.4-mini,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+   print(x)",True,0.6667,0.4913,0.4913,0.0,0,0,0.0,[],[]
+231890420,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.2581,3.8048,3.8048,0.0,0,0,0.0,[],[]
+231907958,gpt-5.4-mini,reference,"word = input()
+
+if word.isupper() or word[1:].isupper() or len(word) == 1:
+    print(word.swapcase())
+else:
+    print(word)",True,0.5952,3.4047,3.4047,0.0,0,0,0.0,[],[]
+231919579,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,0.8235,3.5754,3.5754,0.0,0,0,0.0,[],[]
+231919998,gpt-5.4-mini,reference,"i = input()
+if i.isupper() or (i[0].islower()) and (i[1:].isupper()) or (len(i)==1 and  i.islower()):
+    i = i.swapcase()
+print(i)",True,0.5938,3.6378,3.6378,0.0,0,0,0.0,[],[]
+231920260,gpt-5.4-mini,reference,"t=input()
+if (len(t)==1):
+    t=t.swapcase()
+elif (t.isupper() or t[0].islower() and t[1:].isupper()):
+    t=t.swapcase()
+print(t)",True,0.5676,3.5531,3.5531,0.0,0,0,0.0,[],[]
+231922722,gpt-5.4-mini,reference,"w = input()
+if w.isupper() or w.swapcase().istitle():
+    print(w.swapcase())
+else:
+    print(w)",True,0.3448,3.4261,3.4261,0.0,0,0,0.0,[],[]
+232248695,gpt-5.4-mini,reference,"a=str(input())
+s=0
+output=str()
+for i in range(1, len(a)):
+    if a[i].isupper():
+        continue
+    else:
+        print(a)
+        break
+else:
+    for i in range(len(a)):
+        if a[i].isupper():
+            output+=a[i].lower()
+        else:
+            output+=a[i].upper()
+    print(output)",True,0.5233,4.62,4.62,0.0,0,0,0.0,[],[]
+232251797,gpt-5.4-mini,reference,"x=input()
+
+if x==x.upper():
+
+    print(x.lower())
+
+elif x[1:]==x[1:].upper():
+
+    print(x[0].upper()+x[1:].lower())
+
+else:
+
+    print(x)",True,1.7,0.3016,0.3016,0.0,0,0,0.0,[],[]
+232252228,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1209,0.1209,0.0,0,0,0.0,[],[]
+232252583,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.5417,3.4738,3.4738,0.0,0,0,0.0,[],[]
+232252696,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1383,0.1383,0.0,0,0,0.0,[],[]
+232252891,gpt-5.4-mini,reference,"s=input()
+sub=s[1:]
+if sub.upper()==sub:
+    if ord(s[0])>=97:
+        s=s[0].upper()+sub.lower()
+    else:
+        s=s.lower()
+    print(s)
+else:
+    print(s)",True,1.7727,3.2599,3.2599,0.0,0,0,0.0,[],[]
+232255129,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1162,0.1162,0.0,0,0,0.0,[],[]
+232256386,gpt-5.4-mini,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.0,0.2367,0.2367,0.0,0,0,0.0,[],[]
+232257299,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1685,0.1685,0.0,0,0,0.0,[],[]
+232264069,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.5417,3.62,3.62,0.0,0,0,0.0,[],[]
+232264367,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1842,0.1842,0.0,0,0,0.0,[],[]
+232264801,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.7619,3.4775,3.4775,0.0,0,0,0.0,[],[]
+232265005,gpt-5.4-mini,reference,"x=input()
+if x[1:].upper()==x[1:]:
+    x=x.swapcase()
+print(x)",True,1.2143,0.2644,0.2644,0.0,0,0,0.0,[],[]
+232266545,gpt-5.4-mini,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,0.9286,0.3308,0.3308,0.0,0,0,0.0,[],[]
+232308761,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.2019,0.2019,0.0,0,0,0.0,[],[]
+232402687,gpt-5.4-mini,reference,"def adjust_caps_lock(word):
+    # Check if all letters are capitalized or if all but the first are capitalized
+    if word.isupper() or (len(word) > 1 and word[1:].isupper()):
+        # Change all letters to lowercase if there is only one uppercase letter (except for the first letter)
+        if len(word) == word.count('A') + word.count('E') + word.count('I') + word.count('O') + word.count('U'):
+            return word.lower()
+    return word
+
+My_word = input()
+
+if My_word.isupper() or (My_word[0].islower() and My_word[1:].isupper()) or (len(My_word)==1 and My_word.islower()):
+    My_word = My_word.swapcase()
+
+print(My_word)",True,0.4831,3.4971,3.4971,0.0,0,0,0.0,[],[]
+232403653,gpt-5.4-mini,reference,"x = input()
+if x.isupper() or (x[0].islower()) and (x [1:].isupper()) or (len(x) == 1) and (x.islower):
+    x = x.swapcase()
+
+print(x)",True,0.2381,3.5081,3.5081,0.0,0,0,0.0,[],[]
+232403861,gpt-5.4-mini,reference,"x = input()
+if x.isupper() or (x[0].islower()) and (x [1:].isupper()) or (len(x) == 1) and (x.islower):
+    x = x.swapcase()
+
+print(x)",True,0.2381,3.6133,3.6133,0.0,0,0,0.0,[],[]
+232407897,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.9091,0.1766,0.1766,0.0,0,0,0.0,[],[]
+232426215,gpt-5.4-mini,reference,"x=input()
+s=x[1:]
+a=s.upper()
+if(s==a):
+    print(x.swapcase())
+else:
+    print(x)",True,2.2727,0.1291,0.1291,0.0,0,0,0.0,[],[]
+232447280,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,0.7097,3.4312,3.4312,0.0,0,0,0.0,[],[]
+232479851,gpt-5.4-mini,reference,"a=input()
+if a==a.upper():
+    print(a.lower())
+elif a==a[0].lower()+a[1:].upper():
+    print(a[0].upper()+a[1:].lower())
+else:
+    print(a)",True,1.7619,3.323,3.323,0.0,0,0,0.0,[],[]
+232503442,gpt-5.4-mini,reference,"input_string = input()
+needs_change = True
+for i in range(1, len(input_string)):
+    if input_string[i].islower():
+        needs_change = False
+        break
+if needs_change:
+    input_string = input_string.swapcase()
+print(input_string)",True,0.75,3.6159,3.6159,0.0,0,0,0.0,[],[]
+232504234,gpt-5.4-mini,reference,"s = input()
+ucount = 0
+lcount = 0
+for i in range(len(s)):
+    if(s[i].isupper()):
+        ucount += 1 
+    else:
+        lcount += 1
+if((ucount == len(s)-1) and (s[0].islower())):
+    for i in range(len(s)):
+        if i == 0:
+            print(s[i].upper(),end="""")
+        else:
+            print(s[i].lower(),end="""")
+elif (ucount == len(s)):
+    for i in range(len(s)):
+        print(s[i].lower(),end="""")
+else:
+    print(s)",True,0.7318,8.8642,8.8642,0.0,0,0,0.0,[],[]
+232511025,gpt-5.4-mini,reference,"s = input()
+if (s[0].islower() and s[1:].isupper() or s.isupper() or len(s) == 1 and s.islower()):
+    s = s.swapcase()
+print(s)",True,0.5556,3.5418,3.5418,0.0,0,0,0.0,[],[]
+232536731,gpt-5.4-mini,reference,"word = input()
+if word[1:].upper() == word[1:]:
+    word = word.swapcase()
+print(word)",True,1.7273,0.1686,0.1686,0.0,0,0,0.0,[],[]
+232536985,gpt-5.4-mini,rules,"word = input()
+
+if word.isupper() == True or word[0].islower() == True and word[1:].upper() == word[1:] != True:
+    print(word.swapcase())
+else:
+    print(word)",True,0.1163,0.6055,0.6055,0.0,0,0,0.0,"[""replace_title_capitalize_with_swapcase"", ""generic_flip_compare"", ""suffix_isupper_guard_to_suffix_upper_equality""]",[]
+232537533,gpt-5.4-mini,rules,"word = input()
+
+if word.isupper() == True or word[0].islower() == True and word[1:].upper() == word[1:] != True:
+    string = """"
+    letters = []
+    for x in word:
+        letters.append(x)
+    for x in letters:
+        if x.isupper():
+            x = str(x).lower()
+        else:
+            x = str(x).upper()
+        string += x
+    print(string)
+else:
+    print(word)",True,0.0625,0.3383,0.3383,0.0,0,0,0.0,"[""generic_flip_compare"", ""suffix_isupper_guard_to_suffix_upper_equality""]",[]
+232566803,gpt-5.4-mini,reference,"n = str(input())
+if len(n) == 1 and n.islower() :print(n.capitalize())
+elif n.isupper() :print(n.lower()) 
+elif n[1:].isupper() :print(n[0].capitalize()+n[1:].lower())        
+else :print(n)",True,0.4091,3.7985,3.7985,0.0,0,0,0.0,[],[]

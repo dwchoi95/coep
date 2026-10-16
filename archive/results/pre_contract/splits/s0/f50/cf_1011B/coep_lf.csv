@@ -1,0 +1,1209 @@
+Buggy,Model,Source,Patch,Fixed,RPS,ATT_all,ATT_cpu,ATT_api,InT,OuT,$API,Rules_L,Rules_SL
+110060265,claude-sonnet-5,llm,"arr=input().split()
+n=int(arr[0])
+m=int(arr[1])
+arr=list(map(int,input().split()))
+from collections import Counter
+counts=list(Counter(arr).values())
+ans=0
+for day in range(1,m+1):
+    if sum(c//day for c in counts)>=n:
+        ans=day
+print(ans)",True,0.6889,9.6591,4.6736,4.9854,1646,418,0.007472,[],[]
+111339447,claude-sonnet-5,llm,"import sys
+import math
+from collections import OrderedDict
+def input():    return sys.stdin.readline().strip()
+def iinput():   return int(input())
+def minput():   return map(int, input().split()) 
+def listinput(): return list(map(int, input().split()))
+n,m = minput()
+a=listinput()
+if m<n:
+	print(0)
+else:
+	counts=[]
+	while len(a)>0:
+		counts.append(a.count(a[0]))
+		a = list(filter((a[0]).__ne__, a))
+	day=1
+	ans=0
+	while True:
+		total=sum(c//day for c in counts)
+		if total>=n:
+			ans=day
+			day+=1
+		else:
+			break
+	print(ans)",True,0.4793,8.1253,4.3942,3.7311,1707,352,0.006934,[],[]
+138403856,claude-sonnet-5,reference,"n,m=map(int,input().split())
+a=list(map(int,input().split()))
+freq=[0]*101
+for i in range(m):
+	freq[a[i]]+=1
+
+maxx = max(freq)
+maximi = 0
+# print(maxx)
+for i in range(maxx,0,-1):
+	cou = 0
+	for x in range(101):
+		if(freq[x] >= i):
+			pp = freq[x]
+			cou += pp//i
+	if(cou >= n):
+		maximi = max(maximi,i)
+
+print(maximi)",True,0.5932,22.7625,22.7625,0.0,0,0,0.0,[],[]
+149592101,claude-sonnet-5,llm,"def get_input(pregunta=""""):
+    return list(map(int, input(pregunta).split("" "")))
+
+line_1 = get_input()
+line_2 = get_input()
+
+n = line_1[0]
+dias = 0
+fin = False
+
+while not fin:
+    dias = dias + 1
+    temp_stack = line_2.copy()
+    counts = {}
+    for x in temp_stack:
+        counts[x] = counts.get(x, 0) + 1
+    parts = 0
+    for c in counts.values():
+        parts += c // dias
+    if parts < n:
+        dias = dias - 1
+        fin = True
+
+print(dias)",True,0.6957,50.9033,7.6644,43.2389,1705,4137,0.04478,[],[]
+178683471,claude-sonnet-5,rules,"from collections import defaultdict, deque, Counter
+from functools import lru_cache
+from heapq import heappush, heappop
+from bisect import bisect_right, bisect_left
+
+def inpNum():
+    return int(input())
+def inpStr():
+    return input()
+def inpSepNum():
+    return map(int, input().split())
+def inpNumList():
+    return list(map(int, input().split()))
+def inpChList():
+    return list(input().split())
+m, n = inpSepNum()
+nums = inpNumList()
+freq = Counter(nums)
+trial = n // m
+while trial:
+    cur = m
+    for k, v in freq.items():
+        cur -= v // trial
+        if cur <= 0:
+            print(trial)
+            exit(0)
+    trial -= 1
+print(0)",True,0.0082,0.0854,0.0854,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+223176100,claude-sonnet-5,reference,"from collections import Counter
+n, m  = list(map(int, input().split()))
+
+b = Counter(map(int, input().split()))
+
+# print(b.values())
+
+res = 0
+for days in range(1, m//n +1 ):
+    parts = 0
+    for j  in b.values():
+        parts += j // days
+    if parts >= n:
+        res = days
+
+print(res)",True,0.7973,7.1817,7.1817,0.0,0,0,0.0,[],[]
+60583583,claude-sonnet-5,reference,"from collections import defaultdict as dd, deque
+
+n,m = map(int,input().split())
+A = [int(x) for x in input().split()]
+
+C = dd(int)
+for a in A:
+    C[a] += 1
+
+psize = 1
+while True:
+    packs = 0
+    for c in C:
+        packs += C[c]//psize
+    if packs < n: # Previous possible, this one not
+        break
+    psize += 1
+print(psize - 1)",True,0.9649,4.2344,4.2344,0.0,0,0,0.0,[],[]
+60586482,claude-sonnet-5,reference,"n, k = map(int, input().split())
+d = {}
+for e in input().split():
+    if e not in d:
+        d[e] = 0
+    d[e] += 1
+a = list(d.values())
+l = 0
+r = k + 1
+while r - l > 1:
+    m = (l + r) // 2
+    if sum([e // m for e in a]) >= n:
+        l = m
+    else:
+        r = m
+print(l)",True,0.7912,6.2671,6.2671,0.0,0,0,0.0,[],[]
+60739469,claude-sonnet-5,llm,"n,m = map(int,input().split())
+l1 = list(map(int,input().split()))
+def fun(n,m,l1):
+    if n>m:
+        return 0
+    l2 = dict((l,l1.count(l)) for l in set(l1))
+    counts = list(l2.values())
+    a = 0
+    b = max(counts)+1
+    while b>a+1:
+        c = (a+b)//2
+        num = sum(x//c for x in counts)
+        if num>=n:
+            a = c
+        else:
+            b = c
+    return a
+print(fun(n,m,l1))",True,0.4882,6.7966,3.5707,3.2258,1801,273,0.006332,[],[]
+63064727,claude-sonnet-5,reference,"def case(mid):
+    res=0
+    for i,x in enumerate(d):
+        res+=(d[x]//mid)
+    return res
+n,m=map(int,input().split())
+a=list(map(int,input().split()))
+freq=[0]*101
+for i in range(m):
+	freq[a[i]]+=1
+
+maxx = max(freq)
+maximi = 0
+# print(maxx)
+for i in range(maxx,0,-1):
+	cou = 0
+	for x in range(101):
+		if(freq[x] >= i):
+			pp = freq[x]
+			cou += pp//i
+	if(cou >= n):
+		maximi = max(maximi,i)
+
+print(maximi)",True,0.6603,16.269,16.269,0.0,0,0,0.0,[],[]
+64422237,claude-sonnet-5,reference,"from collections import Counter
+n, m  = list(map(int, input().split()))
+
+b = Counter(map(int, input().split()))
+
+# print(b.values())
+
+res = 0
+for days in range(1, m//n +1 ):
+    parts = 0
+    for j  in b.values():
+        parts += j // days
+    if parts >= n:
+        res = days
+
+print(res)",True,0.7188,2.231,2.231,0.0,0,0,0.0,[],[]
+64461238,claude-sonnet-5,reference,"n,m=map(int,input().split())
+a=list(map(int,input().split()))
+b=[]
+x=m//n
+for i in set(a):
+    b.append(a.count(i))
+b.sort(reverse=True);r=0
+for i in range(1,101):
+    x=0
+    for j in b:
+        x+=j//i
+        if x>=n:
+            break
+    if x>=n:
+        r=max(r,i)
+    else:break
+print(r)",True,0.6794,12.5205,12.5205,0.0,0,0,0.0,[],[]
+72056750,claude-sonnet-5,rules,"def funca(mean,a,h):
+    if mean == 0: 
+        print(""0"")
+        return 0
+    s = 0
+    for f in a:
+        s+= int(f/mean)
+    if s >= h: 
+        print(mean)
+        return 0
+    else: 
+        mean-=1
+        funca(mean,a,h)
+inp = input().split()
+h = int(inp[0])
+e = int(inp[1])
+mean = int(e/h)+1
+a = [int(f) for f in input().split()]
+b = set(a)
+c = {f:0 for f in range(1,max(a)+1)}
+for f in b:
+    for g in a:
+        if f==g:
+            c[f]+=1
+colvo = []
+for f,g in c.items():
+    colvo.append(int(g))
+
+
+funca(mean, colvo,h)",True,0.0063,0.0933,0.0933,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+73153613,claude-sonnet-5,reference,"def val(x,r,n):
+    k=0
+    if r==0:
+        return 0
+    for i in x:
+        k+=i//r
+    if k>=n:
+        return 1
+    return 0
+    
+import bisect as bi 
+I = lambda : map(int,input().split())
+
+n, k = I()
+a = list(I())
+d={}
+for i in a:
+	if i not in d:
+		d[i] = 1
+	else:
+		d[i] += 1
+x = []
+for j in d:
+	x.append(d[j])
+x.sort(reverse = True)
+def f(t):
+	ans = 0
+	for i in x:
+		ans += i // t
+	if ans >= n:
+		return True
+	return False
+left = 0
+right = 10 ** 9
+while (left + 1 != right):
+	mid = (left + right) // 2
+	if f(mid):
+		left = mid
+	else:
+		right = mid
+print(left)
+#print(f(2))",True,0.637,10.7511,10.7511,0.0,0,0,0.0,[],[]
+73157437,claude-sonnet-5,reference,"n, m = map(int, input().split())
+K = list(map(int, input().split()))
+D = dict()
+for i in range(m):
+    if K[i] in D.keys():
+        D[K[i]] += 1
+    else:
+        D[K[i]] = 1
+
+ans = 0
+for days in range(1, 102):
+    h = 0
+    for i in D.values():
+        h += i // days
+    if h >= n:
+        ans = days
+    else:
+        break
+print(ans)",True,0.6364,19.2148,19.2148,0.0,0,0,0.0,[],[]
+73158004,claude-sonnet-5,reference,"from math import floor
+n,m=map(int, input().split());
+d={};
+s=input().split();
+for i in s:
+    try:
+        d[i]+=1;
+    except:
+        d[i]=1;
+
+d = list(d.values())
+
+for k in range(m, 0, -1):
+    l = 0
+    for v in d:
+        l += v // k
+        if l >= n:
+            print(k)
+            exit(0)
+print(0)",True,0.8235,3.8689,3.8689,0.0,0,0,0.0,[],[]
+73915406,claude-sonnet-5,reference,"from collections import Counter
+
+n,m = list(map(int,input().split()))
+l = list(map(int,input().split()))
+
+l2 = [y for x,y in Counter(l).items()]
+l2.sort(reverse=True)
+
+#print(l2)
+
+for i in range(1,max(l2)+2):
+	if sum(int(x/i) for x in l2) < n:
+		print(i-1)
+		break
+else:
+	s=list(set(a))
+	o=[]
+	if(len(s)==len(a)):
+		print(1)
+	elif(len(s)==1):
+		print(m//n)
+	else:
+		for i in range(len(s)):
+			o.append(a.count(s[i]))
+		print(sum(o)//n)",True,0.5,5.7587,5.7587,0.0,0,0,0.0,[],[]
+78026811,claude-sonnet-5,rules,"n, m = map(int, input().split())
+a = list(map(int, input().split()))
+z = [0] * 101
+t = 0
+b = 0
+for i in a:
+    z[i] += 1
+for i in range(1, (m) + 1):
+    t = 0
+    for j in range(1, 101):
+        t += z[j] // i
+    if t >= n:
+        b += 1
+    else:
+        break
+print(b)",True,0.0361,0.0973,0.0973,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+78892892,claude-sonnet-5,reference,"import bisect
+import os
+from collections import Counter
+import bisect
+from collections import defaultdict
+import math
+import random
+import heapq as hq
+from math import sqrt
+import sys
+from functools import reduce, cmp_to_key
+from collections import deque
+import threading
+from itertools import combinations
+from io import BytesIO, IOBase
+from itertools import accumulate
+
+sys.setrecursionlimit(1000000)
+def getIntList():
+    return list(map(int, input().split()))    
+
+def sort_dict(key_value):
+    return sorted(key_value.items(), key = lambda kv:(kv[1], kv[0]))
+
+def list_input():
+    return list(map(int,input().split()))
+    
+N, M = getIntList()
+za = getIntList()
+
+zc = [0 for i in range(101)]
+for x in za:
+    zc[x] +=1
+
+#dprint('zc',zc)
+
+min_ok = 0
+max_not = 101
+
+def work(day):
+    c = 0
+    for i in range(101):
+        c += zc[i] // day
+    return (c>=N)
+
+while min_ok + 1 < max_not:
+    mid = (min_ok + max_not ) //2
+    if work(mid) :
+        min_ok = mid
+    else:
+        max_not = mid
+
+print(min_ok)",True,0.7814,7.9231,7.9231,0.0,0,0,0.0,[],[]
+80341696,claude-sonnet-5,llm,"from collections import Counter
+n,m=[int(v) for v in input().split(' ')]
+a=[int(v) for v in input().split(' ')]
+packets=Counter(a).values()
+days=1
+while sum(x//days for x in packets)>=n:
+    days+=1
+print(days-1)",True,0.9167,2.2482,0.7554,1.4928,1520,101,0.00405,[],[]
+80435697,claude-sonnet-5,rules,"from collections import Counter
+def PlanExp(n, m, l):
+	d = dict(Counter(l))
+	curResult = 0
+	for i in range(1,((100) + 1) + 1):
+		for val in d.values():
+			curResult += val//i
+		if curResult<n:
+			break
+		curResult=0
+	return i-1
+
+n, m  = map(int, input().split())
+#n = int(input())
+#m = int(input())
+l = list(map(int, input().split()))
+result = PlanExp(n, m, l)
+print(result)",True,0.0714,0.1266,0.1266,0.0,0,0,0.0,"[""generic_shift_range"", ""generic_shift_range""]",[]
+87697986,claude-sonnet-5,reference,"a, b = map(int, input().split())
+l = sorted(list(map(int, input().split())))
+m = set()
+for i in l:
+	m.add(i)
+k = {}
+for i in m:
+	k[i]=l.count(i)
+c = 0
+for i in range(1, 101):
+	y = 0
+	for j in k:
+		y += k[j]//i
+	if y >= a:
+		c += 1
+	else:
+		break
+print(c)",True,0.7642,10.7314,10.7314,0.0,0,0,0.0,[],[]
+88822978,claude-sonnet-5,reference,"from sys import stdin,stdout
+from collections import Counter
+n, m  = list(map(int, input().split()))
+
+b = Counter(map(int, input().split()))
+
+# print(b.values())
+
+res = 0
+for days in range(1, m//n +1 ):
+    parts = 0
+    for j  in b.values():
+        parts += j // days
+    if parts >= n:
+        res = days
+
+print(res)",True,0.7692,1.2692,1.2692,0.0,0,0,0.0,[],[]
+88824432,claude-sonnet-5,reference,"from collections import*
+R=lambda:map(int,input().split())
+n,m=R()
+a=Counter(R()).values()
+i=1
+while sum(x//i for x in a)>=n:i+=1
+print(i-1)",True,0.4744,0.8411,0.8411,0.0,0,0,0.0,[],[]
+91291600,claude-sonnet-5,reference,"n, m = map(int, input().split())
+div = m//n
+a = [int(x) for x in input().split()]
+b = {}
+c = []
+d = 0
+for x in a:
+    if x not in b:
+        b[x] = 1
+    else: b[x] += 1
+for key, value in b.items():
+    c.append(value)
+c.sort(reverse=True)
+temp = 0
+if len(c) > n:
+    print(c[n-1])
+else:
+    while div > 0:
+        temp = 0
+        for x in c:
+            temp += x//div
+        if temp >= n:
+            break
+        else: div -=1
+    print(div)",True,0.9461,9.6619,9.6619,0.0,0,0,0.0,[],[]
+91799842,claude-sonnet-5,reference,"from collections import Counter
+
+def test(food, n, day):
+    p = 0
+    for i in food:
+        p += i // day
+    return p >= n
+
+def solve(package, n):
+    food = dict()
+    for f in package:
+        if f in food:
+            food[f] += 1
+        else:
+            food[f] = 1
+
+    r = list(food.values())
+
+    left = 0
+    right = 1000
+    while right > left + 1:
+        mid = (left + right) // 2
+        if test(r, n, mid):
+            left = mid
+        else:
+            right = mid
+
+    return left
+
+
+def main():
+    n, m = map(int, input().split())
+    package = list(map(int, input().split()))
+    print(solve(package, n))
+
+if __name__ == '__main__':
+    main()",True,1.4962,27.223,16.7204,10.5026,1925,968,0.01353,[],[]
+93146883,claude-sonnet-5,reference,"from collections import defaultdict
+d = defaultdict(int)
+n,m = map(int,input().split())
+food_type = list(map(int,input().split()))
+for f in food_type:
+    d[f] += 1
+
+d = list(d.values())
+
+for k in range(m, 0, -1):
+    l = 0
+    for v in d:
+        l += v // k
+        if l >= n:
+            print(k)
+            exit(0)
+print(0)",True,0.5179,4.8017,4.8017,0.0,0,0,0.0,[],[]
+93147182,claude-sonnet-5,reference,"n,m=list(map(int,input().split()))
+a=list(map(int,input().split()))
+cnt=[0]*101
+for i in a:
+    cnt[i]+=1
+cnt.sort(reverse=True)
+ans=0
+for i in range(1,101):
+    k=0
+    for j in range(101):
+        k+=cnt[j]//i
+        if k>=n:
+            ans=max(ans,i)
+            break
+print(ans)",True,0.6803,7.8071,7.8071,0.0,0,0,0.0,[],[]
+95724752,claude-sonnet-5,reference,"n, k = map(int, input().split())
+d = {}
+for e in input().split():
+    if e not in d:
+        d[e] = 0
+    d[e] += 1
+a = list(d.values())
+l = 0
+r = k + 1
+while r - l > 1:
+    m = (l + r) // 2
+    if sum([e // m for e in a]) >= n:
+        l = m
+    else:
+        r = m
+print(l)",True,0.7059,13.1569,13.1569,0.0,0,0,0.0,[],[]
+110060265,gpt-5.4-mini,llm,"import collections
+arr = input().split()
+n = int(arr[0])
+m = int(arr[1])
+arr = list(map(int, input().split()))
+day = 1
+while True:
+    cnt = 0
+    for i in collections.Counter(arr).values():
+        cnt += i // day
+    if cnt >= n:
+        day += 1
+    else:
+        break
+print(day - 1)",True,0.6444,6.5853,4.691,1.8943,1203,101,0.001357,[],[]
+111339447,gpt-5.4-mini,reference,"n,m=map(int,input().split())
+a=list(map(int,input().split()))
+b=[]
+for i in set(a):
+    b.append(a.count(i))
+b.sort(reverse=True);r=0
+for i in range(1,101):
+    x=0
+    for j in b:
+        x+=j//i
+        if x>=n:
+            break
+    if x>=n:
+        r=max(r,i)
+    else:break
+print(r)",True,1.0579,5.3263,4.3195,1.0068,1256,146,0.001599,[],[]
+138403856,gpt-5.4-mini,reference,"n,m=map(int,input().split())
+a=list(map(int,input().split()))
+freq=[0]*101
+for i in range(m):
+	freq[a[i]]+=1
+
+maxx = max(freq)
+maximi = 0
+# print(maxx)
+for i in range(maxx,0,-1):
+	cou = 0
+	for x in range(101):
+		if(freq[x] >= i):
+			pp = freq[x]
+			cou += pp//i
+	if(cou >= n):
+		maximi = max(maximi,i)
+
+print(maximi)",True,0.5932,20.6583,20.6583,0.0,0,0,0.0,[],[]
+149592101,gpt-5.4-mini,llm,"from collections import Counter
+
+def get_input(pregunta=""""):
+    return list(map(int, input(pregunta).split("" "")))
+
+line_1 = get_input()
+line_2 = get_input()
+
+n, m = line_1
+b = Counter(line_2)
+
+dias = 0
+for days in range(1, m // n + 1):
+    parts = 0
+    for j in b.values():
+        parts += j // days
+    if parts >= n:
+        dias = days
+
+print(dias)",True,0.6848,8.821,7.544,1.277,1267,118,0.001481,[],[]
+178683471,gpt-5.4-mini,rules,"from collections import defaultdict, deque, Counter
+from functools import lru_cache
+from heapq import heappush, heappop
+from bisect import bisect_right, bisect_left
+
+def inpNum():
+    return int(input())
+def inpStr():
+    return input()
+def inpSepNum():
+    return map(int, input().split())
+def inpNumList():
+    return list(map(int, input().split()))
+def inpChList():
+    return list(input().split())
+m, n = inpSepNum()
+nums = inpNumList()
+freq = Counter(nums)
+trial = n // m
+while trial:
+    cur = m
+    for k, v in freq.items():
+        cur -= v // trial
+        if cur <= 0:
+            print(trial)
+            exit(0)
+    trial -= 1
+print(0)",True,0.0082,0.1058,0.1058,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+223176100,gpt-5.4-mini,reference,"from collections import Counter
+n, m  = list(map(int, input().split()))
+
+b = Counter(map(int, input().split()))
+
+# print(b.values())
+
+res = 0
+for days in range(1, m//n +1 ):
+    parts = 0
+    for j  in b.values():
+        parts += j // days
+    if parts >= n:
+        res = days
+
+print(res)",True,0.7973,7.2354,7.2354,0.0,0,0,0.0,[],[]
+60583583,gpt-5.4-mini,reference,"from collections import defaultdict as dd, deque
+
+n,m = map(int,input().split())
+A = [int(x) for x in input().split()]
+
+C = dd(int)
+for a in A:
+    C[a] += 1
+
+psize = 1
+while True:
+    packs = 0
+    for c in C:
+        packs += C[c]//psize
+    if packs < n: # Previous possible, this one not
+        break
+    psize += 1
+print(psize - 1)",True,0.9649,4.2692,4.2692,0.0,0,0,0.0,[],[]
+60586482,gpt-5.4-mini,reference,"n, k = map(int, input().split())
+d = {}
+for e in input().split():
+    if e not in d:
+        d[e] = 0
+    d[e] += 1
+a = list(d.values())
+l = 0
+r = k + 1
+while r - l > 1:
+    m = (l + r) // 2
+    if sum([e // m for e in a]) >= n:
+        l = m
+    else:
+        r = m
+print(l)",True,0.7912,6.5014,6.5014,0.0,0,0,0.0,[],[]
+60739469,gpt-5.4-mini,reference,"from collections import Counter
+
+
+n, m = map(int, input().split())
+d = list(Counter(map(int, input().split())).values())
+
+for ans in range(1, 1000):
+    if sum([x // ans for x in d]) < n:
+        print(ans - 1)
+        break",True,1.0079,4.8836,3.6703,1.2133,1343,165,0.00175,[],[]
+63064727,gpt-5.4-mini,reference,"def case(mid):
+    res=0
+    for i,x in enumerate(d):
+        res+=(d[x]//mid)
+    return res
+n,m=map(int,input().split())
+a=list(map(int,input().split()))
+freq=[0]*101
+for i in range(m):
+	freq[a[i]]+=1
+
+maxx = max(freq)
+maximi = 0
+# print(maxx)
+for i in range(maxx,0,-1):
+	cou = 0
+	for x in range(101):
+		if(freq[x] >= i):
+			pp = freq[x]
+			cou += pp//i
+	if(cou >= n):
+		maximi = max(maximi,i)
+
+print(maximi)",True,0.6603,16.405,16.405,0.0,0,0,0.0,[],[]
+64422237,gpt-5.4-mini,reference,"from collections import Counter
+n, m  = list(map(int, input().split()))
+
+b = Counter(map(int, input().split()))
+
+# print(b.values())
+
+res = 0
+for days in range(1, m//n +1 ):
+    parts = 0
+    for j  in b.values():
+        parts += j // days
+    if parts >= n:
+        res = days
+
+print(res)",True,0.7188,2.3496,2.3496,0.0,0,0,0.0,[],[]
+64461238,gpt-5.4-mini,reference,"n,m=map(int,input().split())
+a=list(map(int,input().split()))
+b=[]
+x=m//n
+for i in set(a):
+    b.append(a.count(i))
+b.sort(reverse=True);r=0
+for i in range(1,101):
+    x=0
+    for j in b:
+        x+=j//i
+        if x>=n:
+            break
+    if x>=n:
+        r=max(r,i)
+    else:break
+print(r)",True,0.6794,12.519,12.519,0.0,0,0,0.0,[],[]
+72056750,gpt-5.4-mini,rules,"def funca(mean,a,h):
+    if mean == 0: 
+        print(""0"")
+        return 0
+    s = 0
+    for f in a:
+        s+= int(f/mean)
+    if s >= h: 
+        print(mean)
+        return 0
+    else: 
+        mean-=1
+        funca(mean,a,h)
+inp = input().split()
+h = int(inp[0])
+e = int(inp[1])
+mean = int(e/h)+1
+a = [int(f) for f in input().split()]
+b = set(a)
+c = {f:0 for f in range(1,max(a)+1)}
+for f in b:
+    for g in a:
+        if f==g:
+            c[f]+=1
+colvo = []
+for f,g in c.items():
+    colvo.append(int(g))
+
+
+funca(mean, colvo,h)",True,0.0063,0.0871,0.0871,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+73153613,gpt-5.4-mini,reference,"def val(x,r,n):
+    k=0
+    if r==0:
+        return 0
+    for i in x:
+        k+=i//r
+    if k>=n:
+        return 1
+    return 0
+    
+import bisect as bi 
+I = lambda : map(int,input().split())
+
+n, k = I()
+a = list(I())
+d={}
+for i in a:
+	if i not in d:
+		d[i] = 1
+	else:
+		d[i] += 1
+x = []
+for j in d:
+	x.append(d[j])
+x.sort(reverse = True)
+def f(t):
+	ans = 0
+	for i in x:
+		ans += i // t
+	if ans >= n:
+		return True
+	return False
+left = 0
+right = 10 ** 9
+while (left + 1 != right):
+	mid = (left + right) // 2
+	if f(mid):
+		left = mid
+	else:
+		right = mid
+print(left)
+#print(f(2))",True,0.637,10.8312,10.8312,0.0,0,0,0.0,[],[]
+73157437,gpt-5.4-mini,reference,"n, m = map(int, input().split())
+K = list(map(int, input().split()))
+D = dict()
+for i in range(m):
+    if K[i] in D.keys():
+        D[K[i]] += 1
+    else:
+        D[K[i]] = 1
+
+ans = 0
+for days in range(1, 102):
+    h = 0
+    for i in D.values():
+        h += i // days
+    if h >= n:
+        ans = days
+    else:
+        break
+print(ans)",True,0.6364,15.2801,15.2801,0.0,0,0,0.0,[],[]
+73158004,gpt-5.4-mini,reference,"from math import floor
+n,m=map(int, input().split());
+d={};
+s=input().split();
+for i in s:
+    try:
+        d[i]+=1;
+    except:
+        d[i]=1;
+
+d = list(d.values())
+
+for k in range(m, 0, -1):
+    l = 0
+    for v in d:
+        l += v // k
+        if l >= n:
+            print(k)
+            exit(0)
+print(0)",True,0.8235,3.8096,3.8096,0.0,0,0,0.0,[],[]
+73915406,gpt-5.4-mini,reference,"from collections import Counter
+
+n,m = list(map(int,input().split()))
+l = list(map(int,input().split()))
+
+l2 = [y for x,y in Counter(l).items()]
+l2.sort(reverse=True)
+
+#print(l2)
+
+for i in range(1,max(l2)+2):
+	if sum(int(x/i) for x in l2) < n:
+		print(i-1)
+		break
+else:
+	s=list(set(a))
+	o=[]
+	if(len(s)==len(a)):
+		print(1)
+	elif(len(s)==1):
+		print(m//n)
+	else:
+		for i in range(len(s)):
+			o.append(a.count(s[i]))
+		print(sum(o)//n)",True,0.5,5.9266,5.9266,0.0,0,0,0.0,[],[]
+78026811,gpt-5.4-mini,rules,"n, m = map(int, input().split())
+a = list(map(int, input().split()))
+z = [0] * 101
+t = 0
+b = 0
+for i in a:
+    z[i] += 1
+for i in range(1, (m) + 1):
+    t = 0
+    for j in range(1, 101):
+        t += z[j] // i
+    if t >= n:
+        b += 1
+    else:
+        break
+print(b)",True,0.0361,0.0931,0.0931,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+78892892,gpt-5.4-mini,reference,"import bisect
+import os
+from collections import Counter
+import bisect
+from collections import defaultdict
+import math
+import random
+import heapq as hq
+from math import sqrt
+import sys
+from functools import reduce, cmp_to_key
+from collections import deque
+import threading
+from itertools import combinations
+from io import BytesIO, IOBase
+from itertools import accumulate
+
+sys.setrecursionlimit(1000000)
+def getIntList():
+    return list(map(int, input().split()))    
+
+def sort_dict(key_value):
+    return sorted(key_value.items(), key = lambda kv:(kv[1], kv[0]))
+
+def list_input():
+    return list(map(int,input().split()))
+    
+N, M = getIntList()
+za = getIntList()
+
+zc = [0 for i in range(101)]
+for x in za:
+    zc[x] +=1
+
+#dprint('zc',zc)
+
+min_ok = 0
+max_not = 101
+
+def work(day):
+    c = 0
+    for i in range(101):
+        c += zc[i] // day
+    return (c>=N)
+
+while min_ok + 1 < max_not:
+    mid = (min_ok + max_not ) //2
+    if work(mid) :
+        min_ok = mid
+    else:
+        max_not = mid
+
+print(min_ok)",True,0.7814,9.0708,9.0708,0.0,0,0,0.0,[],[]
+80341696,gpt-5.4-mini,llm,"from collections import Counter
+
+n, m = [int(v) for v in input().split(' ')]
+a = [int(v) for v in input().split(' ')]
+packets = Counter(a).values()
+days = 1
+while sum(x // days for x in packets) >= n:
+    days += 1
+print(days - 1)",True,0.9167,2.2295,0.812,1.4175,1140,82,0.001224,[],[]
+80435697,gpt-5.4-mini,rules,"from collections import Counter
+def PlanExp(n, m, l):
+	d = dict(Counter(l))
+	curResult = 0
+	for i in range(1,((100) + 1) + 1):
+		for val in d.values():
+			curResult += val//i
+		if curResult<n:
+			break
+		curResult=0
+	return i-1
+
+n, m  = map(int, input().split())
+#n = int(input())
+#m = int(input())
+l = list(map(int, input().split()))
+result = PlanExp(n, m, l)
+print(result)",True,0.0714,0.1324,0.1324,0.0,0,0,0.0,"[""generic_shift_range"", ""generic_shift_range""]",[]
+87697986,gpt-5.4-mini,reference,"a, b = map(int, input().split())
+l = sorted(list(map(int, input().split())))
+m = set()
+for i in l:
+	m.add(i)
+k = {}
+for i in m:
+	k[i]=l.count(i)
+c = 0
+for i in range(1, 101):
+	y = 0
+	for j in k:
+		y += k[j]//i
+	if y >= a:
+		c += 1
+	else:
+		break
+print(c)",True,0.7642,10.9223,10.9223,0.0,0,0,0.0,[],[]
+88822978,gpt-5.4-mini,reference,"from sys import stdin,stdout
+from collections import Counter
+n, m  = list(map(int, input().split()))
+
+b = Counter(map(int, input().split()))
+
+# print(b.values())
+
+res = 0
+for days in range(1, m//n +1 ):
+    parts = 0
+    for j  in b.values():
+        parts += j // days
+    if parts >= n:
+        res = days
+
+print(res)",True,0.7692,1.305,1.305,0.0,0,0,0.0,[],[]
+88824432,gpt-5.4-mini,reference,"from collections import*
+R=lambda:map(int,input().split())
+n,m=R()
+a=Counter(R()).values()
+i=1
+while sum(x//i for x in a)>=n:i+=1
+print(i-1)",True,0.4744,0.8023,0.8023,0.0,0,0,0.0,[],[]
+91291600,gpt-5.4-mini,reference,"n, m = map(int, input().split())
+div = m//n
+a = [int(x) for x in input().split()]
+b = {}
+c = []
+d = 0
+for x in a:
+    if x not in b:
+        b[x] = 1
+    else: b[x] += 1
+for key, value in b.items():
+    c.append(value)
+c.sort(reverse=True)
+temp = 0
+if len(c) > n:
+    print(c[n-1])
+else:
+    while div > 0:
+        temp = 0
+        for x in c:
+            temp += x//div
+        if temp >= n:
+            break
+        else: div -=1
+    print(div)",True,0.9461,9.9074,9.9074,0.0,0,0,0.0,[],[]
+91799842,gpt-5.4-mini,llm,"from collections import Counter
+
+def can_we_give(freq, packets, n):
+    fullfilled = 0
+    for food_packets in freq.keys():
+        fullfilled += freq[food_packets] // packets
+    if fullfilled >= n:
+        return True
+    else:
+        return False
+
+
+def main():
+    n, m = (int(num) for num in input().split())
+    A = [int(num) for num in input().split()]
+    if m < n:
+        print(0)
+        return
+    freq = Counter(A)
+    l, r = 1, max(freq.values())
+    while l < r:
+        mid = (l + r + 1) // 2
+        if can_we_give(freq, mid, n):
+            l = mid
+        else:
+            r = mid - 1
+    print(l if can_we_give(freq, l, n) else 0)
+
+if __name__ == '__main__':
+    main()",True,0.2105,18.3604,16.741,1.6195,1444,217,0.00206,[],[]
+93146883,gpt-5.4-mini,reference,"from collections import defaultdict
+d = defaultdict(int)
+n,m = map(int,input().split())
+food_type = list(map(int,input().split()))
+for f in food_type:
+    d[f] += 1
+
+d = list(d.values())
+
+for k in range(m, 0, -1):
+    l = 0
+    for v in d:
+        l += v // k
+        if l >= n:
+            print(k)
+            exit(0)
+print(0)",True,0.5179,4.93,4.93,0.0,0,0,0.0,[],[]
+93147182,gpt-5.4-mini,reference,"n,m=list(map(int,input().split()))
+a=list(map(int,input().split()))
+cnt=[0]*101
+for i in a:
+    cnt[i]+=1
+cnt.sort(reverse=True)
+ans=0
+for i in range(1,101):
+    k=0
+    for j in range(101):
+        k+=cnt[j]//i
+        if k>=n:
+            ans=max(ans,i)
+            break
+print(ans)",True,0.6803,7.9323,7.9323,0.0,0,0,0.0,[],[]
+95724752,gpt-5.4-mini,reference,"n, k = map(int, input().split())
+d = {}
+for e in input().split():
+    if e not in d:
+        d[e] = 0
+    d[e] += 1
+a = list(d.values())
+l = 0
+r = k + 1
+while r - l > 1:
+    m = (l + r) // 2
+    if sum([e // m for e in a]) >= n:
+        l = m
+    else:
+        r = m
+print(l)",True,0.7059,13.3638,13.3638,0.0,0,0,0.0,[],[]
