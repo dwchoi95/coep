@@ -1,0 +1,3351 @@
+Buggy,Model,Source,Patch,Fixed,RPS,ATT_all,ATT_cpu,ATT_api,InT,OuT,$API,Rules_L,Rules_SL
+wrong_1_004,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.0959,0.4272,0.4272,0.0,0,0,0.0,"[""insert_missing_empty_guard"", ""strict_lt_should_be_lte""]",[]
+wrong_1_005,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.0875,0.456,0.456,0.0,0,0,0.0,"[""expand_single_empty_check"", ""strict_lt_should_be_lte""]",[]
+wrong_1_011,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4815,0.1719,0.1719,0.0,0,0,0.0,[],[]
+wrong_1_012,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4815,0.1733,0.1733,0.0,0,0,0.0,[],[]
+wrong_1_018,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.1463,0.0783,0.0783,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_019,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    elif seq == ():
+        return 0
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.125,0.9727,0.9727,0.0,0,0,0.0,"[""generic_flip_compare"", ""insert_missing_empty_guard"", ""generic_flip_compare""]",[]
+wrong_1_026,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.1875,0.0691,0.0691,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_028,claude-sonnet-5,rules,"def search(x, seq):
+    
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+        elif x > seq[len(seq)-1]:
+            return len(seq)
+        else:
+            continue
+    return len(seq) 
+",True,0.1316,0.1516,0.1516,0.0,0,0,0.0,"[""append_fallback_return_after_loop"", ""upper_bound_should_be_strict""]",[]
+wrong_1_030,claude-sonnet-5,rules,"def search(x, seq):
+    
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+        elif x>seq[(len(seq)) - 1]:
+            return len(seq)
+        elif len(seq)==0:
+            return 0
+        else:
+            continue
+    return len(seq) 
+",True,0.1591,0.2624,0.2624,0.0,0,0,0.0,"[""append_fallback_return_after_loop"", ""generic_shift_index""]",[]
+wrong_1_035,claude-sonnet-5,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.7308,3.4306,3.4306,0.0,0,0,0.0,[],[]
+wrong_1_036,claude-sonnet-5,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.75,3.4228,3.4228,0.0,0,0,0.0,[],[]
+wrong_1_037,claude-sonnet-5,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.8163,3.4047,3.4047,0.0,0,0,0.0,[],[]
+wrong_1_038,claude-sonnet-5,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.8367,3.423,3.423,0.0,0,0,0.0,[],[]
+wrong_1_043,claude-sonnet-5,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.7222,3.436,3.436,0.0,0,0,0.0,[],[]
+wrong_1_045,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == []:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i in range(len(seq)):
+        if x == seq[i]:
+            return i
+        elif x > seq[i-1] and x < seq[i]:
+            return i
+    return len(seq)+1     
+        
+",True,0.8676,3.8758,3.8758,0.0,0,0,0.0,[],[]
+wrong_1_046,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if i == 0:
+            if x < seq[0]:
+                return 0
+        if x == seq[i]:
+            return i
+        if seq[i-1] < x < seq[i]:
+            return i
+    return len(seq)
+",True,0.5,3.4582,3.4582,0.0,0,0,0.0,[],[]
+wrong_1_049,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+        elif seq[i] > x:
+            return i+1
+        elif seq[i]<x<=seq[i]:
+            return i+1
+    return len(seq)    
+        
+",True,0.1731,3.1672,3.1672,0.0,0,0,0.0,"[""append_fallback_return_after_loop"", ""strict_lt_should_be_lte"", ""generic_flip_compare"", ""generic_shift_index""]",[]
+wrong_1_053,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if seq == () or seq <= []:
+        return None
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.1296,3.1403,3.1403,0.0,0,0,0.0,"[""generic_flip_compare"", ""generic_flip_compare"", ""insert_missing_empty_guard"", ""generic_flip_compare""]",[]
+wrong_1_058,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for num in range(len(seq)):
+            if x > seq[num]:
+                continue
+            elif x <= seq[num]:
+                return num 
+    return 0
+",True,0.0556,0.0784,0.0784,0.0,0,0,0.0,"[""empty_check_or_precedence""]",[]
+wrong_1_059,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(0, len(seq)):
+        if seq[i] < x:
+            continue
+        elif seq[len(seq) - 1] < x:
+            return len(seq)
+        else:
+            return i
+    return len(seq)
+",True,0.1026,0.0738,0.0738,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_060,claude-sonnet-5,rules,"def search(x, seq):
+    for i in seq:
+        if x <= i:
+            return seq.index(i)
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+",True,0.1379,0.072,0.072,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_061,claude-sonnet-5,rules,"def search(x, seq):
+    for i in seq:
+        if len(seq) == 0:
+	        return 0
+        elif x <= i:
+            return seq.index(i)
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+",True,0.1053,0.0717,0.0717,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_063,claude-sonnet-5,rules,"def search(x, seq):
+    if type(seq) != tuple:
+        seq = list(seq)
+        seq.append(x)
+        seq = sorted(seq)
+        return seq.index(x)
+        
+",True,0.0968,0.1179,0.1179,0.0,0,0,0.0,"[""sorted_bare_call_assign"", ""generic_flip_compare""]",[]
+wrong_1_065,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.3333,3.1758,3.1758,0.0,0,0,0.0,[],[]
+wrong_1_066,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(0,len(seq)):
+        if x<seq[i]:
+            return i
+            break
+        elif x==seq[i]:
+            return i
+            break
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+            break
+    return len(seq)
+",True,0.08,0.0747,0.0747,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_067,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    for i, elem in enumerate(seq):
+        if x == elem:
+            return i
+        elif x < elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.1538,0.072,0.072,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_071,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    for i, elem in enumerate(seq):
+        if x == elem:
+            return i
+        elif x < elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.1304,0.0714,0.0714,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_073,claude-sonnet-5,reference,"def search(x, seq):
+    a = 0
+    for i in range(len(seq)):
+        if x<= seq[i]:
+            a=i
+            break
+        elif x> seq[len(seq)-1]:
+            a=len(seq)
+    return a
+",True,0.0714,3.5301,3.5301,0.0,0,0,0.0,[],[]
+wrong_1_077,claude-sonnet-5,reference,"def search(x, seq):
+    if seq:
+        for i in range(len(seq)):
+            pos = len(seq)
+            if x <= seq[i]:
+                pos = i
+                break
+        return pos
+    else:
+        return 0
+",True,0.0294,3.3183,3.3183,0.0,0,0,0.0,[],[]
+wrong_1_078,claude-sonnet-5,rules,"def search(x, seq):
+    for count, ele in enumerate(seq):
+        if x<=ele:
+            return count
+        
+    for ele in seq:
+        if x>ele:
+            return len(seq)
+    return len(seq)
+",True,0.129,0.0781,0.0781,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_081,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for index, value in enumerate(seq):
+        if x <= value:
+            return index
+    return len(seq)
+",True,0.1905,0.0704,0.0704,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_082,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+    return len(seq)
+",True,0.1429,3.2534,3.2534,0.0,0,0,0.0,[],[]
+wrong_1_083,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x<=seq[i]:
+                return i
+        return i+1
+",True,0.1714,0.0739,0.0739,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_090,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    count = 0
+    for i in range (0, len(seq)):
+        if seq[count] < x:
+            count += 1
+    return count if seq[-1] >= x else len(seq)
+",True,0.1707,0.2515,0.2515,0.0,0,0,0.0,"[""insert_missing_empty_guard"", ""generic_flip_compare""]",[]
+wrong_1_094,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq==[] or x<=seq[0]:
+        return 0
+    if x>seq[-1]:
+        return len(seq)
+    else:
+        for i,elem in enumerate(seq):
+            if x>elem and x<=seq[i+1]:
+                return i+1
+    return len(seq)
+",True,0.0635,0.0758,0.0758,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_098,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if not seq:
+        return 0
+    if seq == () or x<=seq[0]:
+        return 0
+    elif x>seq[-1]:
+        return len(seq)
+    else:
+        for i,elem in enumerate(seq):
+            if x>elem and x<=seq[i+1]:
+                return i+1
+",True,0.0952,1.7029,1.7029,0.0,0,0,0.0,"[""generic_flip_compare"", ""insert_missing_empty_guard"", ""generic_flip_compare""]",[]
+wrong_1_115,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == [] or x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i,j in enumerate(seq[:len(seq)-1]):
+            if x > j and x <= seq[i+1]:
+                return i+1
+",True,0.1067,4.4407,4.4407,0.0,0,0,0.0,[],[]
+wrong_1_121,claude-sonnet-5,rules,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i, elem in enumerate(seq):
+            if elem >= x:
+                return i
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.0233,0.0727,0.0727,0.0,0,0,0.0,"[""upper_bound_should_be_strict""]",[]
+wrong_1_130,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x <= seq[0] or seq == 0:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.1132,0.0721,0.0721,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_134,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    for i, elem in enumerate(seq):
+        if i == 0 and x < elem:
+            return 0
+        elif x == elem:
+            return i
+        elif x < elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.1154,0.0736,0.0736,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_143,claude-sonnet-5,rules,"def search(x, seq):
+    n=[]
+    seq = list(seq)
+    a= seq.copy()
+    d = 0
+    if seq == () or seq == []:
+        return 0 
+    for i in a:
+        if i<x:
+            n.append(i)
+            seq.remove(i)
+        elif i == x:
+            n.append(i)
+            n.append(x)
+            n.extend(seq)
+            break
+        else:
+            n.append(x)
+            n.extend(seq)
+            break
+    count = list(enumerate(n))
+    for b in count:
+        d+=1
+        if b[1] == x:
+            return b[0]
+        elif d==len(count):
+            return d
+",True,0.0536,0.0935,0.0935,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_145,claude-sonnet-5,rules,"def search(x, seq):
+    n=[]
+    seq = list(seq)
+    a= seq.copy()
+    d = 0
+    for i in a:
+        if a == ():
+            return 0
+        if i<x:
+            n.append(i)
+            seq.remove(i)
+        elif i == x:
+            n.append(i)
+            n.append(x)
+            n.extend(seq)
+            break
+        else:
+            n.append(x)
+            n.extend(seq)
+            break
+    count = list(enumerate(n))
+    for b in count:
+        d+=1
+        if b[1] == x:
+            return b[0]
+        elif d==len(count):
+            return d
+    return len(seq)
+",True,0.0357,0.081,0.081,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_150,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    enumerated_list=enumerate(seq)
+    for i,elem in enumerated_list:
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.0357,0.074,0.074,0.0,0,0,0.0,"[""strict_lt_should_be_lte""]",[]
+wrong_1_157,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    for a,b in enumerate(seq):
+        if x<=b:
+            return a
+    for i in seq:
+        if x>i:
+            return a+1
+",True,0.1538,0.0724,0.0724,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_168,claude-sonnet-5,rules,"def search(x, seq):
+    for element in seq:
+        if x <= element:
+            return list(seq).index(element)
+        else:
+            continue
+    return len(seq)
+",True,0.1905,0.0713,0.0713,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_171,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for element in seq:
+            if x <= element:
+                return seq.index(element)
+            elif x > max(seq):
+                return len(seq)
+",True,0.3478,3.6564,3.6564,0.0,0,0,0.0,[],[]
+wrong_1_174,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for element in seq:
+            if x <= element:
+                return seq.index(element)
+            elif x > max(seq):
+                return len(seq)
+",True,0.2917,3.5916,3.5916,0.0,0,0,0.0,[],[]
+wrong_1_178,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    for i, elem in enumerate(seq):
+        if x > seq[-1]:
+            return len(seq)
+        elif  x > elem:
+            continue
+        else:
+            return i
+",True,0.1818,0.0789,0.0789,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_188,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    for i in range(len(seq)-1):
+        if seq[i+1]>=x and x>seq[i]:
+            return i+1
+    return len(seq)
+",True,0.4833,3.493,3.493,0.0,0,0,0.0,[],[]
+wrong_1_193,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > seq[len(seq)-1]:
+            return len(seq)
+    return len(seq)
+",True,0.1143,0.0822,0.0822,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_198,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.3333,3.2256,3.2256,0.0,0,0,0.0,[],[]
+wrong_1_203,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    l=len(seq)
+    if x<=seq[0]:
+        return 0
+    elif x > seq[l-1]:
+        return l
+    else:
+        for i in range (l):
+            if x>=seq[i] and x<=seq[i+1]:
+                return i+1
+            else:   
+                continue
+",True,0.1167,0.4159,0.4159,0.0,0,0,0.0,"[""insert_missing_empty_guard"", ""generic_flip_compare""]",[]
+wrong_1_205,claude-sonnet-5,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.5882,3.3144,3.3144,0.0,0,0,0.0,[],[]
+wrong_1_206,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    else:
+        if x <= seq[0]:
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        else:
+            for i in range(0, len(seq)-1):
+                if seq[i] <= x <= seq[i+1]:
+                    return i+1
+",True,0.2321,3.8248,3.8248,0.0,0,0,0.0,[],[]
+wrong_1_210,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    elif len(seq) <= 0:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if seq[i] == x:
+                return i
+            elif seq[i] < x < seq[i+1]:
+                return i+1
+",True,0.1351,2.5005,2.5005,0.0,0,0,0.0,"[""range_len_minus1_off_by_one"", ""generic_flip_compare"", ""insert_missing_empty_guard""]",[]
+wrong_1_211,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    else:
+        if x <= seq[0]:
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        else:
+            for i in range(0, len(seq)-1):
+                if seq[i] <= x <= seq[i+1]:
+                    return i+1
+",True,0.3043,3.823,3.823,0.0,0,0,0.0,[],[]
+wrong_1_214,claude-sonnet-5,reference,"
+def search(x, seq):
+    if type(seq) == tuple:
+        seq = list(seq)
+        seq.append(x)
+        max_value = sorted(seq)
+        return max_value.index(x)
+        
+    elif type(seq) == list:
+        seq.append(x)
+        max_value = sorted(seq)
+        return max_value.index(x)
+        
+",True,0.8095,0.8147,0.8147,0.0,0,0,0.0,[],[]
+wrong_1_221,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.3158,3.1163,3.1163,0.0,0,0,0.0,[],[]
+wrong_1_222,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+    #"""""" Takes in a value x and a sorted sequence seq, and returns the
+    #position that x should go to such that the sequence remains sorted """"""
+   
+",True,0.1923,3.1348,3.1348,0.0,0,0,0.0,[],[]
+wrong_1_223,claude-sonnet-5,rules,"def search(x, seq):
+    
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.16,0.0739,0.0739,0.0,0,0,0.0,"[""move_else_fallback_out_of_loop""]",[]
+wrong_1_225,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+    #"""""" Takes in a value x and a sorted sequence seq, and returns the
+    #position that x should go to such that the sequence remains sorted """"""
+   
+",True,0.1071,3.2835,3.2835,0.0,0,0,0.0,[],[]
+wrong_1_234,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.1667,0.1934,0.1934,0.0,0,0,0.0,[],[]
+wrong_1_235,claude-sonnet-5,reference,"def search(x, seq):
+    n = len(seq)
+    for i in range(0,n):
+        currentvalue = seq[i]
+        if x <= currentvalue:
+            return i
+    return n
+",True,0.5,3.3547,3.3547,0.0,0,0,0.0,[],[]
+wrong_1_236,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i in seq:
+            if x > i:
+                continue
+            else:
+                return seq.index(i)
+",True,0.1463,0.0697,0.0697,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_237,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x <= seq[-1]:
+        for i in range(len(seq)):
+            if seq[i] < x:
+                continue
+            else:
+                return i
+    else:
+        return len(seq)
+",True,0.1714,0.0704,0.0704,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_242,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.4737,3.0903,3.0903,0.0,0,0,0.0,[],[]
+wrong_1_248,claude-sonnet-5,reference,"def search(x, seq):
+    for position in range(len(seq)):
+        if x < seq[position] or x == seq[position]:
+            return position
+    return len(seq)
+",True,0.5333,3.44,3.44,0.0,0,0,0.0,[],[]
+wrong_1_257,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    position=enumerate(seq)
+    if x>seq[-1]:
+        return len(seq)
+    else: 
+        for i in seq:
+            if x<=i:
+                for index in position:
+                    if index[1]==i:
+                        return index[0]
+",True,0.1333,0.0726,0.0726,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_258,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    enumerated_list =()
+    res= 0
+    for i, elem in enumerate(seq):
+        enumerated_list = enumerated_list + ((i,elem),)
+
+    for number in enumerated_list:
+        if x <= number[1]:
+            res = number[0]
+            break
+        else:
+            res = len(seq)
+    return res
+",True,0.0612,3.2812,3.2812,0.0,0,0,0.0,[],[]
+wrong_1_265,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == [] or seq == ():
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    elif seq[0] >= x or seq == () or seq == []:
+                return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x and seq[i+1] >= x:
+                return i+1
+                break
+",True,0.3784,5.1588,5.1588,0.0,0,0,0.0,[],[]
+wrong_1_268,claude-sonnet-5,rules,"def search(x, seq):
+    counter = 0
+    new_seq = list(seq)
+    for element in seq:
+        if x <=element:
+            return counter
+        if x > seq[len(seq)-1]:
+            return len(seq) 
+        else:
+            counter += 1
+            continue
+    return len(seq)
+",True,0.0909,0.0808,0.0808,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_273,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    enumerated = list(enumerate(seq))
+    if seq == () or seq == []:
+        return 0
+    elif x > max(seq):
+        return len(seq)
+    else:
+        for i in range(len(enumerated)):
+            if enumerated[i][1] >= x:
+                return enumerated[i][0]
+                break
+",True,0.1091,0.0808,0.0808,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_276,claude-sonnet-5,reference,"def search(x, seq):
+    t = 0
+    for i in seq:
+        if x <= i:
+            return t
+        t += 1
+    return len(seq)
+    
+    
+",True,0.1379,0.2072,0.2072,0.0,0,0,0.0,[],[]
+wrong_1_277,claude-sonnet-5,rules,"def search(x, seq):
+    t = 0
+    for i in seq:
+        if x > i:
+            t+=1
+
+    return t
+    
+    
+    
+",True,0.0455,0.0674,0.0674,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_278,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x > seq[-1]:
+        return len(seq)
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem:
+                return i
+            else:
+                continue
+",True,0.1818,0.07,0.07,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_300,claude-sonnet-5,reference,"def search(x,seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x > max(seq):
+                return len(seq)
+            elif x > seq[i]:
+                continue
+            elif x <= seq[i]:
+                break
+        return i
+",True,0.2195,3.6011,3.6011,0.0,0,0,0.0,[],[]
+wrong_1_302,claude-sonnet-5,rules,"def search(x,seq):
+    for i in range((len(seq)) + 1):
+        if len(seq) == 0:
+            return 0
+        elif x > max(seq):
+            return len(seq)
+        elif x > seq[i]:
+            continue
+        elif x <= seq[i]:
+            break
+        
+    return i
+",True,0.06,0.0711,0.0711,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+wrong_1_303,claude-sonnet-5,rules,"def search(x,seq):
+    for i in range((len(seq)) + 1):
+        if len(seq) == 0:
+            return 0
+        elif x > max(seq):
+            return len(seq)
+        elif x > seq[i]:
+            continue
+        elif x <= seq[i]:
+            break
+        
+    return i
+",True,0.06,0.0772,0.0772,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+wrong_1_321,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    return len(seq)
+",True,0.4848,0.4154,0.4154,0.0,0,0,0.0,[],[]
+wrong_1_322,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+
+",True,0.125,0.0718,0.0718,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_325,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if seq == ():
+            return None
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+
+",True,0.1026,0.0728,0.0728,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_326,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if seq == ():
+            return 1
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+
+",True,0.1026,0.0787,0.0787,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_327,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+
+",True,0.125,0.0697,0.0697,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_328,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == ():
+        return None
+    elif seq == () and seq == []:
+        return None
+    else:
+        next
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+    return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+
+",True,0.2083,0.752,0.752,0.0,0,0,0.0,"[""expand_single_empty_check"", ""append_fallback_return_after_loop"", ""generic_flip_bool_op""]",[]
+wrong_1_329,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if len(seq)< 1:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x <= seq[i]:
+                return i 
+            else:
+                if x > seq[-1]:
+                    return len(seq) 
+                else:
+                    continue
+",True,0.4324,3.3875,3.3875,0.0,0,0,0.0,[],[]
+wrong_1_332,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.1905,0.071,0.071,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_336,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    for i in range(len(seq)-1):
+        if seq[i+1]>=x and x>seq[i]:
+            return i+1
+    return len(seq)
+",True,0.1034,0.0728,0.0728,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_342,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq == [] or ():
+            return None
+        elif x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+    return len(seq)
+",True,0.0755,0.0779,0.0779,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_343,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq == [] or ():
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+    return len(seq)
+",True,0.0755,0.084,0.084,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_345,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+            return 0
+    for i in range(len(seq)):
+        if x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+",True,0.12,0.0755,0.0755,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_346,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+            return 0
+    for i in range(len(seq)):
+        if x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+",True,0.0566,0.0739,0.0739,0.0,0,0,0.0,"[""empty_check_or_precedence""]",[]
+wrong_1_348,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+    
+",True,0.3043,3.1154,3.1154,0.0,0,0,0.0,[],[]
+wrong_1_349,claude-sonnet-5,reference,"def search(x, seq):
+    for i,elem in enumerate(seq):
+        if x<=elem:
+            return i
+    return len(seq)
+    
+",True,0.2,3.0917,3.0917,0.0,0,0,0.0,[],[]
+wrong_1_352,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if not seq:
+        return 0
+    largest=seq[0]
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+",True,0.1364,0.0883,0.0883,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_355,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    position = 0
+    found = False
+    
+    while position < len(seq) and not found:
+        if x <= seq[position]:
+            found = True
+        else:
+            position += 1
+    
+    return position
+",True,0.0488,7.2968,7.2968,0.0,0,0,0.0,[],[]
+wrong_1_363,claude-sonnet-5,rules,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i in range(0, len(seq)-1):
+            if seq[i] <= x <= seq[i+1]:
+                return i+1
+",True,0.0152,0.0755,0.0755,0.0,0,0,0.0,"[""upper_bound_should_be_strict""]",[]
+wrong_1_371,claude-sonnet-5,rules,"def search(x, seq):
+    lst1 = list(seq)
+    if lst1 == []:
+        return 0
+    else: 
+        length = len(lst1)
+        lst2 = []
+        if x < seq[0]:
+            lst2 = [x] + lst1
+        elif x >= seq[length -1]:
+            lst2 = lst1 + [x]
+        else:
+            for i in range(0, length):
+                if seq[i] <= x <= seq[i+1]:
+                    lst2 = lst1[:i+1] + [x] + lst1[i+1:]
+    for i in range(len(lst2)):
+        if x == lst2[i]:
+            return i
+",True,0.0088,0.0852,0.0852,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_379,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] < x:
+            continue
+        elif seq[len(seq)-1] < x:
+            return len(seq)-1
+        else:
+            return i
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.093,0.0729,0.0729,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_381,claude-sonnet-5,rules,"def search(x, seq):
+    lst1 = list(seq)
+    if lst1 == [] or seq == ():
+        return 0
+    else: 
+        length = len(lst1)
+        lst2 = []
+        if x < seq[0]:
+            lst2 = [x] + lst1
+        elif x >= seq[length -1]:
+            lst2 = lst1 + [x]
+        else:
+            for i in range(0, length):
+                if seq[i] <= x <= seq[i+1]:
+                    lst2 = lst1[:i+1] + [x] + lst1[i+1:]
+    for i in range(len(lst2)):
+        if x == lst2[i]:
+            return i
+",True,0.0248,0.6598,0.6598,0.0,0,0,0.0,"[""empty_check_assign_to_return"", ""generic_flip_compare""]",[]
+wrong_1_385,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] < x:
+            continue
+        elif seq[(len(seq)) - 1] < x:
+            return len(seq)
+        else:
+            return i
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.1892,0.1474,0.1474,0.0,0,0,0.0,"[""append_fallback_return_after_loop"", ""generic_shift_index""]",[]
+wrong_1_386,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] < x:
+            continue
+        elif x <= seq[i]:
+            return i
+        else:
+            return len(seq)
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.1143,0.0742,0.0742,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_389,claude-sonnet-5,rules,"def search(x, seq):
+    lst1 = list(seq)
+    if seq == () or seq ==[]:
+        return 0
+    else: 
+        length = len(lst1)
+        lst2 = []
+        if x < seq[0]:
+            lst2 = [x] + lst1
+        elif x >= seq[length -1]:
+            lst2 = lst1 + [x]
+        else:
+            for i in range(0, length):
+                if seq[i] <= x <= seq[i+1]:
+                    lst2 = lst1[:i+1] + [x] + lst1[i+1:]
+        for i in range(len(lst2)):
+            if x == lst2[i]:
+                return i
+",True,0.0083,0.0846,0.0846,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_398,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == ():
+        return ()
+    else:
+        for i in range(len(seq)):
+            if x <= seq[i]:
+                return i
+            elif x > max(seq):
+                return len(seq) 
+            else:
+                continue
+    return len(seq) 
+
+",True,0.125,0.2379,0.2379,0.0,0,0,0.0,"[""append_fallback_return_after_loop"", ""upper_bound_should_be_strict""]",[]
+wrong_1_401,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x > elem:
+            continue
+        else:
+            return i
+    return len(seq)
+",True,0.2,0.0696,0.0696,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_409,claude-sonnet-5,rules,"def search(x, seq):
+    for i, element in enumerate(seq):
+        if x <= element:
+            return i
+    return len(seq)
+",True,0.0435,0.0696,0.0696,0.0,0,0,0.0,"[""strict_lt_should_be_lte""]",[]
+wrong_1_410,claude-sonnet-5,rules,"def search(x,seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        else:
+            continue
+    return len(seq)
+        
+",True,0.2,0.0738,0.0738,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_411,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.1667,0.2033,0.2033,0.0,0,0,0.0,[],[]
+wrong_1_412,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if x > seq[i]:
+            continue
+        else:
+            return i
+    return len(seq)
+",True,0.28,0.1211,0.1211,0.0,0,0,0.0,"[""append_fallback_return_after_loop"", ""range_len_minus1_off_by_one""]",[]
+wrong_1_421,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            return i
+        elif x > seq[len(seq)-1]:
+            return len(seq)
+    return len(seq)
+",True,0.1081,0.0736,0.0736,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_422,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range (len(seq)):
+        if seq == ():
+            return 
+        if x <= seq[i]:
+            return i
+        elif x > seq[len(seq)-1]:
+            return len(seq)
+    return len(seq)
+",True,0.093,0.0729,0.0729,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_426,claude-sonnet-5,rules,"def search(x,seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+        
+",True,0.1739,0.0719,0.0719,0.0,0,0,0.0,"[""move_else_fallback_out_of_loop""]",[]
+wrong_1_429,claude-sonnet-5,rules,"def search(x, seq):
+    for i,elem in enumerate(seq):
+        if elem>=x:
+            return i
+        elif i+1==len(seq):
+            return len(seq)
+        else:
+            continue
+    return len(seq)
+",True,0.1176,0.0741,0.0741,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_430,claude-sonnet-5,rules,"def search(x, seq):
+    for i,elem in enumerate(seq):
+        if seq==() or []:
+            return 0
+        elif elem>=x:
+            return i
+        elif i+1==len(seq):
+            return len(seq)
+        else:
+            continue
+    return len(seq)
+",True,0.0909,0.0745,0.0745,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_435,claude-sonnet-5,reference,"def search(x, seq):
+    pos = len(seq)
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            pos = i
+            break
+    return pos
+",True,0.5,0.2779,0.2779,0.0,0,0,0.0,[],[]
+wrong_1_437,claude-sonnet-5,reference,"def search(x,seq):
+    if type(seq) == tuple:
+        tup = ()
+        for i in seq:
+            if i < x:
+                tup = tup + (i,)
+            else:
+                tup = tup + (x,)
+                break
+        return len(tup) - 1
+        
+    elif type(seq) == list:
+        seq.append(x)
+        a = sorted(seq)
+        return a.index(x)
+        
+",True,0.3086,4.1477,4.1477,0.0,0,0,0.0,[],[]
+wrong_1_444,claude-sonnet-5,rules,"def search(x, seq):
+    if not seq:
+        return 0
+    if x <= seq[0]:
+        return 0
+    else:
+        y = len(seq)
+        for i in range(y-1):
+            if x > seq[i] and x <= seq[i+1]:
+                return i + 1
+        return y
+",True,0.1346,0.2671,0.2671,0.0,0,0,0.0,"[""insert_missing_empty_guard"", ""strict_lt_should_be_lte""]",[]
+wrong_1_446,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    for i in range(len(seq)-1):
+        if seq[i+1]>=x and x>seq[i]:
+            return i+1
+    return len(seq)
+",True,0.62,3.3399,3.3399,0.0,0,0,0.0,[],[]
+wrong_1_449,claude-sonnet-5,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x == elem:
+            return i
+        elif x < seq[0]:
+            return 0
+        elif x < elem and x > seq[i-1]:
+            return i
+
+    return len(seq)
+
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.4364,3.9116,3.9116,0.0,0,0,0.0,[],[]
+wrong_1_452,claude-sonnet-5,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] >= x:
+            return i
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.1481,0.0802,0.0802,0.0,0,0,0.0,"[""move_else_fallback_out_of_loop""]",[]
+wrong_1_455,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == [] or seq == (): 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0227,3.1697,3.1697,0.0,0,0,0.0,"[""strict_lt_should_be_lte"", ""upper_bound_should_be_strict"", ""generic_flip_compare""]",[]
+wrong_1_458,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] >= x:
+            return i
+    else:
+        return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.0357,3.2513,3.2513,0.0,0,0,0.0,[],[]
+wrong_1_459,claude-sonnet-5,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] >= x:
+            return i
+            continue
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.1429,3.2944,3.2944,0.0,0,0,0.0,[],[]
+wrong_1_461,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == []: 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0244,3.1576,3.1576,0.0,0,0,0.0,"[""strict_lt_should_be_lte"", ""upper_bound_should_be_strict"", ""generic_flip_compare""]",[]
+wrong_1_462,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == [] or seq == (): 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0227,3.1604,3.1604,0.0,0,0,0.0,"[""strict_lt_should_be_lte"", ""upper_bound_should_be_strict"", ""generic_flip_compare""]",[]
+wrong_1_465,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == [] or (): 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0235,3.1839,3.1839,0.0,0,0,0.0,"[""strict_lt_should_be_lte"", ""upper_bound_should_be_strict"", ""generic_flip_compare""]",[]
+wrong_1_469,claude-sonnet-5,rules,"def search(x, seq):
+    for i, element in enumerate(seq):
+        for element in seq:
+            if x > element:
+                i+=1
+        return i
+    return len(seq)
+",True,0.1538,0.0705,0.0705,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_471,claude-sonnet-5,rules,"def search(x, seq):
+    for i, element in enumerate(seq):
+        for element in seq:
+            if seq == ():
+                return 0
+            elif x > element:
+                i+=1
+        return i
+    return len(seq)
+",True,0.1212,0.0768,0.0768,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_473,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i, element in enumerate(seq):
+            for element in seq:
+                if x > element:
+                    i+=1
+            return i
+",True,0.1818,0.0743,0.0743,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_476,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () and []:
+        return 0
+    else:
+        for i, element in enumerate(seq):
+            for element in seq:
+                if x > element:
+                    i+=1
+            return i
+    return len(seq)
+",True,0.1111,0.0744,0.0744,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_478,claude-sonnet-5,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if not seq:
+        return 0
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    if x > seq[-1]:
+        return len(seq)
+",True,0.1667,0.0741,0.0741,0.0,0,0,0.0,"[""insert_missing_empty_guard""]",[]
+wrong_1_481,claude-sonnet-5,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x < elem: 
+            return i
+        elif x == elem:
+            return i
+        elif i == len(seq)-1:
+            return i+1
+        elif seq == []:
+            return 0
+    return len(seq)
+",True,0.0833,0.0739,0.0739,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_482,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i, elem in enumerate(seq):
+            if x < elem: 
+                return i
+            elif x == elem:
+                return i
+            elif i == len(seq)-1:
+                return i+1
+            
+",True,0.125,0.075,0.075,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_491,claude-sonnet-5,reference,"def search(x, seq):
+    l=len(seq)
+    if l==0:
+        return 0
+    for i in range(l):
+        if x<=seq[i]:
+            break
+    if x>seq[l-1]:
+        i=i+1
+    return i
+",True,0.1707,3.2766,3.2766,0.0,0,0,0.0,[],[]
+wrong_1_495,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i, elem in enumerate (seq):
+            if x<=elem:
+                return i
+            elif x>seq[-1]:
+                return len(seq)
+",True,0.0714,0.0777,0.0777,0.0,0,0,0.0,"[""empty_check_or_precedence""]",[]
+wrong_1_498,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    seq = tuple(seq)
+    if seq == ():
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        i = 0
+        while i <= len(seq)-1:
+            if x <= seq[i]:
+                return i
+            elif x > seq[i]:
+                i += 1
+",True,0.1081,9.307,9.307,0.0,0,0,0.0,[],[]
+wrong_1_512,claude-sonnet-5,reference,"def search(x, seq): 
+    if len(seq) == 0:
+        return 0
+    if int(x) < seq[0]:
+        return 0    
+    elif int(x)> seq[len(seq)-1]:
+        return len(seq)  
+    Index = 0
+    for i in range(0,len(seq)): 
+        if int(x)>seq[i]:
+            continue
+        Index = i
+        return Index
+",True,0.5397,3.5926,3.5926,0.0,0,0,0.0,[],[]
+wrong_1_517,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == []:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if x > seq[i]:
+                continue
+            else:
+                return i
+",True,0.0222,0.1132,0.1132,0.0,0,0,0.0,"[""upper_bound_should_be_strict""]",[]
+wrong_1_519,claude-sonnet-5,reference,"def search(x, seq):
+    pos = 0
+    for i, element in enumerate(seq):
+        if x <= element:
+            pos = i
+            return pos
+        else:
+            pos += 1
+    return pos
+",True,0.5455,0.381,0.381,0.0,0,0,0.0,[],[]
+wrong_1_520,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq) == 0 or x < seq[0] :
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        result = 0
+        for i, elem in enumerate(seq):
+            if x < (elem + 1):
+                result = i
+                break
+        return result
+",True,0.2642,3.616,3.616,0.0,0,0,0.0,[],[]
+wrong_1_523,claude-sonnet-5,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    counter = 0
+    if len(seq) == 0:
+        return 0
+
+    for i in seq:
+        if len(seq) == 0:
+            return none
+        if x <= i:
+            return counter
+        elif x > i:
+            counter += 1
+        else:
+            counter += 1
+
+    return counter
+",True,0.4333,3.5498,3.5498,0.0,0,0,0.0,[],[]
+wrong_1_530,claude-sonnet-5,rules,"def search(x, seq):
+    length = len(seq)
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif i == length-1:
+            return length
+    return len(seq)
+",True,0.1176,0.0742,0.0742,0.0,0,0,0.0,"[""append_fallback_return_after_loop""]",[]
+wrong_1_546,claude-sonnet-5,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem:
+                return i
+        return len(seq)
+    if x <= min(seq):
+        return 0
+        
+        
+
+",True,0.76,0.4058,0.4058,0.0,0,0,0.0,[],[]
+wrong_1_547,claude-sonnet-5,reference,"def search(x, seq):
+    if seq == ():
+        return 'empty'
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.129,1.5288,1.5288,0.0,0,0,0.0,[],[]
+wrong_1_549,claude-sonnet-5,reference,"def search(x, seq):
+    if seq == tuple():
+        return 'not found'
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.125,0.3436,0.3436,0.0,0,0,0.0,[],[]
+wrong_1_551,claude-sonnet-5,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    if x>seq[len(seq)-1]:
+        return len(seq)
+    for i in range(len(seq)):
+        if x>seq[i]:
+            continue
+        return i
+",True,0.1333,0.0713,0.0713,0.0,0,0,0.0,"[""expand_single_empty_check""]",[]
+wrong_1_552,claude-sonnet-5,reference,"def search(x, seq):
+    if seq == ():
+        return 'not found'
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.129,1.5442,1.5442,0.0,0,0,0.0,[],[]
+wrong_1_559,claude-sonnet-5,reference,"def search(x, seq):
+    pos = 0
+    for i, element in enumerate(seq):
+        if x <= element:
+            pos = i
+            return pos
+        else:
+            pos += 1
+    return pos
+",True,0.5455,0.3822,0.3822,0.0,0,0,0.0,[],[]
+wrong_1_568,claude-sonnet-5,reference,"def search(x, seq):
+    position = 0
+    for elem in seq:
+        if x <= elem:
+            break
+        position += 1
+    return position
+",True,0.25,0.2049,0.2049,0.0,0,0,0.0,[],[]
+wrong_1_004,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.1918,3.6068,3.6068,0.0,0,0,0.0,[],[]
+wrong_1_005,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        seq_enum = [i for i in enumerate(seq)]
+        for j in range(len(seq_enum) - 1):
+            if x >= seq_enum[j][1] and x <= seq_enum[j+1][1]:
+                return j+1
+",True,0.0875,3.7386,3.7386,0.0,0,0,0.0,[],[]
+wrong_1_011,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4815,0.1636,0.1636,0.0,0,0,0.0,[],[]
+wrong_1_012,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4815,0.155,0.155,0.0,0,0,0.0,[],[]
+wrong_1_018,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.122,3.3598,3.3598,0.0,0,0,0.0,[],[]
+wrong_1_019,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    elif seq == ():
+        return 0
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.1042,3.4888,3.4888,0.0,0,0,0.0,[],[]
+wrong_1_026,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.4062,3.1228,3.1228,0.0,0,0,0.0,[],[]
+wrong_1_028,gpt-5.4-mini,reference,"def search(x, seq):
+    
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+        elif x > seq[i]:
+            continue
+    return len(seq)  # if bigger than the last element 
+",True,0.3947,3.2964,3.2964,0.0,0,0,0.0,[],[]
+wrong_1_030,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i in range(0,len(seq)):
+        if x<seq[i]:
+            return i
+        elif x==seq[i]:
+            return i
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+        elif len(seq)==0:
+            return 0
+        else:
+            continue 
+",True,0.5227,3.7228,3.7228,0.0,0,0,0.0,[],[]
+wrong_1_035,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.7308,3.4542,3.4542,0.0,0,0,0.0,[],[]
+wrong_1_036,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.75,3.3828,3.3828,0.0,0,0,0.0,[],[]
+wrong_1_037,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.8163,3.3619,3.3619,0.0,0,0,0.0,[],[]
+wrong_1_038,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.8367,3.4191,3.4191,0.0,0,0,0.0,[],[]
+wrong_1_043,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.7222,3.4621,3.4621,0.0,0,0,0.0,[],[]
+wrong_1_045,gpt-5.4-mini,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+        elif seq[i] == seq[-1] and seq[i]<x:
+            return len(seq)
+        elif seq[(i) + 1]<x<=seq[i+1]:
+            return i
+    return len(seq)     
+        
+",True,0.1618,3.1427,3.1427,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison"", ""off_by_one_return_len_after_scan"", ""off_by_one_return_len_after_scan"", ""generic_shift_index""]",[]
+wrong_1_046,gpt-5.4-mini,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+        elif seq[i] == seq[-1]:
+            return len(seq)
+        elif seq[(i) + 1]<x<=seq[i+1]:
+            return i
+    return len(seq)     
+        
+",True,0.1833,3.1464,3.1464,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison"", ""off_by_one_return_len_after_scan"", ""off_by_one_return_len_after_scan"", ""generic_shift_index""]",[]
+wrong_1_049,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if i == 0:
+            if x < seq[0]:
+                return 0
+        if x == seq[i]:
+            return i
+        if seq[i-1] < x < seq[i]:
+            return i
+    return len(seq)
+",True,0.6154,3.4366,3.4366,0.0,0,0,0.0,[],[]
+wrong_1_053,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x < seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    for i, elem in enumerate(seq):
+            if x <= elem:
+                return i 
+",True,0.0185,0.0778,0.0778,0.0,0,0,0.0,"[""empty_sequence_returns_zero""]",[]
+wrong_1_058,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for num in range(len(seq)):
+            if x > seq[num]:
+                continue
+            elif x <= seq[num]:
+                return num 
+    return 0
+",True,0.0556,0.0808,0.0808,0.0,0,0,0.0,"[""wrong_default_empty_return""]",[]
+wrong_1_059,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(0, len(seq)):
+        if seq[i] < x:
+            continue
+        elif seq[len(seq) - 1] < x:
+            return len(seq)
+        else:
+            return i
+        if seq[i-1] < x < seq[i]:
+            return i
+    return len(seq)
+",True,0.5128,3.3151,3.3151,0.0,0,0,0.0,[],[]
+wrong_1_060,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == []:
+        return 0
+    for i in seq:
+        if x <= i:
+            return seq.index(i)
+        elif x > max(seq):
+            return len(seq)
+",True,0.2414,0.4457,0.4457,0.0,0,0,0.0,[],[]
+wrong_1_061,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i in seq:
+            if x <= i:
+                return seq.index(i)
+            elif x > max(seq):
+                return len(seq)
+",True,0.1579,1.0135,1.0135,0.0,0,0,0.0,[],[]
+wrong_1_063,gpt-5.4-mini,reference,"def search(x, seq):
+    if type(seq) == tuple:
+        seq = list(seq)
+        seq.append(x)
+        sorted(seq)
+        return seq.index(x)
+        
+    elif type(seq) == list:
+        seq.append(x)
+        a = sorted(seq)
+        return a.index(x)
+        
+",True,0.7097,0.5635,0.5635,0.0,0,0,0.0,[],[]
+wrong_1_065,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.3333,3.1551,3.1551,0.0,0,0,0.0,[],[]
+wrong_1_066,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i in range(0,len(seq)):
+        if x<seq[i]:
+            return i
+            break
+        elif x==seq[i]:
+            return i
+            break
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+            break
+",True,0.18,3.7747,3.7747,0.0,0,0,0.0,[],[]
+wrong_1_067,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == ():
+        return 0
+    elif seq == []:
+        return 0
+    for i, elem in enumerate(seq):
+        if x == elem:
+            return i
+        elif x < elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.359,3.3795,3.3795,0.0,0,0,0.0,[],[]
+wrong_1_071,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == ():
+        return 0
+    elif seq == []:
+        return 0
+    for i, elem in enumerate(seq):
+        if x == elem:
+            return i
+        elif x < elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.1522,3.4316,3.4316,0.0,0,0,0.0,[],[]
+wrong_1_073,gpt-5.4-mini,reference,"def search(x, seq):
+    a = 0
+    for i in range(len(seq)):
+        if x<= seq[i]:
+            a=i
+            break
+        elif x> seq[len(seq)-1]:
+            a=len(seq)
+    return a
+",True,0.0714,3.4938,3.4938,0.0,0,0,0.0,[],[]
+wrong_1_077,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq:
+        for i in range(len(seq)):
+            pos = len(seq)
+            if x <= seq[i]:
+                pos = i
+                break
+        return pos
+    else:
+        return 0
+",True,0.0294,0.0755,0.0755,0.0,0,0,0.0,"[""wrong_constant_return_to_len_or_zero""]",[]
+wrong_1_078,gpt-5.4-mini,reference,"def search(x, seq):
+    for count, ele in enumerate(seq):
+        if x<=ele:
+            return count
+    return len(seq)
+",True,0.2581,0.3283,0.3283,0.0,0,0,0.0,[],[]
+wrong_1_081,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i, ele in enumerate(seq):
+        if x <= ele:
+            return i 
+    return len(seq)
+",True,0.381,0.1794,0.1794,0.0,0,0,0.0,[],[]
+wrong_1_082,gpt-5.4-mini,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+    return len(seq)
+",True,0.1429,0.0672,0.0672,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_083,gpt-5.4-mini,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq==():
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x<=seq[i]:
+                return i
+        return len(seq)
+",True,0.1143,0.0694,0.0694,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_090,gpt-5.4-mini,reference,"def search(x, seq):
+    count = 0
+    for i in range (0, len(seq)):
+        if seq[count] < x:
+            count += 1
+    return count
+",True,0.2927,3.2965,3.2965,0.0,0,0,0.0,[],[]
+wrong_1_094,gpt-5.4-mini,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq==[] or x<=seq[0]:
+        return 0
+    if x>seq[-1]:
+        return len(seq)
+    else:
+        for i,elem in enumerate(seq):
+            if x >= elem and x<=seq[i+1]:
+                return i+1
+",True,0.0159,0.0731,0.0731,0.0,0,0,0.0,"[""strict_gt_to_ge_in_comparison""]",[]
+wrong_1_098,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq==() or seq==[] or x<=seq[0]:
+        return 0
+    elif x>seq[-1]:
+        return len(seq)
+    else:
+        for i,elem in enumerate(seq):
+            if x>elem and x<=seq[i+1]:
+                return i+1
+",True,0.0635,4.1647,4.1647,0.0,0,0,0.0,[],[]
+wrong_1_115,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == [] or x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i,j in enumerate(seq[:len(seq)-1]):
+            if x > j and x <= seq[i+1]:
+                return i+1
+",True,0.1067,4.458,4.458,0.0,0,0,0.0,[],[]
+wrong_1_121,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i, elem in enumerate(seq):
+            if elem >= x:
+                return i
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.0233,0.0761,0.0761,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_130,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == [] or seq == ():
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if seq[i] == x:
+                return i
+            elif seq[i] <= x and seq[i+1] > x:
+                return i+1
+        return len(seq)
+",True,0.9811,3.3655,3.3655,0.0,0,0,0.0,[],[]
+wrong_1_134,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == ():
+        return 0
+    elif seq == []:
+        return 0
+    for i, elem in enumerate(seq):
+        if i == 0 and x < elem:
+            return 0
+        elif x == elem:
+            return i
+        elif x < elem:
+            return i
+        elif x > seq[-1]:
+            return len(seq)
+",True,0.2692,3.8294,3.8294,0.0,0,0,0.0,[],[]
+wrong_1_143,gpt-5.4-mini,reference,"def search(x, seq):
+    n = list(seq)
+    if n == []:
+        n.append(x)
+    else:
+        for a in range(len(n)):
+            if x < n[a]:
+                n.insert(a,x)
+            else:
+                n.insert(len(n),x)
+    for a in range(len(n)):
+         if n[a] == x:
+             return a
+",True,0.75,5.0227,5.0227,0.0,0,0,0.0,[],[]
+wrong_1_145,gpt-5.4-mini,reference,"def search(x, seq):
+    n = list(seq)
+    if n == []:
+        n.append(x)
+    else:
+        for a in range(len(n)):
+            if x < n[a]:
+                n.insert(a,x)
+            else:
+                n.insert(len(n),x)
+    for a in range(len(n)):
+         if n[a] == x:
+             return a
+",True,0.75,5.078,5.078,0.0,0,0,0.0,[],[]
+wrong_1_150,gpt-5.4-mini,rules,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    enumerated_list=enumerate(seq)
+    for i,elem in enumerated_list:
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.0357,0.0733,0.0733,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison""]",[]
+wrong_1_157,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq==[]:
+        return 0
+    for a,b in enumerate(seq):
+        if x<=b:
+            return a
+    for i in seq:
+        if x >= i:
+            return a+1
+",True,0.0256,0.0695,0.0695,0.0,0,0,0.0,"[""strict_gt_to_ge_in_comparison""]",[]
+wrong_1_168,gpt-5.4-mini,reference,"def search(x, seq):
+    for element in seq:
+        if x <= element:
+            return list(seq).index(element)
+        else:
+            continue
+    return len(seq)
+",True,0.1905,0.206,0.206,0.0,0,0,0.0,[],[]
+wrong_1_171,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for element in seq:
+            if x <= element:
+                return seq.index(element)
+            elif x > max(seq):
+                return len(seq)
+",True,0.3478,0.9347,0.9347,0.0,0,0,0.0,[],[]
+wrong_1_174,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for element in seq:
+            if x <= element:
+                return seq.index(element)
+            elif x > max(seq):
+                return len(seq)
+",True,0.2917,0.9125,0.9125,0.0,0,0,0.0,[],[]
+wrong_1_178,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x > seq[-1]:
+            return len(seq)
+        elif  x > elem:
+            continue
+        else:
+            return i
+    return len(seq)
+",True,0.1212,3.2251,3.2251,0.0,0,0,0.0,[],[]
+wrong_1_188,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    for i in range(len(seq)-1):
+        if seq[i+1]>=x and x>seq[i]:
+            return i+1
+    return len(seq)
+",True,0.4833,3.3904,3.3904,0.0,0,0,0.0,[],[]
+wrong_1_193,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem:
+                return i
+            elif x > seq[len(seq)-1]:
+                return len(seq)
+",True,0.3714,3.1975,3.1975,0.0,0,0,0.0,[],[]
+wrong_1_198,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.3333,3.2495,3.2495,0.0,0,0,0.0,[],[]
+wrong_1_203,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == [] or seq == ():
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if seq[i] == x:
+                return i
+            elif seq[i] <= x and seq[i+1] > x:
+                return i+1
+            else:   
+                continue
+",True,0.7167,3.8014,3.8014,0.0,0,0,0.0,[],[]
+wrong_1_205,gpt-5.4-mini,reference,"def search(x, seq):
+    if not seq:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x <= seq[i+1]:
+                return i+1
+        return len(seq)
+",True,0.5882,3.1771,3.1771,0.0,0,0,0.0,[],[]
+wrong_1_206,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    else:
+        if x <= seq[0]:
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        else:
+            for i in range(0, len(seq)-1):
+                if seq[i] <= x <= seq[i+1]:
+                    return i+1
+",True,0.2321,3.8023,3.8023,0.0,0,0,0.0,[],[]
+wrong_1_210,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    else:
+        if x <= seq[0]:
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        else:
+            for i in range(0, len(seq)-1):
+                if seq[i] <= x <= seq[i+1]:
+                    return i+1
+",True,0.4189,3.4864,3.4864,0.0,0,0,0.0,[],[]
+wrong_1_211,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    else:
+        if x <= seq[0]:
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        else:
+            for i in range(0, len(seq)-1):
+                if seq[i] <= x <= seq[i+1]:
+                    return i+1
+",True,0.3043,3.8443,3.8443,0.0,0,0,0.0,[],[]
+wrong_1_214,gpt-5.4-mini,reference,"
+def search(x, seq):
+    if type(seq) == tuple:
+        seq = list(seq)
+        seq.append(x)
+        max_value = sorted(seq)
+        return max_value.index(x)
+        
+    elif type(seq) == list:
+        seq.append(x)
+        max_value = sorted(seq)
+        return max_value.index(x)
+        
+",True,0.8095,0.874,0.874,0.0,0,0,0.0,[],[]
+wrong_1_221,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.3158,3.1175,3.1175,0.0,0,0,0.0,[],[]
+wrong_1_222,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+    #"""""" Takes in a value x and a sorted sequence seq, and returns the
+    #position that x should go to such that the sequence remains sorted """"""
+   
+",True,0.1923,3.1393,3.1393,0.0,0,0,0.0,[],[]
+wrong_1_223,gpt-5.4-mini,reference,"def search(x, seq):
+    
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.16,0.2176,0.2176,0.0,0,0,0.0,[],[]
+wrong_1_225,gpt-5.4-mini,rules,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+    #"""""" Takes in a value x and a sorted sequence seq, and returns the
+    #position that x should go to such that the sequence remains sorted """"""
+   
+",True,0.1071,0.0809,0.0809,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_234,gpt-5.4-mini,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.1667,0.0691,0.0691,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_235,gpt-5.4-mini,reference,"def search(x, seq):
+    n = len(seq)
+    for i in range(0,n):
+        currentvalue = seq[i]
+        if x <= currentvalue:
+            return i
+    return n
+",True,0.5,3.3628,3.3628,0.0,0,0,0.0,[],[]
+wrong_1_236,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i in seq:
+            if x > i:
+                continue
+            else:
+                return seq.index(i)
+",True,0.122,3.528,3.528,0.0,0,0,0.0,[],[]
+wrong_1_237,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == []:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if seq[i] < x:
+                continue
+            else:
+                return i
+        return len(seq) 
+",True,0.2286,3.3686,3.3686,0.0,0,0,0.0,[],[]
+wrong_1_242,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.4737,3.0946,3.0946,0.0,0,0,0.0,[],[]
+wrong_1_248,gpt-5.4-mini,reference,"def search(x, seq):
+    for position in range(len(seq)):
+        if x < seq[position] or x == seq[position]:
+            return position
+    return len(seq)
+",True,0.5333,3.4648,3.4648,0.0,0,0,0.0,[],[]
+wrong_1_257,gpt-5.4-mini,reference,"def search(x, seq):
+    position=enumerate(seq)
+    if len(seq)==0:
+        return 0
+    elif x>seq[-1]:
+        return len(seq)
+    else: 
+        for i in seq:
+            if x<=i:
+                for index in position:
+                    if index[1]==i:
+                        return index[0]
+",True,0.2,3.6049,3.6049,0.0,0,0,0.0,[],[]
+wrong_1_258,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    enumerated_list =()
+    res= 0
+    for i, elem in enumerate(seq):
+        enumerated_list = enumerated_list + ((i,elem),)
+
+    for number in enumerated_list:
+        if x <= number[1]:
+            res = number[0]
+            break
+        else:
+            res = len(seq)
+    return res
+",True,0.0612,3.4046,3.4046,0.0,0,0,0.0,[],[]
+wrong_1_265,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == [] or seq == ():
+        return 0
+    if x < seq[0]:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    elif seq[0] >= x or seq == () or seq == []:
+                return 0
+    else:
+        for i in range(len(seq)-1):
+            if seq[i] < x and seq[i+1] >= x:
+                return i+1
+                break
+",True,0.3784,5.1291,5.1291,0.0,0,0,0.0,[],[]
+wrong_1_268,gpt-5.4-mini,reference,"def search(x, seq):
+    counter = 0
+    new_seq = list(seq)
+    for element in seq:
+        if x <=element:
+            return counter
+        if x > seq[len(seq)-1]:
+            return len(seq) 
+        else:
+            counter += 1
+            continue
+    return counter
+",True,0.0455,3.2401,3.2401,0.0,0,0,0.0,[],[]
+wrong_1_273,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if seq == () or seq == []:
+        return 0
+    elif x > max(seq):
+        return len(seq)
+    else:
+        enumerated = list(enumerate(seq))
+        for i in range(len(enumerated)):
+            if enumerated[i][1] >= x:
+                return enumerated[i][0]
+                break
+",True,0.3273,3.6324,3.6324,0.0,0,0,0.0,[],[]
+wrong_1_276,gpt-5.4-mini,reference,"def search(x, seq):
+    t = 0
+    for i in seq:
+        if x <= i:
+            return t
+        t += 1
+    return len(seq)
+    
+    
+",True,0.1379,0.2305,0.2305,0.0,0,0,0.0,[],[]
+wrong_1_277,gpt-5.4-mini,rules,"def search(x, seq):
+    t = 0
+    for i in seq:
+        if x > i:
+            t+=1
+
+    return t
+    
+    
+    
+",True,0.0455,0.0716,0.0716,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_278,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem:
+                return i
+            else:
+                continue
+",True,0.2727,3.2558,3.2558,0.0,0,0,0.0,[],[]
+wrong_1_300,gpt-5.4-mini,reference,"def search(x,seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x > max(seq):
+                return len(seq)
+            elif x > seq[i]:
+                continue
+            elif x <= seq[i]:
+                break
+        return i
+",True,0.2195,3.64,3.64,0.0,0,0,0.0,[],[]
+wrong_1_302,gpt-5.4-mini,rules,"def search(x,seq):
+    for i in range((len(seq)) + 1):
+        if len(seq) == 0:
+            return 0
+        elif x > max(seq):
+            return len(seq)
+        elif x > seq[i]:
+            continue
+        elif x <= seq[i]:
+            break
+        
+    return i
+",True,0.06,0.0864,0.0864,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+wrong_1_303,gpt-5.4-mini,rules,"def search(x,seq):
+    for i in range((len(seq)) + 1):
+        if len(seq) == 0:
+            return 0
+        elif x > max(seq):
+            return len(seq)
+        elif x > seq[i]:
+            continue
+        elif x <= seq[i]:
+            break
+        
+    return i
+",True,0.06,0.0744,0.0744,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+wrong_1_321,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    return len(seq)
+",True,0.4848,0.3824,0.3824,0.0,0,0,0.0,[],[]
+wrong_1_322,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    return len(seq)
+",True,0.125,0.4662,0.4662,0.0,0,0,0.0,[],[]
+wrong_1_325,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if seq == ():
+            return None
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    return len(seq)
+",True,0.1026,0.9851,0.9851,0.0,0,0,0.0,[],[]
+wrong_1_326,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if seq == ():
+            return 1
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    return len(seq)
+",True,0.1026,0.6888,0.6888,0.0,0,0,0.0,[],[]
+wrong_1_327,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    return len(seq)
+",True,0.125,0.4236,0.4236,0.0,0,0,0.0,[],[]
+wrong_1_328,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == ():
+        return None
+    elif seq == []:
+        return 0
+    else:
+        next
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        elif x > max(seq):
+            return len(seq)
+        
+        
+       
+            
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+
+",True,0.0208,0.075,0.075,0.0,0,0,0.0,"[""empty_sequence_returns_zero""]",[]
+wrong_1_329,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    if len(seq)< 1:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x <= seq[i]:
+                return i 
+            else:
+                if x > seq[-1]:
+                    return len(seq) 
+                else:
+                    continue
+",True,0.4324,3.4188,3.4188,0.0,0,0,0.0,[],[]
+wrong_1_332,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.1905,3.1222,3.1222,0.0,0,0,0.0,[],[]
+wrong_1_336,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    for i in range(len(seq)-1):
+        if seq[i+1]>=x and x>seq[i]:
+            return i+1
+    return len(seq)
+",True,0.0517,3.335,3.335,0.0,0,0,0.0,[],[]
+wrong_1_342,gpt-5.4-mini,rules,"def search(x, seq):
+    for i in range((len(seq)) + 1):
+        if seq == [] or ():
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+",True,0.0755,0.2907,0.2907,0.0,0,0,0.0,"[""empty_sequence_returns_zero"", ""generic_shift_range""]",[]
+wrong_1_343,gpt-5.4-mini,rules,"def search(x, seq):
+    for i in range((len(seq)) + 1):
+        if seq == [] or ():
+            return 0
+        elif x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+",True,0.0566,0.076,0.076,0.0,0,0,0.0,"[""generic_shift_range""]",[]
+wrong_1_345,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i in range(len(seq)):
+        if x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+",True,0.06,3.6515,3.6515,0.0,0,0,0.0,[],[]
+wrong_1_346,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == () or seq == []:
+            return 0
+    for i in range(len(seq)):
+        if x > seq[-1]:
+            return len(seq)
+        elif x == seq[i]:
+            return i
+        elif x < seq[i]:
+            return i
+",True,0.0566,0.0796,0.0796,0.0,0,0,0.0,"[""wrong_default_empty_return""]",[]
+wrong_1_348,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+    
+",True,0.3043,3.0834,3.0834,0.0,0,0,0.0,[],[]
+wrong_1_349,gpt-5.4-mini,reference,"def search(x, seq):
+    for i,elem in enumerate(seq):
+        if x<=elem:
+            return i
+    return len(seq)
+    
+",True,0.2,3.0896,3.0896,0.0,0,0,0.0,[],[]
+wrong_1_352,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x<=seq[i]:
+            return i
+    return len(seq)
+",True,0.4773,3.3427,3.3427,0.0,0,0,0.0,[],[]
+wrong_1_355,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    position = 0
+    found = False
+    
+    while position < len(seq) and not found:
+        if x <= seq[position]:
+            found = True
+        else:
+            position += 1
+    
+    return position
+",True,0.0488,7.2634,7.2634,0.0,0,0,0.0,[],[]
+wrong_1_363,gpt-5.4-mini,rules,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    elif x <= seq[0]:
+        return 0
+    elif x > seq[-1]:
+        return len(seq)
+    else:
+        for i in range(0, len(seq)-1):
+            if seq[i] <= x <= seq[i+1]:
+                return i+1
+",True,0.0152,0.0749,0.0749,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_371,gpt-5.4-mini,rules,"def search(x, seq):
+    lst1 = list(seq)
+    if lst1 == []:
+        return 0
+    else: 
+        length = len(lst1)
+        lst2 = []
+        if x < seq[0]:
+            lst2 = [x] + lst1
+        elif x >= seq[length -1]:
+            lst2 = lst1 + [x]
+        else:
+            for i in range(0, length):
+                if seq[i] <= x <= seq[i+1]:
+                    lst2 = lst1[:i+1] + [x] + lst1[i+1:]
+    for i in range(len(lst2)):
+        if x == lst2[i]:
+            return i
+",True,0.0088,0.0792,0.0792,0.0,0,0,0.0,"[""strict_gt_to_ge_in_comparison""]",[]
+wrong_1_379,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i in range(0,len(seq)):
+        if x<seq[i]:
+            return i
+        elif x==seq[i]:
+            return i
+        elif x>seq[len(seq)-1]:
+            return len(seq)
+",True,0.814,3.5744,3.5744,0.0,0,0,0.0,[],[]
+wrong_1_381,gpt-5.4-mini,reference,"def search(x, seq):
+    lst1=len(seq)
+    if lst1==0:
+        return 0
+    for i in range(lst1):
+        if x<=seq[i]:
+            break
+    if x>seq[lst1-1]:
+        i=i+1
+    return i
+",True,0.719,5.3325,5.3325,0.0,0,0,0.0,[],[]
+wrong_1_385,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] < x:
+            continue
+        elif x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.4054,3.3732,3.3732,0.0,0,0,0.0,[],[]
+wrong_1_386,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] < x:
+            continue
+        elif x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.2286,3.3799,3.3799,0.0,0,0,0.0,[],[]
+wrong_1_389,gpt-5.4-mini,rules,"def search(x, seq):
+    lst1 = list(seq)
+    if seq == () or seq ==[]:
+        return 0
+    else: 
+        length = len(lst1)
+        lst2 = []
+        if x < seq[0]:
+            lst2 = [x] + lst1
+        elif x >= seq[length -1]:
+            lst2 = lst1 + [x]
+        else:
+            for i in range(0, length):
+                if seq[i] <= x <= seq[i+1]:
+                    lst2 = lst1[:i+1] + [x] + lst1[i+1:]
+        for i in range(len(lst2)):
+            if x == lst2[i]:
+                return i
+",True,0.0083,0.0802,0.0802,0.0,0,0,0.0,"[""strict_gt_to_ge_in_comparison""]",[]
+wrong_1_398,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == ():
+        return ()
+    else:
+        for i in range(len(seq)):
+            if x <= seq[i]:
+                return i
+        return len(seq) 
+",True,0.3,3.5168,3.5168,0.0,0,0,0.0,[],[]
+wrong_1_401,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x > elem:
+            continue
+        else:
+            return i
+    return len(seq)
+",True,0.2,0.1825,0.1825,0.0,0,0,0.0,[],[]
+wrong_1_409,gpt-5.4-mini,rules,"def search(x, seq):
+    for i, element in enumerate(seq):
+        if x <= element:
+            return i
+    return len(seq)
+",True,0.0435,0.0683,0.0683,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison""]",[]
+wrong_1_410,gpt-5.4-mini,reference,"def search(x,seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+        else:
+            continue
+    return len(seq)
+        
+",True,0.2,0.1816,0.1816,0.0,0,0,0.0,[],[]
+wrong_1_411,gpt-5.4-mini,rules,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.1667,0.0753,0.0753,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_412,gpt-5.4-mini,llm,"def search(x, seq):
+    for i in range(len(seq)):
+        if x > seq[i]:
+            continue
+        else:
+            return i
+    return len(seq)",True,0.28,4.4247,3.332,1.0927,388,43,0.000485,[],[]
+wrong_1_421,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range (len(seq)):
+        if x <= seq[i]:
+            return i
+        elif x > seq[i]:
+            continue
+    return len(seq)  # if bigger than the last element 
+",True,0.3514,3.385,3.385,0.0,0,0,0.0,[],[]
+wrong_1_422,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range (len(seq)):
+        if seq == ():
+            return 
+        if x <= seq[i]:
+            return i
+        elif x > seq[i]:
+            continue
+    return len(seq)  # if bigger than the last element 
+",True,0.3023,3.4264,3.4264,0.0,0,0,0.0,[],[]
+wrong_1_426,gpt-5.4-mini,reference,"def search(x,seq):
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.1739,0.1977,0.1977,0.0,0,0,0.0,[],[]
+wrong_1_429,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    for i, elem in enumerate(seq):
+        if x<=elem:
+            return i
+        elif i+1==len(seq):
+            return len(seq)
+        else:
+            continue
+",True,0.3529,0.3939,0.3939,0.0,0,0,0.0,[],[]
+wrong_1_430,gpt-5.4-mini,reference,"def search(x, seq):
+    for i,elem in enumerate(seq):
+        if seq==() or []:
+            return 0
+        elif elem>=x:
+            return i
+        elif x > elem:
+            continue
+        elif x < elem:
+            return i
+    return len(seq)
+",True,0.4318,3.6325,3.6325,0.0,0,0,0.0,[],[]
+wrong_1_435,gpt-5.4-mini,reference,"def search(x, seq):
+    pos = len(seq)
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            pos = i
+            break
+    return pos
+",True,0.5,0.311,0.311,0.0,0,0,0.0,[],[]
+wrong_1_437,gpt-5.4-mini,reference,"def search(x,seq):
+    if type(seq) == tuple:
+        tup = ()
+        for i in seq:
+            if i < x:
+                tup = tup + (i,)
+            else:
+                tup = tup + (x,)
+                break
+        return len(tup) - 1
+        
+    elif type(seq) == list:
+        seq.append(x)
+        a = sorted(seq)
+        return a.index(x)
+        
+",True,0.3086,3.9725,3.9725,0.0,0,0,0.0,[],[]
+wrong_1_444,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    else:
+        y = len(seq)
+        for i in range(y-1):
+            if x > seq[i] and x <= seq[i+1]:
+                return i + 1
+        return y
+",True,0.1923,3.531,3.531,0.0,0,0,0.0,[],[]
+wrong_1_446,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0    
+    if x <= seq[0]:
+        return 0
+    for i in range(len(seq)-1):
+        if seq[i+1]>=x and x>seq[i]:
+            return i+1
+    return len(seq)
+",True,0.62,3.3538,3.3538,0.0,0,0,0.0,[],[]
+wrong_1_449,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, elem in enumerate(seq):
+        if x == elem:
+            return i
+        elif x < seq[0]:
+            return 0
+        elif x < elem and x > seq[i-1]:
+            return i
+
+    return len(seq)
+
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.4364,3.9765,3.9765,0.0,0,0,0.0,[],[]
+wrong_1_452,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] >= x:
+            return i
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.1481,3.1221,3.1221,0.0,0,0,0.0,[],[]
+wrong_1_455,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == [] or seq == (): 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0227,3.1689,3.1689,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+wrong_1_458,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] >= x:
+            return i
+    else:
+        return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.0357,3.1492,3.1492,0.0,0,0,0.0,[],[]
+wrong_1_459,gpt-5.4-mini,reference,"def search(x, seq):
+    for i in range(len(seq)):
+        if seq[i] >= x:
+            return i
+            continue
+    return len(seq)
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+",True,0.1429,3.1777,3.1777,0.0,0,0,0.0,[],[]
+wrong_1_461,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == []: 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0244,3.1767,3.1767,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+wrong_1_462,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == [] or seq == (): 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0227,3.1834,3.1834,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+wrong_1_465,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == [] or (): 
+        return 0
+    elif len(seq) == 1:
+        if seq[0] >= x:
+            return 0
+        else: 
+            return 1
+    elif seq[-1] < x:
+        return len(seq)
+    elif seq[0] >= x:
+        return 0
+    else:
+        for i in range(len(seq)):
+            if x >= seq[i] and x <= seq[i+1]:
+                return i + 1
+",True,0.0235,3.1928,3.1928,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison"", ""generic_flip_compare"", ""generic_flip_compare""]",[]
+wrong_1_469,gpt-5.4-mini,reference,"def search(x, seq):
+    for i, element in enumerate(seq):
+        if x <= element:
+            return i
+    return len(seq)
+",True,0.4615,0.2017,0.2017,0.0,0,0,0.0,[],[]
+wrong_1_471,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == ():
+        return 0
+    elif seq == []:
+        return 0
+    for i, element in enumerate(seq):
+        for element in seq:
+            if seq == ():
+                return 0
+            elif x > element:
+                i+=1
+        return i
+",True,0.4242,0.3976,0.3976,0.0,0,0,0.0,[],[]
+wrong_1_473,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i, element in enumerate(seq):
+            for element in seq:
+                if x > element:
+                    i+=1
+            return i
+",True,0.0909,0.4588,0.4588,0.0,0,0,0.0,[],[]
+wrong_1_476,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i, element in enumerate(seq):
+            for element in seq:
+                if x > element:
+                    i+=1
+            return i
+",True,0.1111,0.121,0.121,0.0,0,0,0.0,"[""generic_flip_bool_op"", ""wrong_default_empty_return""]",[]
+wrong_1_478,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    for i in range(len(seq)):
+        if x <= seq[i]:
+            return i
+    return len(seq)
+",True,0.25,3.237,3.237,0.0,0,0,0.0,[],[]
+wrong_1_481,gpt-5.4-mini,reference,"def search(x, seq):
+    if seq == ():
+        return 0
+    elif seq == []:
+        return 0
+    for i, elem in enumerate(seq):
+        if x < elem: 
+            return i
+        elif x == elem:
+            return i
+        elif i == len(seq)-1:
+            return i+1
+        elif seq == []:
+            return 0
+",True,0.2917,3.6267,3.6267,0.0,0,0,0.0,[],[]
+wrong_1_482,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == []:
+        return 0
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem: 
+                return i
+            elif x == elem:
+                return i
+            elif i == len(seq)-1:
+                return i+1
+            
+",True,0.0208,0.0725,0.0725,0.0,0,0,0.0,"[""strict_lt_to_le_in_comparison""]",[]
+wrong_1_491,gpt-5.4-mini,reference,"def search(x, seq):
+    l=len(seq)
+    if l==0:
+        return 0
+    for i in range(l):
+        if x<=seq[i]:
+            break
+    if x>seq[l-1]:
+        i=i+1
+    return i
+",True,0.1707,3.3281,3.3281,0.0,0,0,0.0,[],[]
+wrong_1_495,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == () or seq == []:
+        return 0
+    else:
+        for i, elem in enumerate (seq):
+            if x<=elem:
+                return i
+            elif x>seq[-1]:
+                return len(seq)
+",True,0.0714,0.0721,0.0721,0.0,0,0,0.0,"[""wrong_default_empty_return""]",[]
+wrong_1_498,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    seq = tuple(seq)
+    if seq == ():
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        i = 0
+        while i <= len(seq)-1:
+            if x <= seq[i]:
+                return i
+            elif x > seq[i]:
+                i += 1
+",True,0.1081,9.2865,9.2865,0.0,0,0,0.0,[],[]
+wrong_1_512,gpt-5.4-mini,reference,"def search(x, seq): 
+    if len(seq) == 0:
+        return 0
+    if int(x) < seq[0]:
+        return 0    
+    elif int(x)> seq[len(seq)-1]:
+        return len(seq)  
+    Index = 0
+    for i in range(0,len(seq)): 
+        if int(x)>seq[i]:
+            continue
+        Index = i
+        return Index
+",True,0.5397,3.5719,3.5719,0.0,0,0,0.0,[],[]
+wrong_1_517,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == []:
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        for i in range(len(seq)):
+            if x > seq[i]:
+                continue
+            else:
+                return i
+",True,0.0222,0.0817,0.0817,0.0,0,0,0.0,"[""generic_flip_compare""]",[]
+wrong_1_519,gpt-5.4-mini,reference,"def search(x, seq):
+    pos = 0
+    for i, element in enumerate(seq):
+        if x <= element:
+            pos = i
+            return pos
+        else:
+            pos += 1
+    return pos
+",True,0.5455,0.3667,0.3667,0.0,0,0,0.0,[],[]
+wrong_1_520,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0 or x < seq[0] :
+        return 0
+    elif x > seq[len(seq)-1]:
+        return len(seq)
+    else:
+        result = 0
+        for i, elem in enumerate(seq):
+            if x < (elem + 1):
+                result = i
+                break
+        return result
+",True,0.2642,3.5622,3.5622,0.0,0,0,0.0,[],[]
+wrong_1_523,gpt-5.4-mini,reference,"def search(x, seq):
+    """""" Takes in a value x and a sorted sequence seq, and returns the
+    position that x should go to such that the sequence remains sorted """"""
+    counter = 0
+    if len(seq) == 0:
+        return 0
+
+    for i in seq:
+        if len(seq) == 0:
+            return none
+        if x <= i:
+            return counter
+        elif x > i:
+            counter += 1
+        else:
+            counter += 1
+
+    return counter
+",True,0.4333,3.5511,3.5511,0.0,0,0,0.0,[],[]
+wrong_1_530,gpt-5.4-mini,reference,"def search(x, seq):
+    length = len(seq)
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return length
+",True,0.3529,0.3662,0.3662,0.0,0,0,0.0,[],[]
+wrong_1_546,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq) == 0:
+        return 0
+    else:
+        for i, elem in enumerate(seq):
+            if x <= elem:
+                return i
+        return len(seq)
+    if x <= min(seq):
+        return 0
+        
+        
+
+",True,0.76,0.3143,0.3143,0.0,0,0,0.0,[],[]
+wrong_1_547,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == ():
+        return 'empty'
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.129,0.0701,0.0701,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_549,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == tuple():
+        return 'not found'
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.125,0.0782,0.0782,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_551,gpt-5.4-mini,reference,"def search(x, seq):
+    if len(seq)==0:
+        return 0
+    if x>seq[len(seq)-1]:
+        return len(seq)
+    for i in range(len(seq)):
+        if x>seq[i]:
+            continue
+        return i
+",True,0.0667,3.4781,3.4781,0.0,0,0,0.0,[],[]
+wrong_1_552,gpt-5.4-mini,rules,"def search(x, seq):
+    if seq == ():
+        return 'not found'
+    for i, elem in enumerate(seq):
+        if x <= elem:
+            return i
+    return len(seq)
+",True,0.129,0.0738,0.0738,0.0,0,0,0.0,"[""off_by_one_return_len_after_scan""]",[]
+wrong_1_559,gpt-5.4-mini,reference,"def search(x, seq):
+    pos = 0
+    for i, element in enumerate(seq):
+        if x <= element:
+            pos = i
+            return pos
+        else:
+            pos += 1
+    return pos
+",True,0.5455,0.3512,0.3512,0.0,0,0,0.0,[],[]
+wrong_1_568,gpt-5.4-mini,reference,"def search(x, seq):
+    position = 0
+    for elem in seq:
+        if x <= elem:
+            break
+        position += 1
+    return position
+",True,0.25,0.2034,0.2034,0.0,0,0,0.0,[],[]

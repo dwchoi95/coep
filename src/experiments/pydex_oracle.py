@@ -124,16 +124,17 @@ def report(model: str) -> pd.DataFrame:
     return df
 
 
-def report_hybrid(model: str) -> pd.DataFrame:
+def report_hybrid(model: str, suite: str = "heldout") -> pd.DataFrame:
     """PyDex and PyDex+T+ on every R1-R5 program: re-queried programs read from
-    their candidates, every other program from its original run."""
+    their candidates, every other program from its original run; "held" is the
+    verdict on T plus the held-out suite (or plus the <suite> suite)."""
     rows = []
     for pid in CS1:
         orig = pd.read_csv(ROOT / "results" / pid / "pydex.csv", keep_default_na=False)
         orig = orig[orig.Model == model].set_index("Buggy")
         got = json.loads(_cands(pid, model).read_text()) if _cands(pid, model).exists() else {}
         v = _judge(pid, model) if got else {}
-        held = _suite(pid)
+        held = _suite(pid, suite)
         picks = {}
         for stem, r in orig.iterrows():
             src = (ROOT / "benchmark" / pid / "buggy" / f"{stem}.py").read_text()
@@ -154,7 +155,7 @@ def report_hybrid(model: str) -> pd.DataFrame:
                              "held": h, "rps": r_, "small": h and r_ is not None and r_ <= 0.25,
                              "usd": usd, "requeried": stem in got})
     df = pd.DataFrame(rows)
-    df.to_csv(OUT / f"hybrid_{model}.csv", index=False)
+    df.to_csv(OUT / f"hybrid_{model}{'' if suite == 'heldout' else '_' + suite}.csv", index=False)
     g = df.groupby("arm", sort=False)
     rep = pd.DataFrame({"RR": 100 * g.fixed.mean(), "RR_held": 100 * g.held.mean(),
                         "RPS": g.rps.mean(), "RR_0.25": 100 * g.small.mean(),
@@ -181,12 +182,14 @@ def main(argv=None) -> int:
                     help="query only programs whose original pick fails T+")
     ap.add_argument("--hybrid", action="store_true",
                     help="report PyDex+T+ from re-queried programs plus original outcomes")
+    ap.add_argument("--suite", default="heldout",
+                    help="--hybrid: the suite beside T (benchmark/<pid>/<suite>.json)")
     args = ap.parse_args(argv)
     if args.action == "query":
         only = _failing_tplus(args.problem, args.model) if args.failing_tplus else None
         query(args.problem, args.model, only)
     elif args.hybrid:
-        report_hybrid(args.model)
+        report_hybrid(args.model, args.suite)
     else:
         report(args.model)
     return 0

@@ -236,7 +236,8 @@ def _run_file(src, tests, tol, stop_early, per_test):
     return (passed, failures), None
 
 
-def _all_pass(source, mode, entry, tests, tol, per_test) -> bool:
+def _all_pass(source, mode, entry, tests, tol, per_test) -> tuple[bool, bool]:
+    """(passes every test, ran past a per-test time limit)."""
     if mode == "stdio":
         out, err = _run_stdio(source, tests, tol, True, per_test)
     elif mode == "file":
@@ -244,9 +245,10 @@ def _all_pass(source, mode, entry, tests, tol, per_test) -> bool:
     else:
         out, err = _run_call(source, entry, tests, tol, True, per_test)
     if err is not None or out is None:
-        return False
-    passed, _failures = out
-    return passed == len(tests) and len(tests) > 0
+        return False, False
+    passed, failures = out
+    return (passed == len(tests) and len(tests) > 0,
+            any(f.get("timeout") for f in failures))
 
 
 def _main_batch(payload):
@@ -254,19 +256,20 @@ def _main_batch(payload):
     mode, entry, tests = payload["mode"], payload.get("entry"), payload["tests"]
     tol, per_test = payload["tol"], payload.get("per_test", 2.0)
     max_pass = payload.get("max_pass", 1)
-    flags, hits = [], 0
+    flags, hung, hits = [], [], 0
     for src in payload["sources"]:
-        ok = False
+        ok = h = False
         try:
-            ok = _all_pass(src, mode, entry, tests, tol, per_test)
+            ok, h = _all_pass(src, mode, entry, tests, tol, per_test)
         except BaseException:            # a bad candidate must not kill the batch
             ok = False
         flags.append(ok)
+        hung.append(h)
         if ok:
             hits += 1
             if hits >= max_pass:         # enough passing candidates collected
                 break
-    print(json.dumps({"pass": flags}))
+    print(json.dumps({"pass": flags, "hung": hung}))
 
 
 def main():

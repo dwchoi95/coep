@@ -63,7 +63,10 @@ def single_site(source: str, candidate: str, _tree: ast.AST | None = None) -> bo
     a subtree or a run of a list, and leaves the rest of the program alone."""
     try:
         return edit_sites(_tree or ast.parse(source), ast.parse(candidate)) == 1
-    except SyntaxError:
+    except (SyntaxError, MemoryError, RecursionError):
+        # Unparsable, or nested past the parser's or the interpreter's stack
+        # (a rule re-applied down a long chain of one-candidate layers): no
+        # program the tests could run.
         return False
 
 
@@ -97,6 +100,7 @@ class RepairResult:
     seconds: float = 0.0
     source: str = "local"                # "local" | "fallback" | "none"
     failure_signature: tuple[str, ...] = ()
+    cut: bool = False                    # the node budget ended the search, not exhaustion
 
     def as_dict(self) -> dict:
         return {"repaired": self.repaired, "rules": list(self.rules),
@@ -137,6 +141,7 @@ class Rule:
 @dataclass
 class SearchBudget:
     candidate_timeout: float = 3.0        # hard wall per candidate (subprocess kill)
+    max_nodes: int = 1000                 # eta_search: candidates the rule search validates
 
 
 def _ordered(rules: list[Rule], signature: tuple[str, ...]) -> list[Rule]:
@@ -163,46 +168,54 @@ def repair(source: str, problem: dict, rules: list[Rule],
     # One depth at a time: expand every program found so far by one more rule
     # application, test that layer, and stop at the first layer that passes.
     #
-    # Nothing here is capped -- not combination length, not candidate count, not
-    # fan-out. Those were three arbitrary numbers, and testing layer by layer
-    # removes the need for them: a submission repaired by one edit costs one
-    # small layer, and the combinatorial blow-up two or three layers down is
-    # only ever reached by submissions no rule set was going to repair anyway,
-    # where ``candidate_timeout`` ends the search.
+    # Only the number of candidates validated is capped, not combination length
+    # or fan-out: a submission repaired by one edit costs one small layer, and
+    # the combinatorial blow-up two or three layers down is only ever reached by
+    # submissions no rule set was going to repair anyway. A count rather than a
+    # wall clock makes the search, and so every patch, independent of machine
+    # load, and bounds |C(b)| in Theorem 4.3.
     #
     # Testing per layer also makes the shallowest repair the one returned, by
     # construction rather than by luck of ordering. Depth is a proxy for patch
     # size, and small patches are the point.
-    deadline = t0 + budget.candidate_timeout
     frontier: list[tuple[str, tuple[str, ...]]] = [(source, ())]
     seen = {source}
     tried = 0
+    exhausted = False
 
-    while frontier and time.time() < deadline:
+    while frontier and tried < budget.max_nodes:
+        room = budget.max_nodes - tried
         layer: list[tuple[str, tuple[str, ...]]] = []
         for parent, prov in frontier:
-            if time.time() >= deadline:
-                break
             for rule in ordered:
+                if len(layer) >= room:
+                    break
                 for cand in rule(parent):
-                    if cand in seen:
+                    if cand in seen or len(layer) >= room:
                         continue
                     seen.add(cand)
                     layer.append((cand, prov + (rule.name,)))
+            if len(layer) >= room:
+                break
         if not layer:
+            exhausted = True
             break
         tried += len(layer)
         cands = [c for c, _ in layer]
-        flags = run_batch(cands, problem,
-                          per_candidate_timeout=budget.candidate_timeout)
+        flags, hung = run_batch(cands, problem, hangs=True,
+                                per_candidate_timeout=budget.candidate_timeout)
         for (cand, prov), ok in zip(layer, flags):
             if ok:
                 return RepairResult(True, cand, prov, tried,
                                     time.time() - t0, "local", signature)
-        frontier = layer
+        # A candidate that ran past a time limit is not rewritten further: its
+        # rewrites keep the loop that hangs it unless one fixes that loop, and a
+        # rewrite at another site commutes with that fix, which the search then
+        # reaches from a program that terminates.
+        frontier = [x for x, h in zip(layer, hung) if not h]
 
     return RepairResult(False, None, (), tried, time.time() - t0,
-                        "none", signature)
+                        "none", signature, cut=not exhausted)
 
 
 # --------------------------------------------------------------- provenance

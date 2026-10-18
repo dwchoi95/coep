@@ -68,14 +68,38 @@ def run(pid: str, ver: str) -> None:
         print(f"{pid} [{m}] {ver or '.'}: CoEP_LF {100 * fixed / len(rows):.2f}%")
 
 
+def judged_direct(rows: list[dict], pid: str, model: str, prob: dict,
+                  buggy_dir: Path) -> list[dict]:
+    """LLM_Direct's logged answer for each program of rows, judged against prob,
+    as event rows: for a run whose acceptance suite is not the campaign's."""
+    from concurrent.futures import ThreadPoolExecutor
+    from src.runner.testing import run_tests
+    from src.utils.metrics import rps
+    cands = json.loads(Path(f"results/{pid}/direct_llm_{model}.json").read_text())
+
+    def judge(r):
+        c = cands[str(r["Buggy"])]
+        code = c.get("candidate") or ""
+        ok = bool(code) and run_tests(code, prob).all_pass
+        src = (buggy_dir / f"{r['Buggy']}.py").read_text()
+        return event_row(str(r["Buggy"]), model, "llm" if ok else "none", ok,
+                         code if ok else None, rps(src, code) if ok else None,
+                         att_api=c.get("s", 0.0), in_tok=c.get("in", 0),
+                         out_tok=c.get("out", 0), api_usd=c.get("usd", 0.0))
+    with ThreadPoolExecutor(8) as ex:
+        return list(ex.map(judge, rows))
+
+
+def escalated(local: list[dict]) -> list[dict]:
+    """The programs the gate sends to the fallback."""
+    return [r for r in local if not (r["Fixed"] and r["RPS"] is not None
+                                     and r["RPS"] <= RPS_GATE)]
+
+
 def splits(root: str = "results/splits") -> None:
     """The same composition for the class splits of Section 5.5, whose acceptance
     suite is each split's own: LLM_Direct's kept answer for a program is judged
     against that split's tests before the gate compares it with the tool's."""
-    import json as _json
-    from concurrent.futures import ThreadPoolExecutor
-    from src.runner.testing import run_tests
-    from src.utils.metrics import rps
     for d in sorted(Path(root).glob("s*/*/*/coep_l.csv")):
         scheme, tag, pid = d.parts[-4], d.parts[-3], d.parts[-2]
         ver = str(d.parent.parent.relative_to("results"))
@@ -85,22 +109,9 @@ def splits(root: str = "results/splits") -> None:
                 continue
             data = (Path("splits_work") / scheme / tag /
                     ("eval_amplified/" + m if pid in ORDER[:5] else "eval") / pid)
-            prob = _json.loads((data / "problem.json").read_text())
-            cands = _json.loads(Path(f"results/{pid}/direct_llm_{m}.json").read_text())
-            need = [r for r in local if not (r["Fixed"] and r["RPS"] is not None
-                                             and r["RPS"] <= RPS_GATE)]
-
-            def judge(r):
-                c = cands[str(r["Buggy"])]
-                code = c.get("candidate") or ""
-                ok = bool(code) and run_tests(code, prob).all_pass
-                src = (data / "buggy" / f"{r['Buggy']}.py").read_text()
-                return event_row(str(r["Buggy"]), m, "llm" if ok else "none", ok,
-                                 code if ok else None, rps(src, code) if ok else None,
-                                 att_api=c.get("s", 0.0), in_tok=c.get("in", 0),
-                                 out_tok=c.get("out", 0), api_usd=c.get("usd", 0.0))
-            with ThreadPoolExecutor(8) as ex:
-                direct = list(ex.map(judge, need))
+            prob = json.loads((data / "problem.json").read_text())
+            need = escalated(local)
+            direct = judged_direct(need, pid, m, prob, data / "buggy")
             write_events(ver, pid, "coep_lf", compose(local, direct + [
                 r for r in local if r not in need]))
         print(f"{ver}/{pid}: composed")
