@@ -233,6 +233,8 @@ class LocalResult:
     rules: tuple[str, ...] = ()       # provenance when a rule fired
     reference_used: str | None = None
     seconds: float = 0.0
+    tried: int = 0                    # candidates validated: |C(b)| of Theorem 4.3
+    cut: bool = False                 # the rule search ended on the wall clock
 
 
 def local_repair(buggy: str, problem: dict, rules, index: ReferenceIndex,
@@ -250,11 +252,12 @@ def local_repair(buggy: str, problem: dict, rules, index: ReferenceIndex,
     rr = repair(buggy, problem, rules, budget)
     if rr.repaired:
         return LocalResult(True, rr.patch, "rules", rr.rules, None,
-                           time.time() - t0)
+                           time.time() - t0, rr.candidates_tried)
 
     ref = reference_repair(buggy, problem, index,
                            candidate_timeout=budget.candidate_timeout)
+    tried = rr.candidates_tried + ref.candidates_tried
     if ref.repaired:
         return LocalResult(True, ref.patch, "reference", (), ref.reference,
-                           time.time() - t0)
-    return LocalResult(False, None, "none", (), None, time.time() - t0)
+                           time.time() - t0, tried, rr.cut)
+    return LocalResult(False, None, "none", (), None, time.time() - t0, tried, rr.cut)

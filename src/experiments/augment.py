@@ -159,16 +159,16 @@ def _draw(code: str, seed: str, n: int = 20 * N_CAND) -> tuple[list[dict], str |
 
 
 def held_keys(pid: str) -> set[str]:
-    """Inputs an amplified suite must avoid: T and the held-out suite."""
-    tests = load_problem(pid, str(BENCH))["tests"]
-    tests += json.loads((BENCH / pid / "heldout.json").read_text())
-    return {_key(t) for t in tests}
+    """Inputs an amplified suite must avoid: T alone. Amplify runs at deployment,
+    where no evaluation suite exists, so it must not see the held-out one; the
+    held-out suite avoids T+ instead (heldout())."""
+    return {_key(t) for t in load_problem(pid, str(BENCH))["tests"]}
 
 
 def amplified_tests(pid: str, code: str, pool_dir: Path | None = None) -> list[dict]:
     """T_amp from a builder's generator: draws (seed `<pid>:llm`) the reference
-    accepts, none in T or the held-out suite, labelled by the voters (seed 1)
-    drawn from pool_dir (default: the whole class)."""
+    accepts, none in T, labelled by the voters (seed 1) drawn from pool_dir
+    (default: the whole class)."""
     problem = load_problem(pid, str(BENCH))
     reference = (BENCH / pid / "reference.py").read_text()
     inputs, _ = _draw(code, f"{pid}:llm")
@@ -214,23 +214,34 @@ def _ask_builder(pid: str, model: str, rounds: int = 3) -> tuple[str, dict]:
     return best[0], cost
 
 
+def tplus_keys(pid: str) -> set[str]:
+    """Inputs of T and of either builder's T_amp, which an evaluation suite avoids."""
+    keys = held_keys(pid)
+    for m in MODELS:
+        f = BENCH / pid / "amplified" / m / "tests.json"
+        keys |= {_key(t) for t in json.loads(f.read_text())} if f.exists() else set()
+    return keys
+
+
 def heldout() -> None:
-    """The held-out evaluation suite: benchmark/<pid>/heldout.json."""
+    """The held-out evaluation suite: benchmark/<pid>/heldout.json, disjoint from
+    T and from both builders' T_amp (run after amplify)."""
     for pid in CS1:
         problem = load_problem(pid, str(BENCH))
         rng = random.Random(pid)
-        cands = _fresh(iter(lambda: _gen(pid, rng), None), {_key(t) for t in problem["tests"]})
+        cands = _fresh(iter(lambda: _gen(pid, rng), None), tplus_keys(pid))
         kept = _vote(pid, cands, 0)
         (BENCH / pid / "heldout.json").write_text(json.dumps(kept, indent=1))
         print(f"{pid}: {len(problem['tests'])} instructor + {len(kept)} held-out tests")
 
 
-def amplify(model: str, regenerate: bool = False) -> None:
-    """CoEP's amplified suite: benchmark/<pid>/amplified/<model>/{generator.py,
-    tests.json, cost.json}. Everything it uses -- the class's correct programs,
-    the reference, and the builder -- is available at deployment."""
+def amplify(model: str, regenerate: bool = False, root: Path = BENCH) -> None:
+    """CoEP's amplified suite: <root>/<pid>/amplified/<model>/{generator.py,
+    tests.json, cost.json}, root = benchmark/ for the campaign. Everything it
+    uses -- the class's correct programs, the reference, and the builder -- is
+    available at deployment."""
     for pid in CS1:
-        d = BENCH / pid / "amplified" / model
+        d = Path(root) / pid / "amplified" / model
         gen = d / "generator.py"
         if regenerate or not gen.exists():
             load_env()
@@ -251,18 +262,20 @@ ARMS = [("refactory", "Refactory"), ("pydex", "PyDex"), ("direct_llm", "LLM_Dire
         ("no_amplification/coep_l", "CoEP_L (T)"), ("no_amplification/coep_lf", "CoEP_LF (T)")]
 
 
-def _suite(pid: str) -> dict:
-    """T plus the held-out tests."""
-    problem = load_problem(pid, str(BENCH))
-    return dict(problem, tests=problem["tests"]
-                + json.loads((BENCH / pid / "heldout.json").read_text()))
+def _suite(pid: str, name: str = "heldout") -> dict:
+    """T plus the held-out tests (or plus benchmark/<pid>/<name>.json), less any
+    input already in T+, so the suite measures correctness beyond the tests."""
+    problem, seen = load_problem(pid, str(BENCH)), tplus_keys(pid)
+    extra = json.loads((BENCH / pid / f"{name}.json").read_text())
+    return dict(problem, tests=problem["tests"] + [t for t in extra if _key(t) not in seen])
 
 
-def check() -> pd.DataFrame:
-    """Re-run every arm's repairs on T plus the held-out suite -> results/heldout.csv."""
+def check(name: str = "heldout") -> pd.DataFrame:
+    """Re-run every arm's repairs on T plus the held-out suite -> results/heldout.csv
+    (or plus the <name> suite -> results/<name>.csv)."""
     rows = []
     for pid in CS1:
-        suite = _suite(pid)
+        suite = _suite(pid, name)
         for stem, arm in ARMS:
             f = ROOT / "results" / pid / f"{stem}.csv"
             if not f.exists():
@@ -287,11 +300,11 @@ def check() -> pd.DataFrame:
                 f"{r['model']} {r['fixed']}->{r['fixed_heldout']}" for r in rows
                 if r["pid"] == pid and r["arm"] == arm))
     df = pd.DataFrame(rows)
-    df.to_csv(ROOT / "results" / "heldout.csv", index=False)
+    df.to_csv(ROOT / "results" / f"{name}.csv", index=False)
     return df
 
 
-def pairs() -> pd.DataFrame:
+def pairs(name: str = "heldout") -> pd.DataFrame:
     """Per-program held-out verdicts of CoEP_LF against PyDex and against CoEP_LF
     accepting T alone: exact McNemar on held-out repair, and Wilcoxon on RPS over
     the programs both arms repaired that survive. -> results/heldout_pairs.csv
@@ -308,7 +321,7 @@ def pairs() -> pd.DataFrame:
     arms = {"coep_lf": "coep_lf", "pydex": "pydex", "coep_lf_t": "no_amplification/coep_lf"}
     rows = []
     for pid in CS1:
-        suite = _suite(pid)
+        suite = _suite(pid, name)
         got = {a: verdicts(ROOT / "results" / pid / f"{stem}.csv", suite)
                for a, stem in arms.items()}
         for m in MODELS:
@@ -318,7 +331,7 @@ def pairs() -> pd.DataFrame:
                     row[a], row[f"{a}_rps"] = got[a].get((m, b), (False, None))
                 rows.append(row)
     df = pd.DataFrame(rows)
-    df.to_csv(ROOT / "results" / "heldout_pairs.csv", index=False)
+    df.to_csv(ROOT / "results" / f"{name}_pairs.csv", index=False)
     for name, g in [*df.groupby("model"), ("pooled", df)]:
         for other in ("pydex", "coep_lf_t"):
             b10 = int((g.coep_lf & ~g[other]).sum())
@@ -338,9 +351,16 @@ def main(argv=None) -> int:
     ap.add_argument("--model", default="claude-sonnet-5", help="amplify: the builder")
     ap.add_argument("--regenerate", action="store_true",
                     help="amplify: ask the builder for a new generator")
+    ap.add_argument("--root", default=str(BENCH),
+                    help="amplify: where to write <pid>/amplified/<model>/ (a rebuild)")
+    ap.add_argument("--suite", default="heldout",
+                    help="check/pairs: the suite beside T (benchmark/<pid>/<suite>.json)")
     args = ap.parse_args(argv)
-    {"heldout": heldout, "check": check, "pairs": pairs}.get(
-        args.action, lambda: amplify(args.model, args.regenerate))()
+    if args.action in ("check", "pairs"):
+        {"check": check, "pairs": pairs}[args.action](args.suite)
+    else:
+        {"heldout": heldout}.get(
+            args.action, lambda: amplify(args.model, args.regenerate, Path(args.root)))()
     return 0
 
 

@@ -30,6 +30,9 @@ COMMANDS = {
     # analyses
     "stats": ("stats_report", "main"),     # Wilson intervals + exact McNemar
     "pool": ("pool_ablation", "main"),     # the Synthesize ablation as the pool thins
+    "thin-pool": ("pool_ablation", "split_main"),  # the same on Section 5.5's splits
+    "search-size": ("search_size", "main"),  # |C(b)| of Theorem 4.3 per program
+    "rebuild": ("rebuild", "main"),        # build every tool again, twice, and re-evaluate
     "compose": ("compose", "main"),        # CoEP_LF from the tool's run and the logged query
     "ablation": ("ablation", "main"),      # what the rules and T+ buy CoEP_LF, from the logs
     "pydex-oracle": ("pydex_oracle", "main"),  # PyDex accepting T+, and its K curve

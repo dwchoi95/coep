@@ -140,8 +140,10 @@ _SHARD_MIN = 64          # below this, one child is cheaper than several
 
 
 def _run_shard(sources: list[str], problem: dict, per_candidate_timeout: float,
-               per_test: float, max_pass: int) -> list[bool]:
-    """Test one shard of candidates in a single child process."""
+               per_test: float, max_pass: int) -> tuple[list[bool], list[bool]]:
+    """Test one shard of candidates in a single child process: (passes every
+    test, ran past a per-test time limit) for each."""
+    none = [False] * len(sources)
     payload = {
         "batch": True,
         "sources": sources,
@@ -163,25 +165,27 @@ def _run_shard(sources: list[str], problem: dict, per_candidate_timeout: float,
         proc = subprocess.run([sys.executable, str(_RUNNER), path],
                               capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return [False] * len(sources)
+        return none, [True] * len(sources)
     finally:
         Path(path).unlink(missing_ok=True)
     line = (proc.stdout or "").strip().splitlines()
     if not line:
-        return [False] * len(sources)
+        return none, none
     try:
         out = json.loads(line[-1])
     except json.JSONDecodeError:
-        return [False] * len(sources)
-    flags = out.get("pass", [])
-    return (flags + [False] * len(sources))[:len(sources)]
+        return none, none
+    return ((out.get("pass", []) + none)[:len(sources)],
+            (out.get("hung", []) + none)[:len(sources)])
 
 
 def run_batch(sources: list[str], problem: dict,
               per_candidate_timeout: float = 3.0,
               per_test: float = PER_TEST_TIMEOUT,
-              max_pass: int = 1, workers: int | None = None) -> list[bool]:
-    """Test many candidate programs; return all_pass for each, in order.
+              max_pass: int = 1, workers: int | None = None,
+              hangs: bool = False):
+    """Test many candidate programs; return all_pass for each, in order (with
+    ``hangs``, also whether each ran past a per-test time limit).
 
     Spawning a subprocess per candidate dominates repair time when a search
     tries hundreds, so candidates are batched into child processes rather than
@@ -200,29 +204,31 @@ def run_batch(sources: list[str], problem: dict,
     earliest ``True``. Order candidates best-first.
     """
     if not sources:
-        return []
+        return ([], []) if hangs else []
     if workers is None:
         workers = max(1, (os.cpu_count() or 2) - 1)
     if workers <= 1 or len(sources) <= _SHARD_MIN:
-        return _run_shard(sources, problem, per_candidate_timeout, per_test,
-                          max_pass)
+        out, hung = _run_shard(sources, problem, per_candidate_timeout, per_test,
+                               max_pass)
+        return (out, hung) if hangs else out
 
     from concurrent.futures import ThreadPoolExecutor
 
     size = max(1, (len(sources) + workers - 1) // workers)
     shards = [(i, sources[i:i + size]) for i in range(0, len(sources), size)]
-    out = [False] * len(sources)
+    out, hung = [False] * len(sources), [False] * len(sources)
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(_run_shard, part, problem, per_candidate_timeout,
                                per_test, max_pass): start
                    for start, part in shards}
         for fut, start in futures.items():
             try:
-                flags = fut.result()
+                flags, h = fut.result()
             except Exception:                   # noqa: BLE001 - shard died
                 continue
             out[start:start + len(flags)] = flags
-    return out
+            hung[start:start + len(h)] = h
+    return (out, hung) if hangs else out
 
 
 def passes(source: str, problem: dict, timeout: float | None = None) -> bool:

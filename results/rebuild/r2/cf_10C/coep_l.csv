@@ -1,0 +1,74 @@
+Buggy,Model,Source,Patch,Fixed,RPS,ATT_all,ATT_cpu,ATT_api,InT,OuT,$API,Rules_L,Rules_SL
+134903349,claude-sonnet-5,rules,"def d(n):
+	while len(str(n))!=1:
+		n = sum(int(d) for d in str(n))
+	return n
+
+n = int(input())
+q, r = divmod(n, 9)
+__d = [q] + [q + 1] * r + [q] * (8 - r)
+__res = 0
+for __i in range(9):
+    for __j in range(9):
+        __res += __d[__i] * __d[__j] * __d[(__i * __j) % 9]
+for __k in range(1, n + 1):
+    __res -= n // __k
+print(__res)
+",True,2.5278,0.8715,0.8715,0.0,0,0,0.0,"[""digital_root_bruteforce_to_closed_form""]",[]
+70108877,claude-sonnet-5,rules,"def digr(n):
+    x = sum(int(dig) for dig in str(n))
+    if x<10:
+        return x
+    else:
+        return digr(x)
+n=int(input())
+q, r = divmod(n, 9)
+__d = [q] + [q + 1] * r + [q] * (8 - r)
+__res = 0
+for __i in range(9):
+    for __j in range(9):
+        __res += __d[__i] * __d[__j] * __d[(__i * __j) % 9]
+for __k in range(1, n + 1):
+    __res -= n // __k
+print(__res)
+",True,0.8526,3.8195,3.8195,0.0,0,0,0.0,"[""digital_root_bruteforce_to_closed_form""]",[]
+82322301,claude-sonnet-5,rules,"n=int(input())
+q, r = divmod(n, 9)
+__d = [q] + [q + 1] * r + [q] * (8 - r)
+__res = 0
+for __i in range(9):
+    for __j in range(9):
+        __res += __d[__i] * __d[__j] * __d[(__i * __j) % 9]
+for __k in range(1, n + 1):
+    __res -= n // __k
+print(__res)
+",True,0.9681,5.1617,5.1617,0.0,0,0,0.0,"[""digital_root_bruteforce_to_closed_form""]",[]
+134903349,gpt-5.4-mini,reference,"n = int(input())
+q,r = divmod(n,9)
+d = [q]+[q+1]*r+[q]*(8-r)
+res = 0
+for i in range(9):
+    for j in range(9):
+        res += d[i]*d[j]*d[(i*j)%9]
+for i in range(1,n+1): res -= n//i
+print(res)",True,3.2778,3.1143,3.1143,0.0,0,0,0.0,[],[]
+70108877,gpt-5.4-mini,rules,"n = int(input())
+q, r = divmod(n, 9)
+d = [q] + [q + 1] * r + [q] * (8 - r)
+res = 0
+for i in range(9):
+    for j in range(9):
+        res += d[i] * d[j] * d[(i * j) % 9]
+for i in range(1, n + 1):
+    res -= n // i
+print(res)",True,1.1158,4.1225,4.1225,0.0,0,0,0.0,"[""digital_root_to_counting_formula""]",[]
+82322301,gpt-5.4-mini,rules,"n = int(input())
+q, r = divmod(n, 9)
+d = [q] + [q + 1] * r + [q] * (8 - r)
+res = 0
+for i in range(9):
+    for j in range(9):
+        res += d[i] * d[j] * d[(i * j) % 9]
+for i in range(1, n + 1):
+    res -= n // i
+print(res)",True,0.9362,4.3272,4.3272,0.0,0,0,0.0,"[""digital_root_to_counting_formula""]",[]
